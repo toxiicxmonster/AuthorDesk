@@ -21,9 +21,9 @@ PC only: AuthorDesk.exe serves app/dist on localhost:47820 and proxies /api/* to
 | `storage/` | Dexie database, repository functions (create/update/archive/reorder/move/split/merge, snapshots, change log), search, backlinks, migrations, settings. | domain |
 | `editor/` | TipTap configuration, refLink mark, proofreading & find plugins, autosave/flush, find bar. | storage, proofreading |
 | `proofreading/` | `ProofreadingProvider` interface, deterministic rules, Hunspell spell worker. No DOM, no storage. | domain |
-| `importExport/` | Archive build/parse/validate/import, exporters, text import, Google Drive client. | storage, domain |
+| `importExport/` | Archive build/parse/validate/import, exporters (DOCX/TXT/MD/JSON/CSV), text import, import-your-own-files (`bundleImport`, tolerant `csv`), Amazon KDP publishing (`publish` model + preflight, `epub`, `kdpDocx`), Google Drive client. | storage, domain |
 | `sync/` | Three-way merge (pure), sync engine (transport-agnostic), controller (HTTP transport, status, background scheduling). | storage |
-| `ui/` | Pages, components, hash router, UI store (toasts/dialogs/panels). | everything above |
+| `ui/` | Pages, components, hash router, UI store (toasts/dialogs/panels), themes (`theme.ts`: five base colours → CSS tokens, contrast check). | everything above |
 
 ## Data model
 
@@ -40,3 +40,6 @@ Schema evolution: Dexie versions for indexes; `storage/migrations.ts` for record
 - **Search:** in-memory scan of local data; fast enough for typical novels (hundreds of thousands of words) and works offline.
 - **Archive format:** zip with `manifest.json` (format, schema version, counts, SHA-256 per file), `data/<table>.json`, `preferences.json`, `boardTemplates.json`. Import validates paths, sizes, checksums and every record before touching data, and previews new/identical/different counts.
 - **Sync:** see `docs/sync-server.md` and ADR 0002.
+- **Import your own files:** reads a folder/zip of chapter files and CSV sheets into an in-memory bundle, previews it, then writes everything through the repository so ids, revs and the change log are normal. Links are resolved by name/alias; unmatched names are reported, never guessed.
+- **KDP publishing:** `publish.ts` builds a format-independent model (chapters, front/back matter, smart punctuation on a copy, page estimate, preflight). `epub.ts` writes EPUB 3 (mimetype stored first, nav + NCX + landmarks); `kdpDocx.ts` writes eBook or print `.docx` with the `docx` library, then post-processes `settings.xml` to add `<w:mirrorMargins/>` in schema order. The manuscript itself is never modified.
+- **Themes:** a theme is five colours; `theme.ts` derives the full token set and applies it as CSS variables on `:root`. Custom themes are stored in settings and exported as small JSON files.

@@ -31,7 +31,10 @@ Last updated: 2026-10-11. Legend: ✅ done & tested · 🟡 done, needs real-wor
 
 ## Phase 7 — Google Drive 🟡
 - drive.file OAuth (GIS token client, memory-only token), folder creation, versioned upload, list, download → import preview, disconnect/revoke, error handling.
-- **Needs:** owner’s OAuth client ID and a real round-trip test (`docs/google-drive-setup.md`).
+- Setup guide brought up to date with the current Google Cloud console (Google Auth Platform: Branding / Audience / Data Access / Clients), with a troubleshooting table. No CSP/COOP headers in the app or launcher block Google sign-in.
+- No folder picker: backups go to an app-created “AuthorDesk Backups” folder.
+- Release zips ship without a client ID (a *Testing* OAuth app only works for its listed test users).
+- **Needs:** owner’s OAuth client ID in `app/.env.local`, a rebuild, and a real round-trip test (`docs/google-drive-setup.md`).
 
 ## Usability & themes ✅
 - Welcome screen + sample book; Ctrl+K quick switcher (chapters, scenes, entries, notes, cards, commands, themes); Help panel; labelled toolbar; selection bubble menu; click-to-rename titles (scene header, chapter list via double-click/F2, board columns); one-time editor tips; Trash wording everywhere; type chooser for new entries with duplicate warning; progressive profile fields with “add detail” chips; board quick-add.
@@ -52,6 +55,11 @@ Last updated: 2026-10-11. Legend: ✅ done & tested · 🟡 done, needs real-wor
 - ✅ Large-manuscript test (300k words, 300 chapters, 2,000 references; fake IndexedDB so real browsers are faster): search 36 ms, backlinks 34 ms, archive build+parse 193 ms, proofreading 5k words 25 ms (`tests/perf.test.ts`).
 - ⬜ PWA install test on Android (needs the HTTPS host).
 - ⬜ Security review of a deployed server.
+
+## Repository & releases
+- ✅ Source pushed to GitHub (`toxiicxmonster/AuthorDesk`, `main`). Ignored: `AuthorDesk.exe`, `app/dist`, `node_modules`, `.env*`, `sync-server.txt`, databases, backups, exports.
+- ✅ README rewritten for GitHub: install from Releases, building `AuthorDesk.exe`, packaging a release zip.
+- 🟡 v0.1 release zip (`AuthorDesk.exe` + `dist/` + README.txt + `sync-server.example.txt`) built and checked by extracting it; publishing it needs `gh auth login`.
 
 ## Risks
 - Browser storage eviction → `navigator.storage.persist()` requested; backup reminders; diagnostics show whether storage is protected.

@@ -1,5 +1,49 @@
 # Project.md --- AuthorDesk
 
+## 0. Current State (updated 2026-10-11)
+
+**Version:** 0.1. Source is in the GitHub repository
+`toxiicxmonster/AuthorDesk`, which should be private. The v0.1 Windows
+release zip (`AuthorDesk.exe` plus the built app) is packaged, waiting
+to be published on the Releases page.
+
+**Status:** every feature area in this specification is implemented and
+covered by automated tests (128 tests, plus lint and type checks).
+What remains is real-world verification that can't be done from the
+development machine. Legend: ✅ done and tested · 🟡 done, needs
+real-world verification · ⬜ not started.
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Manuscript editor, chapter/scene navigation | ✅ | §5 |
+| Character and world reference | ✅ | §6 |
+| Story board, outline, timeline, plot threads | ✅ | §7, §8 |
+| Proofreading (on-device) | ✅ | §9; no remote provider connected, by design |
+| Search, backlinks | ✅ | §12 |
+| Archive import/export, other export formats | ✅ | §11 |
+| Cross-device sync (self-hosted server) | 🟡 | §10; needs an HTTPS deployment and a real phone install |
+| Google Drive backup/restore | 🟡 | §11; built, waiting on the owner's OAuth client ID and a real round-trip test |
+| Windows launcher (`AuthorDesk.exe`) | ✅ | §22 |
+| Themes, ease-of-use features | ✅ | §22 |
+| Import an existing book from files | ✅ | §22 |
+| Amazon KDP publishing export | 🟡 | §22; needs a real KDP upload and an EPUBCheck run |
+| Accessibility audit, Android PWA install, deployed-server security review | ⬜ | §18, Phase 8 |
+
+**Decisions taken** (details in `docs/adr/`):
+
+- Local-first PWA (React, TypeScript, Vite, TipTap, Dexie/IndexedDB,
+  zod), launched on Windows by a small C# launcher (ADR 0001).
+- Sync uses option 1 from §2: a small **self-hosted** Node + SQLite
+  server with login and per-record versioned sync. The GitHub-as-data
+  provider was not built (ADR 0002).
+- Google Drive uses the `drive.file` scope with an in-memory token and
+  no client secret.
+
+Day-to-day status lives in `IMPLEMENTATION_PLAN.md`; setup and usage are
+in `README.md` and `docs/`.
+
+------------------------------------------------------------------------
+
 ## 1. Project Overview
 
 **Working name:** AuthorDesk\
@@ -68,6 +112,12 @@ ultimately wants GitHub Pages specifically, explain the privacy
 limitations and propose a safe authenticated architecture before
 implementing it.
 
+> **Implemented:** option 1. `server/` is a self-hostable sync server
+> (Node 22.5+, `node:sqlite`, no npm dependencies). It provides scrypt
+> passphrases, HttpOnly SameSite=Strict session cookies, an anti-CSRF
+> header, rate-limited login, and per-record versioned push/pull.
+> Option 3 (manual archive) is also available. GitHub Pages is not used.
+
 ------------------------------------------------------------------------
 
 ## 3. Target Platforms
@@ -78,6 +128,11 @@ implementing it.
 -   Android phone browser, with installable PWA support.
 -   Responsive layout for desktop, tablet, and phone.
 -   Offline editing and local autosave.
+
+> **Implemented:** on Windows the app is opened by `AuthorDesk.exe`.
+> The exe serves the built PWA on `http://localhost:47820` (loopback
+> only) in an Edge/Chrome app window with a dedicated profile. On a
+> phone the PWA is installed from the HTTPS sync server's address.
 
 ### Design principles
 
@@ -99,6 +154,15 @@ Top-level areas: 1. **Home / Projects** 2. **Manuscript** 3. **Story
 Board** 4. **Characters** 5. **World & Reference** 6. **Timeline** 7.
 **Plot Threads** 8. **Research & Notes** 9. **Writing Assistant** 10.
 **Import / Export & Sync** 11. **Settings**
+
+> **Implemented as:**
+> - **Home**, **Write** (manuscript), **Story Board** (with Outline),
+>   **References**, **Timeline**, **Plot Threads**, **Notes**, **Search**,
+>   **Backup & Sync** and **Settings**.
+> - Characters and World share **References**, filtered by type.
+> - The writing assistant lives in the editor and its **Proofread** side
+>   panel.
+> - A **Ctrl+K** quick switcher reaches every area, record and command.
 
 A project represents one book or a series. A series may contain multiple
 books, and each book has its own manuscript and planning materials while
@@ -475,7 +539,8 @@ flow; never ask the user to paste their Google password.
 ### Google Drive UX
 
 -   Connect/disconnect Google Drive.
--   Choose destination folder.
+-   Choose destination folder. *(Not yet: backups go to an "AuthorDesk
+    Backups" folder created by the app.)*
 -   Export a snapshot to Drive.
 -   Import from Drive.
 -   Optional manual "Back up now" and "Restore backup".
@@ -677,7 +742,7 @@ attempt the entire application in one giant change. Keep `PROJECT.md`
 (this file), `README.md`, and a running `IMPLEMENTATION_PLAN.md`
 updated.
 
-### Phase 0 --- Repository and technical design
+### Phase 0 --- Repository and technical design ✅
 
 -   Inspect the existing repository before changing anything.
 -   If empty, scaffold the project.
@@ -690,7 +755,7 @@ updated.
 -   Verify the chosen approach does not expose private manuscripts or
     tokens.
 
-### Phase 1 --- Usable local writing MVP
+### Phase 1 --- Usable local writing MVP ✅
 
 -   Projects and books.
 -   Chapters and scenes.
@@ -704,7 +769,7 @@ updated.
 **Milestone:** The user can write a small book locally, close/reopen the
 app, and reliably find and edit any chapter.
 
-### Phase 2 --- Reference library
+### Phase 2 --- Reference library ✅
 
 -   Character profiles.
 -   Locations, factions, items, lore, glossary, and notes.
@@ -714,7 +779,7 @@ app, and reliably find and edit any chapter.
 **Milestone:** The user can write while looking up characters and world
 details without losing their place.
 
-### Phase 3 --- Story planning
+### Phase 3 --- Story planning ✅
 
 -   Outline and visual board.
 -   Scene cards, statuses, filters, and reordering.
@@ -725,7 +790,7 @@ details without losing their place.
 **Milestone:** A complete outline can be planned and connected to
 manuscript scenes.
 
-### Phase 4 --- Proofreading
+### Phase 4 --- Proofreading ✅
 
 -   Custom dictionary.
 -   Spelling and deterministic writing checks.
@@ -737,7 +802,7 @@ manuscript scenes.
 **Milestone:** Suggestions help the author while never silently changing
 text.
 
-### Phase 5 --- Complete archive import/export
+### Phase 5 --- Complete archive import/export ✅
 
 -   Versioned project archive.
 -   JSON, Markdown, TXT, and DOCX export as feasible.
@@ -748,7 +813,11 @@ text.
 **Milestone:** The full project can be backed up and restored without
 losing relationships.
 
-### Phase 6 --- Cross-device sync
+### Phase 6 --- Cross-device sync 🟡
+
+> Built and tested with two simulated devices and a local phone test.
+> **Needs:** an HTTPS deployment the phone can reach (see
+> `docs/sync-server.md`), then a real phone test.
 
 -   Authentication and chosen sync provider.
 -   Local-first background sync.
@@ -759,7 +828,13 @@ losing relationships.
 **Milestone:** A chapter edited on PC becomes available on the phone,
 and conflicting edits are never silently lost.
 
-### Phase 7 --- Google Drive
+### Phase 7 --- Google Drive 🟡
+
+> Built: OAuth connect/disconnect/revoke, versioned backups, list and restore
+> with the import preview, and error handling. Backups go to a fixed
+> "AuthorDesk Backups" folder; there is no folder picker yet.
+> **Needs:** the owner's OAuth client ID (`docs/google-drive-setup.md`)
+> and a real round-trip test.
 
 -   OAuth connection.
 -   Folder selection.
@@ -770,7 +845,12 @@ and conflicting edits are never silently lost.
 **Milestone:** The user can move a complete project to/from Google Drive
 and restore it.
 
-### Phase 8 --- Hardening and polish
+### Phase 8 --- Hardening and polish (partly done)
+
+> ✅ Large-manuscript performance (300k words), keyboard and focus handling,
+> phone-width layout, user guide, backup/restore walkthrough, release zip.
+> ⬜ Formal screen-reader audit, Android PWA install test, security review
+> of a deployed server.
 
 -   Accessibility audit.
 -   Large-manuscript performance.
@@ -819,26 +899,29 @@ and restore it.
 
 ## 20. Initial Acceptance Checklist
 
--   [ ] App runs locally with documented commands.
+Status as of 2026-10-11. PWA install is waiting on the HTTPS sync host.
+Google Drive is clearly marked as not yet verified in the app and docs.
+
+-   [x] App runs locally with documented commands.
 -   [ ] PWA can be installed on a supported device.
--   [ ] Create and reopen a project without data loss.
--   [ ] Create, rename, reorder, and jump between chapters.
--   [ ] Write and autosave manuscript text.
--   [ ] Search across chapters.
--   [ ] Open character/location reference while writing.
--   [ ] Create and move story board cards.
--   [ ] Run proofreading and accept/ignore/undo a suggestion.
--   [ ] Export a full project archive.
--   [ ] Import the archive into a clean workspace and verify content and
+-   [x] Create and reopen a project without data loss.
+-   [x] Create, rename, reorder, and jump between chapters.
+-   [x] Write and autosave manuscript text.
+-   [x] Search across chapters.
+-   [x] Open character/location reference while writing.
+-   [x] Create and move story board cards.
+-   [x] Run proofreading and accept/ignore/undo a suggestion.
+-   [x] Export a full project archive.
+-   [x] Import the archive into a clean workspace and verify content and
     links.
--   [ ] Offline edits remain available after reconnecting.
--   [ ] Sync conflicts preserve both versions.
--   [ ] Google Drive import/export is authorized and tested, or clearly
+-   [x] Offline edits remain available after reconnecting.
+-   [x] Sync conflicts preserve both versions.
+-   [x] Google Drive import/export is authorized and tested, or clearly
     marked as not yet implemented.
--   [ ] No credentials or private manuscript content are committed to
+-   [x] No credentials or private manuscript content are committed to
     the source repository by default.
--   [ ] Desktop and phone layouts are usable.
--   [ ] Tests, lint, and type checks pass.
+-   [x] Desktop and phone layouts are usable.
+-   [x] Tests, lint, and type checks pass.
 
 ## 21. Product Principle
 
@@ -846,3 +929,79 @@ and restore it.
 writing assistance advises rather than takes control.** The author must
 always be able to find, export, recover, and retain ownership of their
 work.
+
+------------------------------------------------------------------------
+
+## 22. Scope Added During Development
+
+These were requested by the owner after the original specification and
+are implemented. They follow the same privacy rules: nothing leaves the
+device, and the author's prose is never changed without an explicit
+action.
+
+### Windows launcher and releases
+
+-   `AuthorDesk.exe` (`launcher/AuthorDesk.cs`) is built by
+    `scripts/build.ps1` with the C# compiler that ships with Windows.
+-   It serves `app/dist` on `http://localhost:47820`, loopback only,
+    with a fixed port because browser storage is per origin.
+-   It opens an Edge/Chrome app window with a dedicated profile in
+    `%LOCALAPPDATA%\AuthorDesk\BrowserProfile`.
+-   It has a tray icon (Open, Open data folder, Quit) and stops when
+    the window closes.
+-   It forwards `/api/*` to an HTTPS sync server named in
+    `sync-server.txt`.
+-   A desktop shortcut comes from `scripts/create-shortcut.ps1`.
+-   Release zips (exe + built app) are published on GitHub Releases;
+    the exe and `app/dist` are never committed.
+
+### Ease of use
+
+-   Welcome screen with a sample book.
+-   Ctrl+K quick switcher for every record and command.
+-   Help panel (F1), a labelled toolbar and a selection pop-up menu.
+-   Click-to-rename titles and one-time tips.
+-   "Trash" wording for soft deletes, and progressive profile fields.
+
+### Themes
+
+-   Built-in themes: Paper, Sepia, Pastel Blue, Sage, Cozy Cottage and
+    Night, plus "Match my device".
+-   User-created themes are made from five colours (background, panels,
+    page, text, accent), with a live preview and a WCAG contrast check.
+-   Themes can be shared and imported as files.
+-   Built-in themes meet at least 7:1 text contrast on the writing page.
+
+### Import an existing book from files
+
+-   Imports a folder or zip of `chapters/*.md|txt` plus CSV
+    spreadsheets: characters, locations, world entries, story board,
+    timeline and plot threads. `notes/` and per-character Markdown
+    files are also read.
+-   The CSV reader is tolerant, and recognises alternative header names.
+-   Unknown columns become custom fields.
+-   Records are linked by name and alias, and unmatched names are
+    reported.
+-   Everything is previewed before import.
+-   The exact layout is in `IMPORTING.md`. `docs/import-template/` is
+    both the documented example and the in-app starter template.
+
+### Amazon KDP publishing
+
+-   **Kindle eBook:** EPUB 3 with nav, landmarks, NCX and an optional
+    cover, or a Word `.docx` with Heading 1 chapters.
+-   **Print interior `.docx`:**
+    -   KDP trim sizes, with mirrored margins sized to KDP's gutter rules
+        for the page count
+    -   chapters starting on right-hand pages, with no page number on
+        chapter openings
+    -   title, copyright, dedication and about-the-author pages
+-   **Optional table of contents:**
+    -   eBooks get entries that link to each chapter.
+    -   Print gets either a chapter list or dot leaders with page
+        numbers, which Word fills in on open.
+-   Smart punctuation is applied to the exported copy only.
+-   A preflight checklist flags missing author details, empty chapters,
+    TK/TODO notes and KDP's 24--828 page limits.
+-   Publishing details are saved with the book.
+-   Still to verify: a real KDP upload, and EPUBCheck.
