@@ -1,0 +1,12 @@
+{
+  "name": "authordesk-sync-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hostable private sync server for AuthorDesk (Node 22.5+, no dependencies).",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node index.js",
+    "add-user": "node index.js add-user"
+  }
+}

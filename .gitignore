@@ -1,0 +1,30 @@
+# Dependencies & build output
+node_modules/
+app/dist/
+app/dev-dist/
+*.tsbuildinfo
+
+# Launcher build output (rebuild with scripts/build.ps1)
+AuthorDesk.exe
+
+# Secrets & personal configuration — never commit
+.env
+.env.*
+!.env.example
+sync-server.txt
+
+# Private writing data — never commit manuscripts, backups or exports
+server/data/
+*.db
+*.db-wal
+*.db-shm
+*.authorproj
+exports/
+backups/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
