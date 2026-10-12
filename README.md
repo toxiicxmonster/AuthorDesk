@@ -1,46 +1,264 @@
 # AuthorDesk
 
-A private, local-first writing studio for novelists: manuscript editor, chapter/scene navigation, character & world reference, story board, timeline, plot threads, on-device proofreading, full-project backups, and optional self-hosted sync between PC and phone.
+**A private, local-first writing studio for novelists.** Write your book, keep track of your characters and world, plan the plot, proofread on your own computer, and export a manuscript ready for Amazon KDP, all in one window and without sending your writing anywhere.
 
-Your writing lives on your device (browser IndexedDB). Nothing is uploaded unless you set up sync or Google Drive yourself. See [`PROJECT.md`](PROJECT.md) for the product spec and [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) for status.
+- **Your writing stays on your computer.** No account, no cloud, no analytics. Nothing leaves your device unless you set up sync or Google Drive yourself.
+- **Works offline.** It's a web app (PWA) that runs from a small local launcher, `AuthorDesk.exe`, on Windows.
+- **You own your data.** Backups are ordinary zip files with plain JSON inside, and you can export to Word, Markdown, text, EPUB and CSV at any time.
 
-## Quick start (Windows)
+> **Version 0.1.** All planned features are built and covered by automated tests. A few parts still need real-world checks; see [Project status](#project-status).
 
-1. Build once (needs Node 22.5+):
+---
 
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\build.ps1
-   ```
+## Contents
 
-   This installs dependencies, runs the tests, builds the web app into `app\dist`, and compiles `AuthorDesk.exe` with the C# compiler that ships with Windows.
+- [Install (download a release)](#install-download-a-release)
+- [What it does](#what-it-does)
+- [Building from source and generating AuthorDesk.exe](#building-from-source-and-generating-authordeskexe)
+- [How the launcher works](#how-the-launcher-works)
+- [Where your data lives and backups](#where-your-data-lives-and-backups)
+- [Bringing in an existing book](#bringing-in-an-existing-book)
+- [Publishing on Amazon KDP](#publishing-on-amazon-kdp)
+- [Optional: sync between PC and phone](#optional-sync-between-pc-and-phone)
+- [Optional: Google Drive backups](#optional-google-drive-backups)
+- [Development](#development)
+- [Project layout](#project-layout)
+- [Privacy and security](#privacy-and-security)
+- [Project status](#project-status)
+- [Known limitations](#known-limitations)
+- [Documentation](#documentation)
 
-2. Create a desktop shortcut:
+---
 
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\create-shortcut.ps1
-   ```
+## Install (download a release)
 
-3. Double-click **AuthorDesk**. The launcher serves the app on `http://localhost:47820` (this computer only) and opens it in its own window using Edge or Chrome with a dedicated profile in `%LOCALAPPDATA%\AuthorDesk\BrowserProfile`. Closing the window stops the server; a tray icon offers *Open*, *Open data folder* and *Quit*.
+You don't need Node or any developer tools to use AuthorDesk.
 
-> **Your data lives in that browser profile**, tied to the address `localhost:47820`. Don’t change the port, and back up regularly (Backup & Sync → Save backup). Opening `localhost:47820` in your everyday browser shows a *separate*, empty workspace.
+1. Open the [**Releases**](../../releases) page and download `AuthorDesk-v0.1-windows.zip`.
+2. Unzip it somewhere permanent, such as `C:\Users\<you>\AuthorDesk`. Keep `AuthorDesk.exe` and the `dist` folder together; the exe serves the app from that folder.
+3. Double-click **AuthorDesk.exe**. To add a desktop shortcut, right-click it and choose **Send to → Desktop (create shortcut)**.
+4. Windows may show "Windows protected your PC" because the exe isn't code-signed. Click **More info → Run anyway**. If you'd rather not, [build it yourself](#building-from-source-and-generating-authordeskexe) from the source code.
 
-## Features
+**Requirements:** Windows 10 or 11 with Microsoft Edge (installed by default) or Google Chrome. The .NET Framework 4 it needs is part of Windows.
+
+**Updating:** download the new release and replace the old folder. Your books are not stored in that folder (see [Where your data lives](#where-your-data-lives-and-backups)), so they carry over.
+
+---
+
+## What it does
 
 | Area | What you get |
 | --- | --- |
-| Ease of use | First-run welcome with a ready-made sample book; Ctrl+K quick switcher to jump to any chapter, character, note or command; click-to-rename titles; selection pop-up (bold, italic, link to character); labelled toolbar; one-time tips; Help panel (F1); Trash instead of hard deletes. |
-| Themes | Paper, Sepia, Pastel Blue, Sage, Cozy Cottage and Night, plus Match my device. Create your own from five colours with a live preview and readability check; share themes as files. Quick theme menu (◐) in the top bar. |
-| Manuscript | Book → (Part) → Chapter → Scene. Rich-text editor (bold, italic, underline, headings, block quotes, scene breaks), autosave with visible status, undo/redo, word & character counts for selection/scene/chapter/book, focus mode, find & replace, paste cleanup from Word/Google Docs, periodic + manual snapshots with restore, split/merge scenes, archive with undo. |
-| Navigation | Chapter navigator with filter (titles and text), pinned and recent chapters, drag-and-drop plus menu-based move up/down, move scenes between chapters, prev/next scene & chapter shortcuts, collapsible drawer on phones. |
-| References | Characters, locations, factions, species, items, lore, glossary, research — templated fields, custom fields, aliases, tags, favourites, image, relationships/connections, duplicate warnings, backlinks (“Mentioned in”), quick-reference side panel while writing, link selected prose to an entry, unlinked-mention detection (suggestions only). |
-| Planning | Story board with lanes and cards (drag-and-drop or accessible move menu), filters, templates (three-act, fifteen-beat sheet, Hero’s Journey, blank, your own), card ↔ scene/chapter conversion, outline view with inline summaries, timeline (in-world and chapter order, continuity hints), plot threads grid with “quiet thread” review flags. |
-| Proofreading | On-device only: Hunspell spelling (US/UK), grammar & punctuation rules, commonly confused words, repeated words, dialogue punctuation, name consistency against your references, optional style hints (adverbs, passive, filler, clichés, long sentences). Accept / Ignore / Add to dictionary / Turn off check, undo, reviewed bulk apply, stale-suggestion protection. Never changes text on its own. |
-| Search | Global search (Ctrl+K) across manuscript, references, board, timeline, threads and notes with filters and snippets; opens scenes with matches highlighted. |
-| Import your existing book | Folder (or zip) of chapter files plus spreadsheets for characters, locations, world entries, story board, timeline and plot threads; preview before import; links made by name; downloadable starter template. Exact layout: [**IMPORTING.md**](IMPORTING.md). |
-| Publish on Amazon KDP | Kindle eBook as **EPUB 3** (Amazon’s recommended format, with navigation, NCX, optional cover) or **Word**; **paperback/hardcover interior** .docx at KDP trim sizes with mirrored margins that meet KDP’s gutter rules for the page count, page numbers (none on chapter openings), chapters on right-hand pages, title/copyright/dedication/about-the-author pages, and an optional **table of contents** (linked entries in eBooks; chapter list or dot-leader page numbers in print). Chapter heading styles, curly quotes/em dashes, and a pre-publish checklist (missing author, empty chapters, leftover TK/TODO notes, 24–828 page limits). Book details (author, ISBN, imprint…) are saved with the book. |
-| Backup & export | Complete `.authorproj` archive (manifest, schema version, SHA-256 checksums), import with preview, restore / merge / import-as-copy, duplicate policies. Exports: DOCX, TXT, Markdown folder, JSON, references CSV. Import chapters from .txt/.md. Backup reminders. |
-| Sync | Optional self-hosted sync server (`server/`): login with HttpOnly session cookie, per-record versioned sync, automatic merge of independent edits, prose conflicts always keep both versions with a side-by-side resolver. |
-| Google Drive | Optional backup/restore to Drive with the narrow `drive.file` scope (needs your own OAuth client ID; see below). |
+| **Getting started** | Welcome screen with a ready-made sample book, a **Ctrl+K** quick switcher to jump to any chapter, character, note or command, click-to-rename titles, a labelled toolbar, one-time tips, a Help panel (**F1**), and a Trash instead of permanent deletes. |
+| **Themes** | Paper, Sepia, Pastel Blue, Sage, Cozy Cottage and Night, plus *Match my device*. Make your own from five colours with a live preview and a readability check, and share themes as files. Quick theme menu (◐) in the top bar. |
+| **Manuscript editor** | Book → (Part) → Chapter → Scene. Bold, italic, underline, headings, block quotes and scene breaks. Autosave with a visible status, undo/redo, word counts (selection, scene, chapter, book), focus mode, find & replace, clean paste from Word and Google Docs, automatic and manual snapshots with restore, split and merge scenes. |
+| **Navigation** | Chapter list with a filter (titles and text), pinned and recent chapters, drag-and-drop or menu-based reordering, moving scenes between chapters, keyboard shortcuts for next and previous scene or chapter, and a collapsible drawer on phones. |
+| **Characters and world** | Characters, locations, factions, species, items, lore, glossary and research entries with templated and custom fields, aliases, tags, favourites, images and relationships. Duplicate warnings, "Mentioned in" backlinks, a quick-reference side panel while you write, linking selected prose to an entry, and detection of unlinked mentions. |
+| **Story board** | Lanes and cards (drag-and-drop or an accessible move menu), filters, structure templates (three-act, fifteen-beat sheet, Hero's Journey, blank or your own), turning cards into scenes or chapters and back, and an outline view with inline summaries. |
+| **Timeline and plot threads** | Timeline in story-world order or chapter order, with gentle continuity hints. A plot-thread grid showing which chapters each thread appears in, with reminders for threads that have gone quiet. |
+| **Proofreading** | On your device only: Hunspell spelling (US or UK), grammar and punctuation rules, commonly confused words, repeated words, dialogue punctuation, name consistency against your character list, and optional style hints (adverbs, passive voice, filler, clichés, long sentences). Accept, Ignore, Add to dictionary or turn a check off, with undo and reviewed bulk fixes. **It never changes your text on its own.** |
+| **Search** | Search everything (Ctrl+K): manuscript, references, board, timeline, threads and notes, with filters and snippets. Opening a result highlights the matches. |
+| **Import your existing book** | A folder or zip of chapter files (`.md` or `.txt`) plus spreadsheets for characters, locations, world entries, story board, timeline and plot threads. You see a preview before anything is imported, and entries are linked by name. Exact layout: [**IMPORTING.md**](IMPORTING.md). |
+| **Publish on Amazon KDP** | Kindle eBook as **EPUB 3** (Amazon's recommended format) or **Word**, and a **paperback/hardcover interior** `.docx` at KDP trim sizes. Mirrored margins meet KDP's gutter rules, chapters start on right-hand pages, front and back matter are added, and an optional **table of contents** is included. A pre-publish checklist catches common problems. |
+| **Backup and export** | A complete `.authorproj` archive (manifest, schema version, SHA-256 checksums), and import with a preview: restore, merge, or import as a copy. Also exports to DOCX, TXT, Markdown, JSON and references CSV, plus backup reminders. |
+| **Sync (optional)** | A self-hosted sync server you run yourself. Independent edits merge automatically. If both devices change the same prose, both versions are kept and you choose between them side by side. |
+| **Google Drive (optional)** | Back up to and restore from your own Drive using the narrow `drive.file` permission. |
+
+A full walk-through is in the [**user guide**](docs/user-guide.md).
+
+### Keyboard shortcuts
+
+| Keys | Action |
+| --- | --- |
+| Ctrl+K / Ctrl+Shift+F | Search or jump to anything |
+| Ctrl+F | Find & replace in the scene |
+| Ctrl+S | Save now |
+| Alt+PageDown / PageUp | Next / previous chapter |
+| Alt+Shift+PageDown / PageUp | Next / previous scene |
+| Ctrl+Alt+F | Focus mode (Esc exits) |
+| Ctrl+\\ | Show or hide the chapter list |
+| F1 or ? | Help |
+
+---
+
+## Building from source and generating AuthorDesk.exe
+
+### What you need
+
+| Tool | Why | Get it |
+| --- | --- | --- |
+| **Windows 10/11** | The launcher is a Windows program. | n/a |
+| **Node.js 22.5 or newer** | Builds the web app and runs the tests and the sync server. | [nodejs.org](https://nodejs.org/) (LTS) |
+| **Git** | Cloning the repository. | [git-scm.com](https://git-scm.com/) |
+| **C# compiler** | Compiles the launcher. | Nothing to install: `csc.exe` ships with Windows as part of .NET Framework 4 (`C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe`). |
+
+### One-command build
+
+```powershell
+git clone https://github.com/toxiicxmonster/AuthorDesk.git
+cd AuthorDesk
+powershell -ExecutionPolicy Bypass -File scripts\build.ps1
+```
+
+`scripts\build.ps1` does four things in order and stops at the first failure:
+
+1. **Installs dependencies:** `npm install` in `app\`, the first time only.
+2. **Runs the test suite:** `npm test` (vitest). The build refuses to continue if any test fails.
+3. **Builds the web app:** `npm run build` writes the production PWA to `app\dist\`.
+4. **Compiles the launcher:** it runs `csc.exe` on `launcher\AuthorDesk.cs` with the icon `launcher\AuthorDesk.ico`, producing **`AuthorDesk.exe` in the repository root**.
+
+Options:
+
+```powershell
+scripts\build.ps1 -SkipTests   # build without running the tests
+scripts\build.ps1 -SkipApp     # recompile only the launcher (app\dist must already exist)
+```
+
+If AuthorDesk is running, the build stops with a message. Quit it from the tray icon first, because Windows can't overwrite a running exe.
+
+### Desktop shortcut
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\create-shortcut.ps1
+```
+
+This puts an **AuthorDesk** shortcut on your desktop that points at the `AuthorDesk.exe` you just built.
+
+### Compiling the launcher by hand
+
+If you'd rather not use the script, this is all it runs for the exe:
+
+```powershell
+& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /optimize+ /platform:anycpu `
+  /out:AuthorDesk.exe /win32icon:launcher\AuthorDesk.ico `
+  /reference:System.Windows.Forms.dll /reference:System.Drawing.dll `
+  launcher\AuthorDesk.cs
+```
+
+`launcher\AuthorDesk.ico` is committed. To regenerate it (and the PWA icons in `app\public`), run `scripts\make-icons.ps1`.
+
+### Packaging a release zip
+
+A release needs the exe **and** the built app next to it:
+
+```
+AuthorDesk-v0.1-windows.zip
+├── AuthorDesk.exe
+├── dist\                  ← contents of app\dist
+├── sync-server.example.txt
+└── README.txt
+```
+
+The launcher looks for the app in `.\app\dist`, then `.\dist`, then `..\app\dist`, relative to the exe, so both the repository layout and this flat release layout work.
+
+---
+
+## How the launcher works
+
+`AuthorDesk.exe` is a small C# program (`launcher/AuthorDesk.cs`) with no dependencies beyond Windows.
+
+- It serves the built app on **`http://localhost:47820`** and answers requests from this computer only (loopback). Nothing on your network can reach it.
+- It opens the app in its own window using **Edge** (or Chrome) in app mode, with a dedicated browser profile in `%LOCALAPPDATA%\AuthorDesk\BrowserProfile`. It doesn't touch your everyday browser profile.
+- A **tray icon** offers *Open*, *Open data folder* and *Quit*. Closing the AuthorDesk window stops the server.
+- Launching it a second time just brings up the existing window.
+- If a `sync-server.txt` file is present, it forwards `/api/*` requests to that sync server. Only HTTPS addresses (or loopback) are accepted. See [sync](#optional-sync-between-pc-and-phone).
+- If neither Edge nor Chrome is found, it opens your default browser instead (without closing automatically).
+
+---
+
+## Where your data lives and backups
+
+Your books are stored in the browser database (IndexedDB) of the launcher's private profile, `%LOCALAPPDATA%\AuthorDesk\BrowserProfile`, tied to the address `localhost:47820`.
+
+- **Don't change the port.** A different address means a separate, empty workspace.
+- Opening `localhost:47820` in your everyday browser also shows a separate, empty workspace.
+- **Back up regularly:** go to **Backup & Sync → Save backup** for a complete `.authorproj` archive, and keep copies off this computer (a USB drive or a cloud folder). AuthorDesk reminds you when a backup is overdue.
+- **To restore:** go to **Backup & Sync → Import**, choose the archive, review the preview, then choose **Restore**, **Merge** or **Import as a copy**.
+- Archives are zip files with plain JSON inside (`data/*.json`), so your work is never locked in.
+- Every scene keeps revision snapshots automatically; see the **History** tab in the writing view.
+
+---
+
+## Bringing in an existing book
+
+Go to **Backup & Sync → Import your own files**, or choose **Bring in my existing book** on the welcome screen.
+
+```
+My Book/
+├── chapters/
+│   ├── 01 - The Lamp.md        ← one file per chapter (.md or .txt); "## " starts a new scene
+│   └── 02 - Below.txt
+├── characters.csv              ← or characters/<Name>.md, one file each
+├── locations.csv
+├── world.csv                   ← factions, items, lore… with a Type column
+├── board.csv
+├── timeline.csv
+├── plot-threads.csv
+└── notes/
+```
+
+Every column, accepted file type and naming rule is documented in [**IMPORTING.md**](IMPORTING.md). A filled-in example is in [`docs/import-template/`](docs/import-template/), and you can download it from inside the app.
+
+Word `.docx` files can't be imported directly. Save chapters from Word as `.txt`, or download Google Docs as Markdown.
+
+---
+
+## Publishing on Amazon KDP
+
+Go to **Backup & Sync → Publish on Amazon KDP…**, or press Ctrl+K and type *Publish*.
+
+| Format | Use it for |
+| --- | --- |
+| **Kindle eBook (EPUB)** | Recommended for Kindle. EPUB 3 with navigation, landmarks, NCX and an optional cover. |
+| **Kindle eBook (Word)** | A `.docx` with Heading 1 chapters, as KDP expects. |
+| **Paperback / hardcover** | A print-ready interior `.docx` at your chosen KDP trim size. |
+
+The print interior gets:
+- mirrored margins sized to KDP's gutter rules for your page count
+- page numbers, left off chapter-opening pages
+- chapters starting on right-hand pages
+- title, copyright, dedication and about-the-author pages
+- curly quotes and em dashes (applied to the exported copy only)
+
+The **table of contents** is optional. In eBooks its entries link to each chapter. In print it is either a chapter list or one with dot leaders and page numbers. Page numbers are filled in by Microsoft Word, so open the file in Word, click **Yes** to update fields, and save before uploading.
+
+The pre-publish checklist warns about missing author details, empty chapters, leftover "TK"/"TODO" notes, and books outside KDP's 24–828 print-page limits. Book details (author, ISBN, imprint, dedication…) are saved with the book.
+
+Upload the file as the **manuscript** on KDP's Content page. Check print interiors in KDP's **Print Previewer** (same trim size, *No bleed*) and eBooks in **Kindle Previewer**. Covers are uploaded separately.
+
+---
+
+## Optional: sync between PC and phone
+
+Sync is off unless you set it up, and it uses **your own** server; there is no AuthorDesk cloud.
+
+1. Run the sync server (`server/`, Node 22.5+, no npm dependencies, SQLite built in) somewhere both devices can reach **over HTTPS**. [Tailscale](https://tailscale.com/) on your own PC is the simplest private option.
+2. Create an account, open the server's address on your phone and install the app (*Add to Home screen*).
+3. On the PC, copy `sync-server.example.txt` to `sync-server.txt` next to `AuthorDesk.exe` and put the server's HTTPS address in it. The launcher forwards sync requests there.
+
+Full instructions: [`docs/sync-server.md`](docs/sync-server.md).
+
+How it behaves:
+- Each record is versioned.
+- Independent edits on two devices merge automatically.
+- If both devices change the same prose, **both versions are kept** and a side-by-side resolver lets you choose.
+- An edit wins over a delete, so nothing is silently lost.
+
+---
+
+## Optional: Google Drive backups
+
+Release builds **don't include a Google client ID**, so the Drive buttons say Drive isn't set up. To turn Drive on, build from source:
+
+1. Create an OAuth client ID ("Web application") in Google Cloud by following [`docs/google-drive-setup.md`](docs/google-drive-setup.md).
+2. Copy `app/.env.example` to `app/.env.local` and set `VITE_GOOGLE_CLIENT_ID`. A client ID is a public identifier, not a secret, and AuthorDesk has no client secret.
+3. Rebuild with `scripts\build.ps1`.
+
+AuthorDesk asks only for the `drive.file` permission, so it can see only the files it creates. The access token is kept in memory and never stored.
+
+Until you've set that up, you can **Save backup** straight into a Google Drive for Desktop folder.
+
+---
 
 ## Development
 
@@ -54,56 +272,101 @@ npm run lint
 npm run build        # production build into app/dist
 ```
 
-Launcher only: `scripts\build.ps1 -SkipApp`. Icons: `scripts\make-icons.ps1`.
-
-Project layout:
-
-```
-app/            React + TypeScript + Vite PWA
-  src/domain/       schemas (zod), text utils, references, continuity, templates
-  src/storage/      IndexedDB (Dexie), repository, search, backlinks, migrations
-  src/editor/       TipTap editor, proofreading/find extensions, autosave
-  src/proofreading/ provider interface, deterministic rules, Hunspell worker
-  src/importExport/ archive, exporters, text import, Google Drive
-  src/sync/         merge rules, sync engine, controller/status
-  src/ui/           pages and components
-  tests/            vitest suites
-server/         self-hostable sync server (Node, no dependencies, SQLite)
-launcher/       AuthorDesk.exe source (C#, .NET Framework 4)
-scripts/        build, icons, desktop shortcut
-docs/           architecture, ADRs, setup guides, user guide
+```bash
+cd server
+node index.js        # sync server; see server/.env.example and docs/sync-server.md
 ```
 
-## Sync between PC and phone (optional)
+**Stack:**
 
-Read [`docs/sync-server.md`](docs/sync-server.md). In short: run `server/index.js` somewhere both devices can reach **over HTTPS** (Tailscale on your own PC is the simplest private option), create an account, open that address on your phone and install it, and put the address in `sync-server.txt` next to `AuthorDesk.exe` so the PC launcher forwards sync requests there.
+| Part | Built with |
+| --- | --- |
+| Web app | React 19, TypeScript, Vite 8, TipTap 3 (ProseMirror), Dexie 4 (IndexedDB), zod 4, vite-plugin-pwa (Workbox), fflate, docx |
+| Spell check | nspell with Hunspell en-US and en-GB dictionaries, in a Web Worker |
+| Launcher | C# on .NET Framework 4 |
+| Sync server | Node with `node:sqlite` |
+| Tests | vitest with jsdom and fake-indexeddb |
 
-## Google Drive (optional)
+Design notes are in [`docs/architecture.md`](docs/architecture.md) and the ADRs in [`docs/adr/`](docs/adr/).
 
-Follow [`docs/google-drive-setup.md`](docs/google-drive-setup.md) to create an OAuth client ID, put it in `app/.env.local` as `VITE_GOOGLE_CLIENT_ID`, and rebuild. **Status: implemented but not yet verified with a real Google account** — do a backup-and-restore round trip before relying on it. Until then, “Save backup” can write directly into a Google Drive for Desktop folder.
+---
 
-## Bringing in an existing book
+## Project layout
 
-See [**IMPORTING.md**](IMPORTING.md) for the exact folder layout and every spreadsheet column. In the app: **Backup & Sync → Import your own files**, or **Bring in my existing book** on the welcome screen. A filled-in example lives in [`docs/import-template/`](docs/import-template/) and can be downloaded from the app.
+```
+app/                React + TypeScript + Vite PWA
+  src/domain/         schemas (zod), text utilities, references, continuity, templates
+  src/storage/        IndexedDB (Dexie), repository, search, backlinks, migrations
+  src/editor/         TipTap editor, proofreading and find extensions, autosave
+  src/proofreading/   provider interface, deterministic rules, Hunspell worker
+  src/importExport/   archive, exporters, import, EPUB / KDP Word, Google Drive
+  src/sync/           merge rules, sync engine, controller and status
+  src/ui/             pages and components
+  tests/              vitest suites
+server/             self-hostable sync server (Node, no dependencies, SQLite)
+launcher/           AuthorDesk.exe source (C#) and icon
+scripts/            build.ps1, create-shortcut.ps1, make-icons.ps1
+docs/               user guide, architecture, ADRs, setup guides, import template
+PROJECT.md          product specification
+IMPLEMENTATION_PLAN.md  phase-by-phase status
+IMPORTING.md        exact import layout
+```
 
-## Backups
+`AuthorDesk.exe`, `app/dist`, `node_modules`, `.env*` files, `sync-server.txt`, databases, backups and exports are git-ignored. Build the exe with `scripts\build.ps1` or download it from Releases.
 
-- **Backup & Sync → Save backup** writes a complete `.authorproj` archive. Keep copies off this computer.
-- To restore: Backup & Sync (or Settings) → Import → choose the archive → review the preview → Restore / Merge / Import as copy.
-- Archives are zip files with plain JSON inside (`data/*.json`), so your work is never locked in.
-- Revision snapshots are kept automatically per scene (History tab in the writing view).
+---
 
-## Privacy & security
+## Privacy and security
 
-- No analytics, tracking, or third-party services. Proofreading runs on-device.
-- No secrets in the client bundle or repository; `.env`, `sync-server.txt`, databases and backups are git-ignored.
-- The launcher’s server answers only loopback requests. The sync server requires login, uses HttpOnly + SameSite=Strict cookies, an anti-CSRF header, rate-limited login, scrypt-hashed passphrases, and never logs request bodies.
-- Do **not** host AuthorDesk with your data on GitHub Pages: static hosting is public. The private GitHub repository is for source code only.
+- **No analytics, tracking or third-party services.** Proofreading runs entirely on your device.
+- **No manuscript text is ever sent anywhere** unless you turn on sync or Drive, and even then it goes only to your own server or your own Drive.
+- **AuthorDesk never silently changes your prose.** Every proofreading change is your click, and it can be undone.
+- **No secrets** in the app bundle or this repository. `.env`, `sync-server.txt`, databases and backups are git-ignored.
+- **The launcher answers only loopback requests.**
+- **The sync server** requires a login and uses:
+  - HttpOnly, SameSite=Strict session cookies
+  - an anti-CSRF header
+  - rate-limited login attempts
+  - scrypt-hashed passphrases
+  - logs that never include request bodies
+- **Don't host AuthorDesk with your data on GitHub Pages.** Static hosting is public. This repository is for source code only, so never commit manuscripts or backups to it.
+
+---
+
+## Project status
+
+| Area | Status |
+| --- | --- |
+| Writing, navigation, references, planning, proofreading, search, archives, import, themes | ✅ Done and tested |
+| Amazon KDP export | 🟡 Done and tested; needs a real KDP upload and an EPUBCheck run |
+| Sync | 🟡 Done and tested with simulated devices and a local phone test; needs an HTTPS deployment and a real phone install |
+| Google Drive | 🟡 Built; needs a real account round-trip test |
+| Formal screen-reader audit, Android PWA install test, deployed-server security review | ⬜ Not yet done |
+
+Details: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+
+---
 
 ## Known limitations
 
-- Spell check: Hunspell US/UK dictionaries; grammar checks are rule-based heuristics, not a full parser. No AI/remote grammar provider is connected (the interface exists).
-- Google Drive: untested against a real account (needs your client ID). No folder picker — backups go to an “AuthorDesk Backups” folder AuthorDesk creates.
-- Sync: deleting a project on one device doesn’t delete it elsewhere; use “Delete cloud copy”. Revision snapshots stay per-device.
-- DOCX files can’t be imported directly: save chapters from Word as .txt (or download Google Docs as .md) — see IMPORTING.md.
-- The launcher needs Edge or Chrome (falls back to the default browser without window tracking).
+- Spell check covers US and UK English. Grammar checks are rule-based hints, not a full parser, and no AI grammar service is connected (by design).
+- Google Drive is untested with a real account. There's no folder picker: backups go to an "AuthorDesk Backups" folder that AuthorDesk creates.
+- Sync: deleting a project on one device doesn't delete it on others; use *Delete cloud copy*. Revision snapshots stay on each device.
+- Word `.docx` files can't be imported directly (see [IMPORTING.md](IMPORTING.md)).
+- The launcher is Windows-only and needs Edge or Chrome. On other systems you can run `npm run build` and serve `app/dist` yourself.
+- `AuthorDesk.exe` isn't code-signed, so Windows SmartScreen warns on first launch.
+
+---
+
+## Documentation
+
+| Document | What's in it |
+| --- | --- |
+| [docs/user-guide.md](docs/user-guide.md) | How to use every part of the app |
+| [IMPORTING.md](IMPORTING.md) | Exact folder and spreadsheet layout for importing a book |
+| [docs/sync-server.md](docs/sync-server.md) | Running your own sync server |
+| [docs/google-drive-setup.md](docs/google-drive-setup.md) | Setting up Google Drive backups |
+| [docs/architecture.md](docs/architecture.md) | How the app is put together |
+| [docs/adr/](docs/adr/) | Architecture decision records |
+| [PROJECT.md](PROJECT.md) | Product specification |
+| [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Phase-by-phase status |
