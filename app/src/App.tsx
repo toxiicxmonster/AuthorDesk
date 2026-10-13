@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
+import { AddonSetup } from './ui/components/AddonSetup';
 import { href, navigate, useRoute, type View } from './ui/router';
 import { getUi, setUi, useUi } from './ui/store';
 import { useProject } from './ui/data';
@@ -256,6 +257,7 @@ export function App() {
       )}
       <QuickSwitcher projectId={pid && project ? pid : null} />
       <HelpDialog />
+      <AddonSetup />
       <DialogHost />
       <ToastHost />
     </div>

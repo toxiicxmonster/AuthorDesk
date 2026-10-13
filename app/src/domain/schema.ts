@@ -291,6 +291,12 @@ export interface UserSettings {
   proofreadEnabled: boolean;
   browserSpellcheck: boolean;
   onlineCheck: OnlineCheckSettings;
+  /** With the AI Editor installed: let it read each flagged adverb's sentence and keep only the weak ones underlined. */
+  aiJudgeAdverbs: boolean;
+  /** AI Editor creativity, 0 (faithful) to 1 (creative). */
+  aiTemperature: number;
+  /** Offer to install missing add-ons (grammar engine, AI Editor) when AuthorDesk starts. */
+  addonPrompt: 'ask' | 'never';
   pageWidth: 'narrow' | 'medium' | 'wide';
 }
 
@@ -310,5 +316,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   proofreadEnabled: true,
   browserSpellcheck: false,
   onlineCheck: { enabled: false, endpoint: LT_PUBLIC_ENDPOINT, picky: false, consentedAt: null, localEngineOptOut: false },
+  aiJudgeAdverbs: true,
+  aiTemperature: 0.4,
+  addonPrompt: 'ask',
   pageWidth: 'medium',
 };

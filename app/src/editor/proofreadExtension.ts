@@ -1,7 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey, type EditorState, type Transaction } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { CATEGORY_LABELS, type Suggestion } from '../proofreading/types';
+import { CATEGORY_LABELS, SEVERITY_LABEL, SEVERITY_RANK, type Suggestion } from '../proofreading/types';
 
 /** A suggestion placed in the document. Positions are mapped through edits; overlapping edits drop it. */
 export interface PlacedSuggestion extends Suggestion {
@@ -20,8 +20,6 @@ export const proofreadKey = new PluginKey<PluginState>('proofread');
 
 type Meta = { type: 'set'; items: PlacedSuggestion[] } | { type: 'remove'; key: string } | { type: 'active'; key: string | null };
 
-const SEVERITY_RANK = { error: 0, warning: 1, style: 2 } as const;
-const SEVERITY_LABEL = { error: 'Likely error', warning: 'Check', style: 'Style' } as const;
 
 /** Most useful first: errors before style notes, fixable before not. */
 function byUsefulness(a: PlacedSuggestion, b: PlacedSuggestion) {

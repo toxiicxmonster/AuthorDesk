@@ -1,0 +1,314 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Editor } from '@tiptap/core';
+import { useEditorCtx } from '../../editor/EditorContext';
+import { collectTextBlocks } from '../../editor/blocks';
+import { AiError, chat, fetchAiStatus, warmUpAi, type AiStatus } from '../../ai/aiEditor';
+import { AI_TASKS, TONES, buildMessages, type AiTask, type AiTaskId } from '../../ai/prompts';
+import { SCAN_FIELDS, findDetailsWithAi, type FoundDetail } from '../../ai/characterDetails';
+import { CHARACTER_FIELD_LABELS, charactersIn } from '../../ai/characterContext';
+import { useSettings } from '../../storage/settings';
+import { db } from '../../storage/db';
+import { updateRecord } from '../../storage/repo';
+import { useReferences } from '../data';
+import { reportError, setUi, toast, useUi } from '../store';
+import { AiResultCard, type AiResult } from './AiResults';
+
+/**
+ * Side panel → AI Editor. Suggestions only: results appear here with a Copy button and are never written into the
+ * book. (Character details found by the scan can be added to a character's entry, never to the manuscript.)
+ * Character notes aren't used here: writing in a character's voice lives in the Dialogue tab.
+ * Nothing in this file may call the editor's commands or dispatch transactions; ESLint enforces that.
+ */
+
+interface Passage {
+  text: string;
+  context: string;
+  /** The flagged words this passage was opened for, if it came from clicking a mark. */
+  focus: string | null;
+}
+
+interface Result extends AiResult {
+  passage: Passage;
+}
+
+const PRIMARY: AiTaskId[] = ['rewrite', 'smoother', 'tighter', 'no-adverb'];
+const MORE: AiTaskId[] = ['clearer', 'grammar', 'show'];
+const taskById = (id: AiTaskId) => AI_TASKS.find((t) => t.id === id)!;
+
+/** The selection, or the paragraph at the cursor, plus the paragraphs either side as read-only context. */
+function passageFrom(editor: Editor): Passage {
+  const { state } = editor;
+  const { from, to, empty, $from } = state.selection;
+  const text = (empty ? $from.parent.textContent : state.doc.textBetween(from, to, '\n\n')).trim();
+  const blocks = collectTextBlocks(state.doc);
+  let at = blocks.findIndex((b) => b.pos <= from && from <= b.pos + b.text.length);
+  if (at < 0) at = 0;
+  const context = [blocks[at - 1]?.text, blocks[at + 1]?.text].filter(Boolean).join('\n\n');
+  return { text: text.slice(0, 4000), context: context.slice(0, 3000), focus: null };
+}
+
+export function AiEditorPanel({ projectId }: { projectId: string }) {
+  const { editor } = useEditorCtx();
+  const settings = useSettings();
+  const refs = useReferences(projectId);
+  const request = useUi((s) => s.aiRequest);
+  const characters = useMemo(() => refs.filter((r) => !r.archivedAt && r.type === 'character'), [refs]);
+  const [status, setStatus] = useState<AiStatus | null | undefined>(undefined);
+  const [passage, setPassage] = useState<Passage>({ text: '', context: '', focus: null });
+  const [pinned, setPinned] = useState(false);
+  const [tone, setTone] = useState<string>(TONES[2]);
+  const [question, setQuestion] = useState('');
+  const [results, setResults] = useState<Result[]>([]);
+  const [scan, setScan] = useState<{ busy: boolean; found: FoundDetail[] | null }>({ busy: false, found: null });
+  const abort = useRef<AbortController | null>(null);
+  const nextId = useRef(1);
+  const handled = useRef<number | null>(null);
+
+  // Status: warm the model up when the panel opens, and keep the status current while it loads.
+  useEffect(() => {
+    let alive = true;
+    let timer = 0;
+    const poll = async (first: boolean) => {
+      const st = await fetchAiStatus();
+      if (!alive) return;
+      setStatus(st);
+      if (first && st?.installed && !st.ready) void warmUpAi();
+      if (st?.installed && !st.ready) timer = window.setTimeout(() => void poll(false), 2000);
+    };
+    void poll(true);
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  // Follow the selection, unless a passage is pinned (by the author, or by clicking a mark).
+  useEffect(() => {
+    if (!editor || pinned) return;
+    const update = () => setPassage(passageFrom(editor));
+    update();
+    editor.on('selectionUpdate', update);
+    editor.on('update', update);
+    return () => {
+      editor.off('selectionUpdate', update);
+      editor.off('update', update);
+    };
+  }, [editor, pinned]);
+
+  useEffect(() => () => abort.current?.abort(), []);
+
+  const run = async (task: AiTask, p: Passage = passage) => {
+    if (!p.text) return toast('Select some text, or put the cursor in a paragraph, first.');
+    if (task.id === 'ask' && !question.trim()) return toast('Type a question first.');
+    abort.current?.abort();
+    const ctrl = new AbortController();
+    abort.current = ctrl;
+    const id = nextId.current++;
+    const extra = task.id === 'tone' ? tone : task.id === 'ask' ? question.trim() : p.focus ? `“${p.focus}”` : '';
+    setResults((rs) => [{ id, task, extra, passage: p, original: p.text, text: '', done: false, error: null }, ...rs].slice(0, 20));
+    const patch = (x: Partial<Result>) => setResults((rs) => rs.map((r) => (r.id === id ? { ...r, ...x } : r)));
+    try {
+      const text = await chat(buildMessages(task, { text: p.text, context: p.context, tone, question, focus: p.focus }), {
+        signal: ctrl.signal,
+        // A fix for one flagged word should change as little as possible.
+        temperature: p.focus ? Math.min(settings.aiTemperature, 0.25) : settings.aiTemperature,
+        maxTokens: Math.min(2400, 200 + Math.ceil(p.text.length / 3) * (task.request ?? task.versions)),
+        onText: (t) => patch({ text: t }),
+      });
+      patch({ text, done: true });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') patch({ done: true, error: 'Stopped.' });
+      else patch({ done: true, error: e instanceof AiError ? e.message : 'The AI Editor ran into a problem. Try again.' });
+    }
+  };
+
+  // A clicked mark asked for help: work on its sentence straight away.
+  useEffect(() => {
+    if (!request || handled.current === request.id || !status?.installed) return;
+    handled.current = request.id;
+    const p: Passage = { text: request.text, context: request.context, focus: request.focus };
+    setPinned(true);
+    setPassage(p);
+    void run(taskById(request.task), p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request, status?.installed]);
+
+  if (status === undefined) return <p className="muted">Checking the AI Editor…</p>;
+  if (status === null) return <p className="muted">The AI Editor runs inside the AuthorDesk app. Start AuthorDesk.exe to use it.</p>;
+  if (!status.installed) return <AiNotInstalled />;
+  if (!editor) return <p className="muted">Open a scene to use the AI Editor.</p>;
+
+  const busy = results.some((r) => !r.done);
+  const release = () => {
+    setPinned(false);
+    setUi({ aiRequest: null });
+  };
+
+  const findDetails = async () => {
+    setScan({ busy: true, found: null });
+    try {
+      const scene = collectTextBlocks(editor.state.doc)
+        .map((b) => b.text)
+        .join('\n\n');
+      const named = charactersIn(scene, characters).map((c) => ({ id: c.id, name: c.name, aliases: c.aliases, fields: c.fields }));
+      setScan({ busy: false, found: await findDetailsWithAi(scene, named) });
+    } catch (e) {
+      setScan({ busy: false, found: [] });
+      reportError(e, 'The AI Editor couldn’t scan this scene');
+    }
+  };
+
+  // Adds a found detail to the character's entry (never to the manuscript), with Undo.
+  const addDetail = async (d: FoundDetail) => {
+    const ref = await db.references.get(d.characterId);
+    if (!ref) return;
+    const before = ref.fields[d.field] ?? '';
+    const after = before.trim() ? `${before.replace(/\s+$/, '')}\n${d.fact}` : d.fact;
+    await updateRecord('references', ref.id, { fields: { ...ref.fields, [d.field]: after } });
+    setScan((s) => ({ ...s, found: s.found?.filter((x) => x !== d) ?? null }));
+    toast(`Added to ${d.characterName}’s ${CHARACTER_FIELD_LABELS[d.field] ?? d.field}`, {
+      action: {
+        label: 'Undo',
+        run: async () => {
+          const cur = await db.references.get(ref.id);
+          if (cur) await updateRecord('references', cur.id, { fields: { ...cur.fields, [d.field]: before } });
+        },
+      },
+    });
+  };
+
+  const [latest, ...earlier] = results;
+
+  return (
+    <div className="ai-panel">
+      <AiStatusLine status={status} />
+
+      <section className="ai-passage">
+        <div className="ai-passage-head small">
+          <strong>{pinned ? 'Working on' : 'Passage'}</strong>
+          {passage.focus && <span className="chip">“{passage.focus}”</span>}
+          {pinned ? (
+            <button className="link-btn" onClick={release} title="Follow the cursor again">
+              Use my selection
+            </button>
+          ) : (
+            <button className="link-btn" onClick={() => setPinned(true)} disabled={!passage.text} title="Keep this passage while you click elsewhere">
+              Keep
+            </button>
+          )}
+        </div>
+        <blockquote>{passage.text || <span className="muted">Select text, or click in a paragraph.</span>}</blockquote>
+      </section>
+
+      <section className="ai-actions">
+        <div className="ai-primary">
+          {PRIMARY.map((id) => {
+            const t = taskById(id);
+            return (
+              <button key={id} title={t.hint} disabled={!passage.text} onClick={() => void run(t)}>
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <form
+          className="ai-ask"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void run(taskById('ask'));
+          }}
+        >
+          <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ask about this passage…" aria-label="Ask about this passage" />
+          <button type="submit" disabled={!passage.text || !question.trim()}>
+            Ask
+          </button>
+        </form>
+        <details className="ai-more">
+          <summary className="small">More</summary>
+          <div className="ai-primary">
+            {MORE.map((id) => {
+              const t = taskById(id);
+              return (
+                <button key={id} title={t.hint} disabled={!passage.text} onClick={() => void run(t)}>
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="ai-pair">
+            <select value={tone} onChange={(e) => setTone(e.target.value)} aria-label="Tone">
+              {TONES.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+            <button disabled={!passage.text} onClick={() => void run(taskById('tone'))}>
+              Change tone
+            </button>
+          </div>
+          <p className="small muted">To make a line sound like a particular character, use the Dialogue tab.</p>
+        </details>
+      </section>
+
+      {latest && <AiResultCard r={latest} busy={busy} onStop={() => abort.current?.abort()} onAgain={() => void run(latest.task, latest.passage)} />}
+      {earlier.length > 0 && (
+        <details className="ai-earlier">
+          <summary className="small">Earlier suggestions ({earlier.length})</summary>
+          {earlier.map((r) => (
+            <AiResultCard key={r.id} r={r} busy={false} onStop={() => undefined} onAgain={() => void run(r.task, r.passage)} />
+          ))}
+        </details>
+      )}
+
+      <details className="ai-characters">
+        <summary className="small">Character details in this scene</summary>
+        <p className="small muted">Facts about your characters that this scene states but their entries don’t have yet.</p>
+        <button disabled={scan.busy || !characters.length} onClick={() => void findDetails()}>
+          {scan.busy ? 'Reading the scene…' : 'Find them'}
+        </button>
+        {scan.found && !scan.found.length && <p className="small muted">Nothing new about your characters in this scene.</p>}
+        {scan.found && scan.found.length > 0 && (
+          <ul className="sugg-list">
+            {scan.found.map((d, k) => (
+              <li key={k} className="sugg sev-note">
+                <div className="sugg-main">
+                  <strong className="small">{d.characterName}</strong>{' '}
+                  <span className="muted small">· {CHARACTER_FIELD_LABELS[d.field] ?? SCAN_FIELDS[d.field]}</span>
+                  <span className="block small">{d.fact}</span>
+                  <span className="block small muted">“{d.quote}”</span>
+                </div>
+                <button className="small" onClick={() => void addDetail(d)}>
+                  Add to entry
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </details>
+    </div>
+  );
+}
+
+export function AiStatusLine({ status }: { status: AiStatus }) {
+  return (
+    <p className="ai-status small muted">
+      <span className={`ai-dot${status.ready ? ' on' : ''}`} aria-hidden /> {status.ready ? status.model : `Loading ${status.model || 'the model'}…`} · on this PC ·
+      suggestions only
+    </p>
+  );
+}
+
+export function AiNotInstalled() {
+  return (
+    <div className="ai-panel">
+      <p>
+        <strong>The AI Editor isn’t installed yet.</strong> It suggests rewrites, smoother and tighter wording, stronger verbs and lines in a character’s voice, and
+        reads flagged adverbs in context, all on this PC with open-source software. No account, no subscription, nothing sent anywhere.
+      </p>
+      <p className="small">
+        To install it (about 8 GB), run this from the AuthorDesk folder, then restart AuthorDesk:
+        <br />
+        <code>powershell -ExecutionPolicy Bypass -File scripts\install-ai-editor.ps1</code>
+      </p>
+    </div>
+  );
+}

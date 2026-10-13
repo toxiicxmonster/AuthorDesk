@@ -33,3 +33,6 @@ Thumbs.db
 releases/
 .update/
 *.old
+
+# Local planning notes (not shipped)
+docs/ai-editor-plan.md

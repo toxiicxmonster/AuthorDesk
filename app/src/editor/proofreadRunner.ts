@@ -3,6 +3,12 @@ import { db } from '../storage/db';
 import { getSettings } from '../storage/settings';
 import { checkBlocks, findNewNames, SPELL_PROVIDER_ID } from '../proofreading/providers';
 import { knownNameSpans, protectNames } from '../proofreading/names';
+import { characterDetailSuggestions, type CharacterInfo } from '../proofreading/characterFacts';
+import { fetchAiStatus } from '../ai/aiEditor';
+import { AI_JUDGED_RULES, cachedVerdict, judgeAdverbs, judgedWord, sentenceAround, type AdverbItem } from '../ai/adverbJudge';
+
+/** When the AI Editor last failed to judge; adverbs show unjudged for a while after a failure. */
+let aiJudgeFailedAt = 0;
 import { checkOnline } from '../proofreading/languageTool';
 import { dedupe, normalizeRuleId } from '../proofreading/rules';
 import type { ProofreadContext, Suggestion } from '../proofreading/types';
@@ -59,10 +65,30 @@ export async function runProofread(
   const texts = blocks.map((b) => b.text);
   const [ctx, settings, ignoredRows] = await Promise.all([buildProofreadContext(projectId), getSettings(), db.ignored.where('projectId').equals(projectId).toArray()]);
   const ignored = new Set(ignoredRows.map((i) => i.key));
-  const [{ results, spellingError }, newNames] = await Promise.all([
+  const [{ results, spellingError }, newNames, characters] = await Promise.all([
     checkBlocks(texts, ctx),
     findNewNames(texts, ctx).catch(() => texts.map((): Suggestion[] => [])),
+    db.references.where('projectId').equals(projectId).toArray(),
   ]);
+  const charInfo: CharacterInfo[] = characters
+    .filter((r) => !r.archivedAt && r.type === 'character')
+    .map((r) => ({ id: r.id, name: r.name, aliases: r.aliases, appearance: r.fields.appearance ?? '' }));
+  // With the AI Editor installed, it reads each flagged adverb's sentence first; only the weak ones stay underlined.
+  const aiJudging = settings.aiJudgeAdverbs && Date.now() - aiJudgeFailedAt > 120_000 && !!(await fetchAiStatus())?.installed;
+  const pendingAi: AdverbItem[] = [];
+  const judged = (s: Suggestion, bi: number): Suggestion | null => {
+    if (!aiJudging || !AI_JUDGED_RULES.has(s.ruleId)) return s;
+    const item: AdverbItem = { word: judgedWord(s), ...sentenceAround(texts[bi], s.start, s.end) };
+    const v = cachedVerdict(item);
+    if (!v) {
+      pendingAi.push(item); // hidden until the AI has read it
+      return null;
+    }
+    if (v.keep) return null;
+    return v.reason ? { ...s, message: `${s.message} AI Editor: ${v.reason}` } : s;
+  };
+  // Details about listed characters their entries don't have yet (green) or contradict (purple).
+  const details = ctx.disabledCategories.has('consistency') ? texts.map((): Suggestion[] => []) : characterDetailSuggestions(texts, charInfo, ctx.disabledRules);
   /**
    * Names are never flagged: known names (and names waiting to be added) are shielded from every check,
    * on-device and online; an unlisted name gets an "add it?" prompt instead.
@@ -72,18 +98,24 @@ export async function runProofread(
     const prompts = (newNames[bi] ?? []).filter((p) => !list.some((s) => s.ruleId === 'name-consistency' && s.start < p.end && p.start < s.end));
     const spans: [number, number][] = [...knownNameSpans(texts[bi], ctx.knownNames), ...prompts.map((p): [number, number] => [p.start, p.end])];
     // Only show what offers something to change the text to (name prompts offer "add to characters" instead).
-    const actionable = protectNames(texts[bi], list, spans).filter((s) => s.replacements.length > 0);
-    return [...actionable, ...prompts].sort((a, b) => a.start - b.start);
+    const actionable = protectNames(texts[bi], list, spans)
+      .filter((s) => s.replacements.length > 0)
+      .map((s) => judged(s, bi))
+      .filter((s): s is Suggestion => s !== null);
+    return [...actionable, ...prompts, ...(details[bi] ?? [])].sort((a, b) => a.start - b.start);
   };
 
+  let lastLists: Suggestion[][] = results;
   const place = (lists: Suggestion[][]): number => {
+    lastLists = lists;
+    pendingAi.length = 0;
     const placed: PlacedSuggestion[] = [];
     lists.forEach((raw, bi) => {
       const b = blocks[bi];
       const list = finalize(raw, bi);
       for (const s of list) {
         const context = b.text.slice(Math.max(0, s.start - 20), s.end + 20);
-        const key = ignoreKey(s.ruleId, s.original, context);
+        const key = s.data?.ignoreKey ?? ignoreKey(s.ruleId, s.original, context);
         if (ignored.has(key)) continue;
         placed.push({ ...s, key: `${key}@${b.pos + s.start}`, from: b.pos + s.start, to: b.pos + s.end });
       }
@@ -93,10 +125,27 @@ export async function runProofread(
   };
   // The author kept typing while we checked: these offsets belong to an old version. Discard them.
   const stale = () => editor.isDestroyed || editor.state.doc !== docAtStart;
+  /** Once suggestions are placed, let the AI judge the held-back adverbs in the background, then show the weak ones. */
+  const judgeLater = <T>(outcome: T): T => {
+    if (pendingAi.length && !stale()) {
+      void judgeAdverbs(pendingAi.slice())
+        .catch(() => {
+          aiJudgeFailedAt = Date.now();
+        })
+        .then(() => {
+          if (stale()) return;
+          if (Date.now() - aiJudgeFailedAt < 1000) {
+            // Couldn't judge: show them the ordinary way rather than hiding them.
+            void runProofread(editor, projectId, { sendOnline: false });
+          } else place(lastLists);
+        });
+    }
+    return outcome;
+  };
 
   if (stale()) return { count: 0, spellingError, stale: true, online: null };
   const online = settings.onlineCheck.enabled && settings.onlineCheck.consentedAt ? settings.onlineCheck : null;
-  if (!online) return { count: place(results), spellingError, stale: false, online: null };
+  if (!online) return judgeLater({ count: place(results), spellingError, stale: false, online: null });
   // Keep earlier online findings for paragraphs that haven't changed (no network).
   const known = await checkOnline(texts, ctx, online, undefined, true);
   // LanguageTool reads the whole sentence, so on the same word its spelling fix beats the dictionary's guess ("dont" → "don't", not "cont").
@@ -107,14 +156,14 @@ export async function runProofread(
       return dedupe([...local, ...online]);
     });
   const local: ProofreadOutcome = { count: place(merged(known.results)), spellingError, stale: false, online: { error: null, unchecked: known.unchecked } };
-  if (!sendOnline || !known.unchecked) return local;
+  if (!sendOnline || !known.unchecked) return judgeLater(local);
   onLocal?.(local);
 
   const remote = await checkOnline(texts, ctx, online);
   if (stale()) return { ...local, stale: true };
   // On-device suggestions come first so they win ties with the same span.
   const count = place(merged(remote.results));
-  return { count, spellingError, stale: false, online: { error: remote.error, unchecked: remote.unchecked } };
+  return judgeLater({ count, spellingError, stale: false, online: { error: remote.error, unchecked: remote.unchecked } });
 }
 
 export function clearProofread(editor: Editor) {

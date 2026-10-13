@@ -26,6 +26,7 @@ Copy-Item (Join-Path $root 'AuthorDesk.exe') $stage
 Copy-Item -Recurse (Join-Path $root 'app\dist') (Join-Path $stage 'dist')
 Copy-Item (Join-Path $root 'sync-server.example.txt') $stage
 Copy-Item (Join-Path $root 'scripts\install-grammar-engine.ps1') (Join-Path $stage 'scripts')
+Copy-Item (Join-Path $root 'scripts\install-ai-editor.ps1') (Join-Path $stage 'scripts')
 Set-Content -Encoding ascii (Join-Path $stage 'README.txt') @(
   "AuthorDesk v$version",
   '',
@@ -36,6 +37,9 @@ Set-Content -Encoding ascii (Join-Path $stage 'README.txt') @(
   '',
   'Private grammar engine (recommended, about 9 GB):',
   '  powershell -ExecutionPolicy Bypass -File scripts\install-grammar-engine.ps1',
+  '',
+  'Private AI Editor (optional, about 8 GB; best with an NVIDIA graphics card):',
+  '  powershell -ExecutionPolicy Bypass -File scripts\install-ai-editor.ps1',
   '',
   'More: https://github.com/toxiicxmonster/AuthorDesk'
 )

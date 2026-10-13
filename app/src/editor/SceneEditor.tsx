@@ -5,18 +5,22 @@ import { Icon } from '../ui/components/Icon';
 import type { Editor } from '@tiptap/core';
 import type { Scene } from '../domain/schema';
 import { countChars, countWords } from '../domain/text';
-import { saveSceneContent, createSnapshot, createRecord } from '../storage/repo';
+import { saveSceneContent, createSnapshot, createRecord, updateRecord } from '../storage/repo';
 import { db } from '../storage/db';
 import { getSettings, updateSettings, useSettings } from '../storage/settings';
-import { setUi, toast, useUi, reportError } from '../ui/store';
+import { confirmDialog, setUi, toast, useUi, reportError } from '../ui/store';
 import { cleanPastedHtml, editorExtensions } from './extensions';
 import { registerFlusher } from './EditorContext';
 import { applyPlaced, getSuggestions, suggestionsAt, activeSuggestionMeta, proofreadKey, removeSuggestionMeta, type PlacedSuggestion } from './proofreadExtension';
 import { baseKey, runProofread, clearProofread, type ProofreadOutcome } from './proofreadRunner';
 import { FindBar } from './FindBar';
 import { ReferencePicker } from '../ui/components/ReferencePicker';
-import { CATEGORY_LABELS } from '../proofreading/types';
+import { CATEGORY_LABELS, SEVERITY_LABEL } from '../proofreading/types';
 import { createReference } from '../domain/references';
+import { applyFact, type Attribute } from '../proofreading/characterFacts';
+import { fetchAiStatus } from '../ai/aiEditor';
+import { aiTaskForMark } from '../ai/markTask';
+import { sentenceAround } from '../ai/adverbJudge';
 
 const SAVE_DELAY = 700;
 /** Underlines refresh this soon after a pause in typing (on-device checks; unchanged paragraphs come from a cache). */
@@ -51,6 +55,13 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
   const [pickerOpen, setPickerOpen] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [popover, setPopover] = useState<({ items: PlacedSuggestion[] } & PopoverPlacement) | null>(null);
+  // Whether the AI Editor is installed: then clicking a mark it can help with opens it on that sentence.
+  const aiInstalled = useRef(false);
+  useEffect(() => {
+    void fetchAiStatus().then((st) => {
+      aiInstalled.current = !!st?.installed;
+    });
+  }, []);
   const wrapRef = useRef<HTMLDivElement>(null);
   const proofOn = settings.proofreadEnabled;
   const settingsRef = useRef(settings);
@@ -232,6 +243,7 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
       if (items.length) {
         setPopover({ items, ...popoverPlacement(e.currentTarget as HTMLElement, sug.getBoundingClientRect()) });
         editor.view.dispatch(editor.state.tr.setMeta(proofreadKey, activeSuggestionMeta(items[0].key)));
+        if (aiInstalled.current && window.innerWidth > 900) openAiFor(editor, items);
         return;
       }
     }
@@ -290,6 +302,9 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
           </button>
           <button onMouseDown={(e) => e.preventDefault()} onClick={() => setPickerOpen(true)}>
             <Icon name="link" size={15} /> Link to character / place…
+          </button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => setUi({ rightOpen: true, rightTab: 'ai' })} title="Open the AI Editor with this selection">
+            Ask AI Editor…
           </button>
         </BubbleMenu>
         {popover && (
@@ -382,6 +397,7 @@ function Toolbar({ editor, onFind, onLink, onSnapshot }: { editor: Editor; onFin
       {editor.isActive('refLink') && btn(<Icon name="unlink" size={16} />, 'Unlink', 'Remove this link (the words stay)', false, () => c().extendMarkRange('refLink').unsetRefLink().run())}
       {btn(<Icon name="search" size={16} />, 'Find', 'Find & replace in this scene (Ctrl+F)', false, onFind)}
       {btn(<Icon name="camera" size={16} />, 'Snapshot', 'Save a copy of this scene as it is now (see History)', false, onSnapshot)}
+      {btn(<Icon name="write" size={16} />, 'AI Editor', 'Rewrite, smooth or tighten the selected passage (suggestions only, on this PC)', false, () => setUi({ rightOpen: true, rightTab: 'ai' }))}
       {btn(<Icon name="focus" size={16} />, 'Focus', 'Hide everything except your page (Ctrl+Alt+F, Esc to leave)', false, () => setUi((s) => ({ focusMode: !s.focusMode })))}
     </div>
   );
@@ -407,6 +423,20 @@ export function popoverPlacement(page: HTMLElement, word: Pick<DOMRect, 'left' |
   const above = box.bottom - word.bottom < POPOVER_ROOM && word.top - box.top > POPOVER_ROOM;
   const y = (above ? word.top - box.top - 6 : word.bottom - box.top + 6) + page.scrollTop;
   return { x, y, above };
+}
+
+/** Opens the AI Editor on the sentence of the first mark it can help with, running the action that suits it. */
+function openAiFor(editor: Editor, items: PlacedSuggestion[]) {
+  for (const it of items) {
+    const pick = aiTaskForMark(it);
+    if (!pick) continue;
+    const $pos = editor.state.doc.resolve(it.from);
+    const para = $pos.parent.textBetween(0, $pos.parent.content.size, undefined, '\n');
+    const at = it.from - $pos.start();
+    const { sentence } = sentenceAround(para, at, at + (it.to - it.from));
+    setUi({ rightOpen: true, rightTab: 'ai', aiRequest: { id: Date.now(), text: sentence || para, context: para, task: pick.task, focus: pick.focus } });
+    return;
+  }
 }
 
 function SuggestionPopover({
@@ -474,6 +504,69 @@ function SuggestionItem({ editor, s, projectId, onClose, onRerun }: { editor: Ed
     toast(`Turned off this check. Re-enable it in Settings → Proofreading.`);
   };
   const wordList = s.category === 'spelling' || s.category === 'consistency';
+  if ((s.ruleId === 'character-fact' || s.ruleId === 'character-conflict') && s.data) {
+    const d = s.data;
+    const isNew = s.ruleId === 'character-fact';
+    const first = d.characterName.split(/\s+/)[0];
+    const shown = d.attribute === 'feature' ? 'yes' : d.value;
+    // Writes only to the character's reference entry; the manuscript is never touched.
+    const updateEntry = async () => {
+      try {
+        const ref = await db.references.get(d.characterId);
+        if (!ref) return toast(`${d.characterName} is no longer in your characters list.`);
+        const before = ref.fields.appearance ?? '';
+        const after = applyFact(before, { attribute: d.attribute as Attribute, label: d.label, value: d.value, existing: isNew ? null : d.existing });
+        if (!isNew) {
+          const ok = await confirmDialog(`Update ${d.characterName}’s entry?`, `Physical appearance now:\n${before}\n\nAfter the update:\n${after}`, {
+            confirmLabel: 'Update entry',
+          });
+          if (!ok) return;
+        }
+        await updateRecord('references', ref.id, { fields: { ...ref.fields, appearance: after } });
+        onClose();
+        toast(isNew ? `Added “${d.label}: ${shown}” to ${first}’s entry` : `Updated ${first}’s ${d.label.toLowerCase()} to ${d.value}`, {
+          action: {
+            label: 'Undo',
+            run: async () => {
+              const cur = await db.references.get(ref.id);
+              if (cur) await updateRecord('references', cur.id, { fields: { ...cur.fields, appearance: before } });
+              onRerun();
+            },
+          },
+        });
+        onRerun();
+      } catch (e) {
+        reportError(e, 'Could not update the character entry');
+      }
+    };
+    return (
+      <div className="pop-item">
+        <div className="pop-head">
+          <span className={`sev sev-${s.severity}`}>{SEVERITY_LABEL[s.severity]}</span>
+          <span className="muted">{d.characterName}</span>
+        </div>
+        <p>{s.message}</p>
+        <div className="pop-reps">
+          <button className="primary" onClick={() => void updateEntry()}>
+            {isNew ? `Add “${d.label}: ${shown}” to ${first}’s entry` : `Update ${first}’s entry to ${d.value}`}
+          </button>
+          {!isNew && <button onClick={ignore}>Keep the entry</button>}
+        </div>
+        <div className="pop-actions">
+          <button
+            onClick={() => {
+              onClose();
+              setUi({ quickRefId: d.characterId, rightOpen: true, rightTab: 'reference' });
+            }}
+          >
+            Open {first}’s entry
+          </button>
+          {isNew && <button onClick={ignore}>Ignore</button>}
+          <button onClick={disableRule}>Turn off this check</button>
+        </div>
+      </div>
+    );
+  }
   if (s.ruleId === 'new-name') {
     const addAs = async (type: 'character' | 'location') => {
       try {
@@ -523,7 +616,7 @@ function SuggestionItem({ editor, s, projectId, onClose, onRerun }: { editor: Ed
   return (
     <div className="pop-item">
       <div className="pop-head">
-        <span className={`sev sev-${s.severity}`}>{s.severity === 'error' ? 'Likely error' : s.severity === 'warning' ? 'Check' : 'Style'}</span>
+        <span className={`sev sev-${s.severity}`}>{SEVERITY_LABEL[s.severity]}</span>
         <span className="muted">{CATEGORY_LABELS[s.category]}</span>
       </div>
       <p>{s.message}</p>

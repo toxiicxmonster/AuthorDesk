@@ -10,6 +10,8 @@ import { confirmDialog, promptDialog, toast } from '../store';
 import { ARCHIVE_EXTENSION } from '../../importExport/archive';
 import { ThemePicker } from '../components/ThemePicker';
 import { OnlineCheckSettings } from '../components/OnlineCheck';
+import { AiEditorSettings } from '../components/AiEditorSettings';
+import { AddonSettings } from '../components/AddonSettings';
 import { ruleLabel } from '../../proofreading/rules';
 import { isPublicEndpoint } from '../../proofreading/languageTool';
 import { useSyncUi } from '../../sync/controller';
@@ -138,7 +140,13 @@ export function SettingsPage({ projectId }: { projectId: string | null }) {
           Underlines appear as you write, a moment after you pause. The standard checks run on this device with a bundled dictionary and never send text anywhere.
         </p>
         <OnlineCheckSettings />
+        <AiEditorSettings />
         {projectId && <DictionaryEditor projectId={projectId} />}
+      </section>
+
+      <section className="card">
+        <h2>Add-ons</h2>
+        <AddonSettings />
       </section>
 
       <section className="card">

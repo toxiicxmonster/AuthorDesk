@@ -4,12 +4,24 @@ import { useEditorCtx } from '../../editor/EditorContext';
 import { collectTextBlocks } from '../../editor/blocks';
 import { analyzeDialogue } from '../../proofreading/dialogue';
 import { useReferences } from '../data';
+import { DialogueVoice } from './DialogueVoice';
 
 /** Side panel → Dialogue: who speaks, how it's tagged, and what might lose the reader, for the open scene. */
 export function DialoguePanel({ projectId }: { projectId: string }) {
   const { editor } = useEditorCtx();
   const refs = useReferences(projectId);
   const [doc, setDoc] = useState(() => editor?.state.doc ?? null);
+  const [cursor, setCursor] = useState(() => editor?.state.selection.from ?? 0);
+
+  // The line of dialogue the cursor is in is the one the voice helper works on.
+  useEffect(() => {
+    if (!editor) return;
+    const onSelect = () => setCursor(editor.state.selection.from);
+    editor.on('selectionUpdate', onSelect);
+    return () => {
+      editor.off('selectionUpdate', onSelect);
+    };
+  }, [editor]);
 
   useEffect(() => {
     if (!editor) return;
@@ -29,6 +41,11 @@ export function DialoguePanel({ projectId }: { projectId: string }) {
   const names = useMemo(() => refs.filter((r) => !r.archivedAt).flatMap((r) => [r.name, ...r.aliases]), [refs]);
   const blocks = useMemo(() => (doc ? collectTextBlocks(doc) : []), [doc]);
   const report = useMemo(() => analyzeDialogue(blocks.map((b) => b.text), names), [blocks, names]);
+  const characters = useMemo(() => refs.filter((r) => !r.archivedAt && r.type === 'character'), [refs]);
+  const current = useMemo(
+    () => report.lines.find((l) => blocks[l.block] && blocks[l.block].pos + l.start <= cursor && cursor <= blocks[l.block].pos + l.end) ?? null,
+    [report, blocks, cursor],
+  );
 
   if (!editor) return <p className="muted">Open a scene to see its dialogue.</p>;
   if (!report.lines.length) return <p className="muted">No dialogue in this scene yet. Quoted speech will show up here as you write it.</p>;
@@ -53,6 +70,11 @@ export function DialoguePanel({ projectId }: { projectId: string }) {
         <strong>{report.lines.length}</strong> line{report.lines.length === 1 ? '' : 's'} of dialogue · about <strong>{Math.round(report.share * 100)}%</strong> of this
         scene is spoken.
       </p>
+
+      <section>
+        <h3>In a character’s voice</h3>
+        <DialogueVoice line={current} paragraph={current ? blocks[current.block].text : ''} characters={characters} />
+      </section>
 
       {report.issues.length > 0 && (
         <section>

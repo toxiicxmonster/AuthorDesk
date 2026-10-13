@@ -13,11 +13,12 @@ import { CommitInput, StatusSelect, relativeTime, Modal } from './common';
 import { useEditorCtx, flushAllEdits } from '../../editor/EditorContext';
 import { applyPlaced, getSuggestions, type PlacedSuggestion } from '../../editor/proofreadExtension';
 import { TextSelection } from '@tiptap/pm/state';
-import { CATEGORY_LABELS } from '../../proofreading/types';
+import { CATEGORY_LABELS, SEVERITY_LABEL } from '../../proofreading/types';
 import { LT_PROVIDER_ID } from '../../proofreading/languageTool';
 import { useSettings } from '../../storage/settings';
 import { Icon } from './Icon';
 import { DialoguePanel } from './DialoguePanel';
+import { AiEditorPanel } from './AiEditorPanel';
 
 export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapter: Chapter; nextScene: Scene | null }) {
   const tab = useUi((s) => s.rightTab);
@@ -26,6 +27,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
     ['scene', 'Scene notes'],
     ['proof', 'Suggestions'],
     ['dialogue', 'Dialogue'],
+    ['ai', 'AI Editor'],
     ['history', 'Versions'],
   ];
   return (
@@ -45,6 +47,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
         {tab === 'scene' && <SceneInspector scene={scene} chapter={chapter} nextScene={nextScene} />}
         {tab === 'proof' && <ProofPanel projectId={scene.projectId} />}
         {tab === 'dialogue' && <DialoguePanel projectId={scene.projectId} />}
+        {tab === 'ai' && <AiEditorPanel projectId={scene.projectId} />}
         {tab === 'history' && <HistoryPanel scene={scene} />}
       </div>
     </aside>
@@ -365,7 +368,7 @@ function ProofPanel({ projectId }: { projectId: string }) {
         {shown.map((s) => (
           <li key={s.key} className={`sugg sev-${s.severity}`}>
             <button className="sugg-main" onClick={() => focus(s)}>
-              <span className={`sev sev-${s.severity}`}>{s.severity === 'error' ? 'Error' : s.severity === 'warning' ? 'Check' : 'Style'}</span>{' '}
+              <span className={`sev sev-${s.severity}`}>{SEVERITY_LABEL[s.severity]}</span>{' '}
               <strong>“{s.original}”</strong>
               {s.providerId === LT_PROVIDER_ID && <span className="muted small"> · LanguageTool</span>}
               <span className="block small">{s.message}</span>

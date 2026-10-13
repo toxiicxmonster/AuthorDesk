@@ -18,14 +18,14 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("AuthorDesk")]
 [assembly: AssemblyProduct("AuthorDesk")]
 [assembly: AssemblyDescription("Private writing studio for novelists")]
-[assembly: AssemblyVersion("0.3.0.0")]
+[assembly: AssemblyVersion("0.4.0.0")]
 
 namespace AuthorDesk
 {
     static class Program
     {
         // Release version; bump with each GitHub release (tag "v" + Version). scripts\package-release.ps1 reads it.
-        const string Version = "0.3";
+        const string Version = "0.4";
         const string UpdateRepo = "toxiicxmonster/AuthorDesk";
 
         // Fixed port: the browser stores your work per origin, so the address must never change.
@@ -44,6 +44,15 @@ namespace AuthorDesk
         const int GrammarPort = 47821;
         static string grammarDir;
         static Process grammar;
+
+        // Optional AI Editor (llama.cpp + an open-weight model), installed by scripts\install-ai-editor.ps1.
+        // Loaded on first use and unloaded when idle, since it holds several GB of graphics memory.
+        const int AiPort = 47822;
+        static readonly TimeSpan AiIdle = TimeSpan.FromMinutes(15);
+        static readonly object aiLock = new object();
+        static Process ai;
+        static DateTime aiLastUsed = DateTime.MinValue;
+        static System.Threading.Timer aiIdleTimer;
 
         [STAThread]
         static int Main(string[] args)
@@ -236,6 +245,7 @@ namespace AuthorDesk
             try { if (tray != null) { tray.Visible = false; tray.Dispose(); } } catch { }
             try { if (listener != null) listener.Stop(); } catch { }
             try { if (grammar != null && !grammar.HasExited) grammar.Kill(); } catch { }
+            StopAi();
             Application.Exit();
             Environment.Exit(0);
         }
@@ -286,6 +296,33 @@ namespace AuthorDesk
                 if (path == PingPath)
                 {
                     Write(res, "authordesk", "text/plain");
+                    return;
+                }
+                if (path == "/setup/status")
+                {
+                    Write(res, SetupStatusJson(), "application/json");
+                    return;
+                }
+                if (path == "/setup/install" && ctx.Request.HttpMethod == "POST")
+                {
+                    QueueSetup((ctx.Request.QueryString["parts"] ?? "").Split(','));
+                    Write(res, SetupStatusJson(), "application/json");
+                    return;
+                }
+                if (path == "/ai/status")
+                {
+                    Write(res, AiStatusJson(), "application/json");
+                    return;
+                }
+                if (path == "/ai/start" && ctx.Request.HttpMethod == "POST")
+                {
+                    ThreadPool.QueueUserWorkItem(_ => EnsureAi());
+                    Write(res, AiStatusJson(), "application/json");
+                    return;
+                }
+                if (path == "/ai/chat")
+                {
+                    ProxyAi(ctx);
                     return;
                 }
                 if (path == "/grammar/status")
@@ -619,6 +656,344 @@ namespace AuthorDesk
         static void CloseSplash(Form f)
         {
             try { if (f != null) { f.Close(); f.Dispose(); } } catch { }
+        }
+
+        // ---------- Add-on setup (grammar engine, AI Editor) ----------
+
+        /// The optional add-ons, installed in the background by their scripts while the author writes.
+        class SetupPart
+        {
+            public string Id, Script, Dir;
+            public string State = "idle"; // idle, queued, installing, done, failed
+            public string Message = "";
+        }
+
+        static readonly object setupLock = new object();
+        static readonly Dictionary<string, SetupPart> setupParts = new Dictionary<string, SetupPart>();
+        static readonly Queue<SetupPart> setupQueue = new Queue<SetupPart>();
+        static bool setupRunning;
+
+        static Dictionary<string, SetupPart> SetupParts()
+        {
+            lock (setupLock)
+            {
+                if (setupParts.Count == 0)
+                {
+                    setupParts["ai"] = new SetupPart { Id = "ai", Script = "install-ai-editor.ps1", Dir = AiDir };
+                    setupParts["grammar"] = new SetupPart { Id = "grammar", Script = "install-grammar-engine.ps1", Dir = Path.Combine(dataDir, "grammar-engine") };
+                }
+                return setupParts;
+            }
+        }
+
+        static string ScriptPath(SetupPart part)
+        {
+            foreach (var dir in new[] { Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scripts"), Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "scripts") })
+            {
+                string f = Path.GetFullPath(Path.Combine(dir, part.Script));
+                if (File.Exists(f)) return f;
+            }
+            return null;
+        }
+
+        static bool PartInstalled(string id)
+        {
+            if (id == "ai") return AiConfig() != null;
+            grammarDir = grammarDir ?? Path.Combine(dataDir, "grammar-engine");
+            return GrammarInstalled && Directory.Exists(Path.Combine(grammarDir, "ngrams", "en"));
+        }
+
+        static void QueueSetup(string[] ids)
+        {
+            var parts = SetupParts();
+            lock (setupLock)
+            {
+                foreach (string raw in ids)
+                {
+                    SetupPart part;
+                    if (!parts.TryGetValue(raw.Trim(), out part) || PartInstalled(part.Id)) continue;
+                    if (part.State == "queued" || part.State == "installing" || ScriptPath(part) == null) continue;
+                    part.State = "queued";
+                    part.Message = "";
+                    setupQueue.Enqueue(part);
+                }
+                if (setupRunning || setupQueue.Count == 0) return;
+                setupRunning = true;
+            }
+            new Thread(RunSetupQueue) { IsBackground = true, Name = "AuthorDesk setup" }.Start();
+        }
+
+        /// Runs the queued install scripts one at a time, hidden. They live in the job object, so closing AuthorDesk
+        /// stops them; the scripts resume interrupted downloads next time.
+        static void RunSetupQueue()
+        {
+            for (;;)
+            {
+                SetupPart part;
+                lock (setupLock)
+                {
+                    if (setupQueue.Count == 0) { setupRunning = false; return; }
+                    part = setupQueue.Dequeue();
+                    part.State = "installing";
+                }
+                try
+                {
+                    Directory.CreateDirectory(part.Dir);
+                    string log = Path.Combine(dataDir, "setup-" + part.Id + ".log");
+                    var psi = new ProcessStartInfo("powershell.exe",
+                        "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + ScriptPath(part) + "\"")
+                    {
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                    };
+                    using (var writer = new StreamWriter(log, false) { AutoFlush = true })
+                    using (var proc = Process.Start(psi))
+                    {
+                        KillWithLauncher(proc);
+                        string lastError = null;
+                        proc.OutputDataReceived += (s, e) => { if (e.Data != null) lock (writer) writer.WriteLine(e.Data); };
+                        proc.ErrorDataReceived += (s, e) =>
+                        {
+                            if (e.Data == null) return;
+                            lock (writer) writer.WriteLine(e.Data);
+                            // curl's progress meter also arrives here; keep only real error text.
+                            if (e.Data.Contains("Exception") || e.Data.Contains("failed") || e.Data.Contains("did not match")) lastError = e.Data.Trim();
+                        };
+                        proc.BeginOutputReadLine();
+                        proc.BeginErrorReadLine();
+                        proc.WaitForExit();
+                        bool ok = proc.ExitCode == 0 && PartInstalled(part.Id);
+                        lock (setupLock)
+                        {
+                            part.State = ok ? "done" : "failed";
+                            part.Message = ok ? "" : (lastError ?? "The installer stopped (exit code " + proc.ExitCode + "). It will pick up where it left off next time.");
+                        }
+                        Log("Setup " + part.Id + ": " + part.State + (ok ? "" : " (" + part.Message + ")"));
+                    }
+                    if (part.State == "done" && part.Id == "grammar") StartGrammarEngine();
+                }
+                catch (Exception ex)
+                {
+                    lock (setupLock) { part.State = "failed"; part.Message = ex.Message; }
+                    Log("Setup " + part.Id + " failed: " + ex.Message);
+                }
+            }
+        }
+
+        /// The current step and how far through its download it is, from the script's progress.json.
+        static void SetupProgress(SetupPart part, out string step, out int percent)
+        {
+            step = "";
+            percent = -1;
+            try
+            {
+                string f = Path.Combine(part.Dir, "progress.json");
+                if (!File.Exists(f)) return;
+                var j = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(f));
+                step = j.ContainsKey("step") ? (j["step"] as string ?? "") : "";
+                string file = j.ContainsKey("file") ? j["file"] as string : null;
+                long total = j.ContainsKey("total") ? Convert.ToInt64(j["total"]) : 0;
+                if (!string.IsNullOrEmpty(file) && total > 0)
+                {
+                    long have = File.Exists(file) ? new FileInfo(file).Length : total;
+                    percent = (int)Math.Min(100, have * 100 / total);
+                }
+            }
+            catch { }
+        }
+
+        static string JsonString(string s)
+        {
+            return "\"" + (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", " ").Replace("\n", " ") + "\"";
+        }
+
+        static string SetupStatusJson()
+        {
+            var parts = SetupParts();
+            long freeGb = -1;
+            try { freeGb = new DriveInfo(Path.GetPathRoot(dataDir)).AvailableFreeSpace / (1024L * 1024 * 1024); } catch { }
+            var sb = new StringBuilder("{\"freeGb\":" + freeGb + ",\"parts\":{");
+            bool first = true;
+            lock (setupLock)
+            {
+                foreach (var part in parts.Values)
+                {
+                    string step;
+                    int percent;
+                    SetupProgress(part, out step, out percent);
+                    bool installed = PartInstalled(part.Id);
+                    // "done" only while it's actually installed (files can be removed after an install).
+                    string state = installed && part.State != "installing" ? "done" : part.State == "done" ? "idle" : part.State;
+                    sb.Append(first ? "" : ",").Append(JsonString(part.Id)).Append(":{\"installed\":").Append(installed ? "true" : "false")
+                        .Append(",\"available\":").Append(ScriptPath(part) != null ? "true" : "false")
+                        .Append(",\"state\":").Append(JsonString(state))
+                        .Append(",\"step\":").Append(JsonString(part.State == "installing" ? step : ""))
+                        .Append(",\"percent\":").Append(part.State == "installing" ? percent : -1)
+                        .Append(",\"message\":").Append(JsonString(part.Message)).Append("}");
+                    first = false;
+                }
+            }
+            return sb.Append("}}").ToString();
+        }
+
+        // ---------- AI Editor ----------
+
+        static string AiDir { get { return Path.Combine(dataDir, "ai-editor"); } }
+        static string AiServer { get { return Path.Combine(AiDir, "llama", "llama-server.exe"); } }
+
+        /// The installer's settings (model file, GPU layers, context size), or null when not installed.
+        static Dictionary<string, object> AiConfig()
+        {
+            try
+            {
+                string f = Path.Combine(AiDir, "ai-editor.json");
+                if (!File.Exists(f) || !File.Exists(AiServer)) return null;
+                var cfg = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(f));
+                string model = cfg.ContainsKey("file") ? cfg["file"] as string : null;
+                return model != null && File.Exists(model) ? cfg : null;
+            }
+            catch { return null; }
+        }
+
+        static bool AiReady()
+        {
+            try
+            {
+                var req = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + AiPort + "/health");
+                req.Timeout = 1000;
+                using (var r = (HttpWebResponse)req.GetResponse()) return r.StatusCode == HttpStatusCode.OK;
+            }
+            catch { return false; }
+        }
+
+        static bool AiRunning { get { try { return ai != null && !ai.HasExited; } catch { return false; } } }
+
+        static string AiStatusJson()
+        {
+            var cfg = AiConfig();
+            bool ready = cfg != null && AiRunning && AiReady();
+            string model = cfg != null && cfg.ContainsKey("model") ? (cfg["model"] as string ?? "") : "";
+            return "{\"installed\":" + (cfg != null ? "true" : "false") + ",\"ready\":" + (ready ? "true" : "false") +
+                ",\"starting\":" + (cfg != null && AiRunning && !ready ? "true" : "false") +
+                ",\"model\":\"" + model.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"}";
+        }
+
+        /// Starts the model server if needed and waits (up to 3 minutes) until it has loaded. True when ready.
+        static bool EnsureAi()
+        {
+            var cfg = AiConfig();
+            if (cfg == null) return false;
+            lock (aiLock)
+            {
+                aiLastUsed = DateTime.UtcNow;
+                if (!AiRunning)
+                {
+                    int layers = cfg.ContainsKey("gpuLayers") ? Convert.ToInt32(cfg["gpuLayers"]) : 0;
+                    int context = cfg.ContainsKey("contextSize") ? Convert.ToInt32(cfg["contextSize"]) : 8192;
+                    var psi = new ProcessStartInfo(AiServer,
+                        "-m \"" + cfg["file"] + "\" --host 127.0.0.1 --port " + AiPort + " -c " + context + " -ngl " + layers)
+                    {
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WorkingDirectory = Path.GetDirectoryName(AiServer),
+                    };
+                    try
+                    {
+                        ai = Process.Start(psi);
+                        KillWithLauncher(ai);
+                        Log("AI Editor started (" + cfg["model"] + ")");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log("Could not start the AI Editor: " + ex.Message);
+                        return false;
+                    }
+                    if (aiIdleTimer == null) aiIdleTimer = new System.Threading.Timer(_ => StopAiIfIdle(), null, 60000, 60000);
+                }
+            }
+            for (int i = 0; i < 360; i++)
+            {
+                if (AiReady()) return true;
+                if (!AiRunning) return false;
+                Thread.Sleep(500);
+            }
+            return false;
+        }
+
+        static void StopAiIfIdle()
+        {
+            lock (aiLock)
+            {
+                if (AiRunning && DateTime.UtcNow - aiLastUsed > AiIdle)
+                {
+                    Log("AI Editor unloaded after being idle");
+                    StopAi();
+                }
+            }
+        }
+
+        static void StopAi()
+        {
+            try { if (ai != null && !ai.HasExited) ai.Kill(); } catch { }
+            ai = null;
+        }
+
+        /// Forwards an OpenAI-style chat request to the local model, streaming the answer back as it is written.
+        static void ProxyAi(HttpListenerContext ctx)
+        {
+            var inReq = ctx.Request;
+            var res = ctx.Response;
+            res.Headers["Cache-Control"] = "no-store";
+            if (inReq.HttpMethod != "POST") { res.StatusCode = 405; return; }
+            byte[] body;
+            using (var ms = new MemoryStream()) { inReq.InputStream.CopyTo(ms); body = ms.ToArray(); }
+            if (!EnsureAi())
+            {
+                res.StatusCode = 503;
+                Write(res, AiConfig() == null ? "{\"error\":\"The AI Editor is not installed.\"}" : "{\"error\":\"The AI Editor could not start.\"}", "application/json");
+                return;
+            }
+            var req = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + AiPort + "/v1/chat/completions");
+            req.Method = "POST";
+            req.ContentType = "application/json";
+            req.Timeout = 300000;
+            req.ReadWriteTimeout = 300000;
+            req.AllowReadStreamBuffering = false;
+            HttpWebResponse upstream;
+            try
+            {
+                using (var outStream = req.GetRequestStream()) outStream.Write(body, 0, body.Length);
+                upstream = (HttpWebResponse)req.GetResponse();
+            }
+            catch (WebException wex)
+            {
+                upstream = wex.Response as HttpWebResponse;
+                if (upstream == null)
+                {
+                    res.StatusCode = 502;
+                    Write(res, "{\"error\":\"The AI Editor stopped responding.\"}", "application/json");
+                    return;
+                }
+            }
+            using (upstream)
+            {
+                res.StatusCode = (int)upstream.StatusCode;
+                res.ContentType = upstream.ContentType;
+                res.SendChunked = true;
+                var buf = new byte[4096];
+                using (var stream = upstream.GetResponseStream())
+                {
+                    int n;
+                    while ((n = stream.Read(buf, 0, buf.Length)) > 0)
+                    {
+                        res.OutputStream.Write(buf, 0, n);
+                        res.OutputStream.Flush();
+                        aiLastUsed = DateTime.UtcNow;
+                    }
+                }
+            }
         }
 
         // ---------- Private grammar engine ----------

@@ -43,6 +43,10 @@ You don't need Node or any developer tools to use AuthorDesk.
 
 **Updating:** automatic. Each time AuthorDesk starts, it checks this repository's latest release; if it's newer, it downloads it, swaps in the new files (keeping a backup until the update has worked) and restarts, which takes a few seconds. If you're offline or anything goes wrong, it just starts the version you have. Your books are not stored in that folder (see [Where your data lives](#where-your-data-lives-and-backups)), so updates never touch them. To turn updates off, put an empty file named `no-auto-update.txt` next to `AuthorDesk.exe`. A source checkout (with an `app` folder next to the exe) never updates itself; use `git pull` there.
 
+**Add-ons:** on first launch AuthorDesk offers to install the private grammar engine and AI Editor in the background (about 17 GB, with a free-space check; *Not now* and *Don't ask again* are there too, and **Settings → Add-ons** installs them later). Or install them by hand:
+
+**Private AI Editor (optional):** run `powershell -ExecutionPolicy Bypass -File scripts\install-ai-editor.ps1` (about 8 GB). It rewrites, tightens and smooths passages in a side panel, judges adverbs in context and keeps character notes up to date, using llama.cpp and an open-source model on your PC. Its suggestions are never written into your book.
+
 **Private grammar engine (recommended):** run `powershell -ExecutionPolicy Bypass -File scripts\install-grammar-engine.ps1` from the AuthorDesk folder once (about 9 GB). AuthorDesk then checks grammar on this PC with no limits and nothing sent anywhere.
 
 ---

@@ -1,3 +1,4 @@
+import type { AiTaskId } from '../ai/prompts';
 import { useSyncExternalStore } from 'react';
 
 export type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'error';
@@ -30,8 +31,10 @@ interface UiState {
   dialog: DialogRequest | null;
   leftOpen: boolean;
   rightOpen: boolean;
-  rightTab: 'reference' | 'scene' | 'proof' | 'dialogue' | 'history';
+  rightTab: 'reference' | 'scene' | 'proof' | 'dialogue' | 'ai' | 'history';
   quickRefId: string | null;
+  /** Set when a flagged mark asks the AI Editor to work on its sentence; `id` changes for each request. */
+  aiRequest: { id: number; text: string; context: string; task: AiTaskId; focus: string | null } | null;
   searchOpen: boolean;
   helpOpen: boolean;
 }
@@ -47,6 +50,7 @@ let state: UiState = {
   rightOpen: typeof window === 'undefined' ? true : window.innerWidth > 1200,
   rightTab: 'reference',
   quickRefId: null,
+  aiRequest: null,
   searchOpen: false,
   helpOpen: false,
 };

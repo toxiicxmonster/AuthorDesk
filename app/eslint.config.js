@@ -14,4 +14,17 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
+  {
+    // The AI Editor only suggests: it must never write into the manuscript.
+    files: ['src/ai/**', 'src/ui/components/AiEditorPanel.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[property.name=/^(commands|chain|dispatch|insertContent|setContent)$/]",
+          message: 'The AI Editor must never change the manuscript. Show results in the panel for the author to copy.',
+        },
+      ],
+    },
+  },
 );

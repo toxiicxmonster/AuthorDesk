@@ -1,7 +1,7 @@
 import { synonymsFor } from './synonyms';
 import { strongerWords } from './stronger';
 import { levenshtein } from '../domain/text';
-import type { Category, ProofreadContext, Severity, Suggestion } from './types';
+import { SEVERITY_RANK, type Category, type ProofreadContext, type Severity, type Suggestion } from './types';
 
 export const LOCAL_PROVIDER_ID = 'local-rules';
 
@@ -557,6 +557,8 @@ const RULE_LABELS: Record<string, string> = {
   cliche: 'Familiar phrases',
   spelling: 'Spelling (dictionary)',
   'new-name': 'Names not yet in your characters & world list',
+  'character-fact': 'Character details missing from their entry (green)',
+  'character-conflict': 'Details that contradict a character’s entry (purple)',
   ...Object.fromEntries(CONFUSED.map(([id, , , , label]) => [id, label])),
 };
 
@@ -582,7 +584,7 @@ export function runRules(text: string, ctx: ProofreadContext): Suggestion[] {
 
 /** Drop overlapping suggestions, preferring errors over warnings over style. */
 export function dedupe(list: Suggestion[]): Suggestion[] {
-  const rank: Record<Severity, number> = { error: 0, warning: 1, style: 2 };
+  const rank = SEVERITY_RANK;
   const sorted = list.slice().sort((a, b) => rank[a.severity] - rank[b.severity] || a.start - b.start);
   const kept: Suggestion[] = [];
   for (const s of sorted) {

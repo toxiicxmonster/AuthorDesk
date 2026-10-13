@@ -17,6 +17,8 @@
   --err-line: #c0392b;
   --warn-line: #c58b00;
   --style-line: #4a7fb5;
+  --note-line: #2e8b57;
+  --conflict-line: #8e44ad;
   --page: #fffdf8;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.06);
   --radius: 8px;
@@ -44,6 +46,10 @@
     --err-line: #e4836f;
     --warn-line: #e0b04c;
     --style-line: #7fb0ea;
+  --note-line: #6fcf8f;
+  --conflict-line: #c39bd3;
+    --note-line: #6fcf8f;
+    --conflict-line: #c39bd3;
     --page: #22211f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.3);
     color-scheme: dark;
@@ -862,7 +868,12 @@ details.banner {
   text-underline-offset: 4px;
   cursor: pointer;
 }
-/* Overlapping suggestions share one span with both classes; later rules win, so the more serious look shows. */
+/* Each kind of mark has its own colour and line: red wavy = likely error, purple double = contradicts a character's
+   entry, amber solid = check, blue dotted = style, green dashed = a detail a character's entry could gain. */
+.pr-note {
+  text-decoration-color: var(--note-line);
+  text-decoration-style: dashed;
+}
 .pr-style {
   text-decoration-color: var(--style-line);
   text-decoration-style: dotted;
@@ -870,6 +881,11 @@ details.banner {
 .pr-warning {
   text-decoration-color: var(--warn-line);
   text-decoration-style: solid;
+}
+.pr-conflict {
+  text-decoration-color: var(--conflict-line);
+  text-decoration-style: double;
+  text-decoration-thickness: 3px;
 }
 .pr-error {
   text-decoration-color: var(--err-line);
@@ -963,6 +979,12 @@ details.banner {
 }
 .sev-style {
   color: var(--style-line);
+}
+.sev-note {
+  color: var(--note-line);
+}
+.sev-conflict {
+  color: var(--conflict-line);
 }
 .workspace.focus .center {
   background: var(--page);
@@ -2727,4 +2749,213 @@ input[type='checkbox'] {
   border-radius: 999px;
   background: var(--accent);
   opacity: 0.7;
+}
+
+/* Side panel → AI Editor */
+.ai-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.ai-panel section,
+.ai-panel p {
+  margin: 0;
+}
+.ai-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.ai-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--warn-line);
+  flex: none;
+}
+.ai-dot.on {
+  background: var(--ok);
+}
+.ai-passage-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+.ai-passage-head .link-btn {
+  margin-left: auto;
+}
+.ai-passage blockquote,
+.ai-line {
+  margin: 0 0 0.3rem;
+  padding: 0.45rem 0.6rem;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  max-height: 8rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: 0.88rem;
+}
+.ai-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.ai-primary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+.ai-ask,
+.ai-pair {
+  display: flex;
+  gap: 0.35rem;
+}
+.ai-ask input,
+.ai-pair select {
+  flex: 1;
+  min-width: 0;
+}
+.ai-more > summary,
+.ai-earlier > summary,
+.ai-characters > summary {
+  cursor: pointer;
+  color: var(--text-2);
+  padding: 0.2rem 0;
+}
+.ai-more[open] > summary {
+  margin-bottom: 0.4rem;
+}
+.ai-more .ai-pair {
+  margin-top: 0.35rem;
+}
+.ai-characters > button,
+.ai-characters > p {
+  margin-top: 0.35rem;
+}
+.ai-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.65rem;
+  margin: 0.35rem 0;
+  background: var(--surface);
+}
+.ai-card header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin-bottom: 0.25rem;
+}
+.ai-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border-top: 1px solid var(--line);
+  padding: 0.45rem 0;
+}
+.ai-option:first-of-type {
+  border-top: 0;
+}
+.ai-option p {
+  flex: 1;
+  white-space: pre-wrap;
+  font-size: 0.92rem;
+}
+.ai-option button {
+  flex: none;
+}
+.ai-changed {
+  background: color-mix(in srgb, var(--note-line) 22%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link-btn:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* Six writing tools: let the side panel's tabs wrap rather than hide off the edge. */
+.right-panel .tabs {
+  flex-wrap: wrap;
+  overflow-x: visible;
+}
+
+/* Add-on setup */
+.addon-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.setup-progress {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  width: min(340px, calc(100vw - 32px));
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.setup-progress p {
+  margin: 0;
+}
+.setup-toggle {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.65rem;
+}
+.setup-item > div:first-child {
+  padding-right: 2.5rem;
+}
+.setup-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+  margin-top: 0.3rem;
+}
+.setup-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.6s ease;
+}
+.setup-bar.indeterminate span {
+  width: 35% !important;
+  animation: setup-slide 1.4s ease-in-out infinite;
+}
+@keyframes setup-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(290%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .setup-bar.indeterminate span {
+    animation: none;
+    width: 100% !important;
+    opacity: 0.5;
+  }
 }

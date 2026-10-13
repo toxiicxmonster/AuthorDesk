@@ -25,8 +25,23 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   style: 'Style (adverbs, passive voice, filler)',
 };
 
-/** error = very likely wrong; warning = probably wrong; style = optional craft suggestion. */
-export type Severity = 'error' | 'warning' | 'style';
+/**
+ * error = very likely wrong; warning = probably wrong; style = optional craft suggestion;
+ * conflict = contradicts a character's reference entry; note = a detail the reference entry could gain.
+ * Each has its own underline colour.
+ */
+export type Severity = 'error' | 'warning' | 'style' | 'conflict' | 'note';
+
+/** Most important first; also decides which colour shows when marks overlap. */
+export const SEVERITY_RANK: Record<Severity, number> = { error: 0, conflict: 1, warning: 2, style: 3, note: 4 };
+
+export const SEVERITY_LABEL: Record<Severity, string> = {
+  error: 'Likely error',
+  conflict: 'Doesn’t match the character',
+  warning: 'Check',
+  style: 'Style',
+  note: 'Character detail',
+};
 
 export interface Suggestion {
   /** Offsets into the exact text string that was checked. */
@@ -41,6 +56,8 @@ export interface Suggestion {
   ruleId: string;
   providerId: string;
   confidence?: number;
+  /** Extra facts for suggestions whose action isn't a text change (e.g. which character entry to update). */
+  data?: Record<string, string>;
 }
 
 export interface ProofreadContext {
