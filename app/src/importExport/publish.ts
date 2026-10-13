@@ -164,8 +164,10 @@ export function buildPublishModel(
   book: Book,
   chapters: { chapter: Chapter; scenes: Scene[] }[],
   options: PublishOptions = DEFAULT_PUBLISH_OPTIONS,
+  /** Dedication / About the Author chosen for this export (from the pages managed on Home). */
+  pages?: { dedication: string; aboutAuthor: string },
 ): PublishModel {
-  const info = publishingInfo(book);
+  const info = { ...publishingInfo(book), ...(pages ?? {}) };
   let n = 0;
   const out: PublishChapter[] = [];
   let total = 0;

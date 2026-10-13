@@ -259,6 +259,21 @@ export interface CustomTheme {
   colors: { background: string; panel: string; page: string; text: string; accent: string };
 }
 
+/** Optional online grammar check (LanguageTool). Off until the author opts in. */
+export interface OnlineCheckSettings {
+  enabled: boolean;
+  /** Full URL of a LanguageTool /v2/check endpoint. */
+  endpoint: string;
+  /** LanguageTool's "picky" level adds more style and typography rules. */
+  picky: boolean;
+  /** When the author agreed to send text (ISO time); null until then. */
+  consentedAt: string | null;
+  /** The author turned off the grammar engine on this computer; don't switch it back on automatically. */
+  localEngineOptOut: boolean;
+}
+
+export const LT_PUBLIC_ENDPOINT = 'https://api.languagetool.org/v2/check';
+
 export interface UserSettings {
   /** 'system' (Paper/Night by OS setting) or a theme id. */
   theme: string;
@@ -275,6 +290,7 @@ export interface UserSettings {
   backupReminderDays: number;
   proofreadEnabled: boolean;
   browserSpellcheck: boolean;
+  onlineCheck: OnlineCheckSettings;
   pageWidth: 'narrow' | 'medium' | 'wide';
 }
 
@@ -293,5 +309,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   backupReminderDays: 7,
   proofreadEnabled: true,
   browserSpellcheck: false,
+  onlineCheck: { enabled: false, endpoint: LT_PUBLIC_ENDPOINT, picky: false, consentedAt: null, localEngineOptOut: false },
   pageWidth: 'medium',
 };

@@ -6,7 +6,8 @@ const KEY = 'user';
 
 export async function getSettings(): Promise<UserSettings> {
   const row = await db.settings.get(KEY);
-  return { ...DEFAULT_SETTINGS, ...((row?.value as Partial<UserSettings>) ?? {}) };
+  const stored = (row?.value as Partial<UserSettings>) ?? {};
+  return { ...DEFAULT_SETTINGS, ...stored, onlineCheck: { ...DEFAULT_SETTINGS.onlineCheck, ...(stored.onlineCheck ?? {}) } };
 }
 
 export async function updateSettings(patch: Partial<UserSettings>): Promise<UserSettings> {

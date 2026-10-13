@@ -34,14 +34,16 @@
 
 You don't need Node or any developer tools to use AuthorDesk.
 
-1. Open the [**Releases**](../../releases) page and download `AuthorDesk-v0.1-windows.zip`.
+1. Open the [**Releases**](../../releases) page and download the latest `AuthorDesk-v<version>-windows.zip`.
 2. Unzip it somewhere permanent, such as `C:\Users\<you>\AuthorDesk`. Keep `AuthorDesk.exe` and the `dist` folder together; the exe serves the app from that folder.
 3. Double-click **AuthorDesk.exe**. To add a desktop shortcut, right-click it and choose **Send to → Desktop (create shortcut)**.
 4. Windows may show "Windows protected your PC" because the exe isn't code-signed. Click **More info → Run anyway**. If you'd rather not, [build it yourself](#building-from-source-and-generating-authordeskexe) from the source code.
 
 **Requirements:** Windows 10 or 11 with Microsoft Edge (installed by default) or Google Chrome. The .NET Framework 4 it needs is part of Windows.
 
-**Updating:** download the new release and replace the old folder. Your books are not stored in that folder (see [Where your data lives](#where-your-data-lives-and-backups)), so they carry over.
+**Updating:** automatic. Each time AuthorDesk starts, it checks this repository's latest release; if it's newer, it downloads it, swaps in the new files (keeping a backup until the update has worked) and restarts, which takes a few seconds. If you're offline or anything goes wrong, it just starts the version you have. Your books are not stored in that folder (see [Where your data lives](#where-your-data-lives-and-backups)), so updates never touch them. To turn updates off, put an empty file named `no-auto-update.txt` next to `AuthorDesk.exe`. A source checkout (with an `app` folder next to the exe) never updates itself; use `git pull` there.
+
+**Private grammar engine (recommended):** run `powershell -ExecutionPolicy Bypass -File scripts\install-grammar-engine.ps1` from the AuthorDesk folder once (about 9 GB). AuthorDesk then checks grammar on this PC with no limits and nothing sent anywhere.
 
 ---
 
@@ -56,9 +58,10 @@ You don't need Node or any developer tools to use AuthorDesk.
 | **Characters and world** | Characters, locations, factions, species, items, lore, glossary and research entries with templated and custom fields, aliases, tags, favourites, images and relationships. Duplicate warnings, "Mentioned in" backlinks, a quick-reference side panel while you write, linking selected prose to an entry, and detection of unlinked mentions. |
 | **Story board** | Lanes and cards (drag-and-drop or an accessible move menu), filters, structure templates (three-act, fifteen-beat sheet, Hero's Journey, blank or your own), turning cards into scenes or chapters and back, and an outline view with inline summaries. |
 | **Timeline and plot threads** | Timeline in story-world order or chapter order, with gentle continuity hints. A plot-thread grid showing which chapters each thread appears in, with reminders for threads that have gone quiet. |
-| **Proofreading** | On your device only: Hunspell spelling (US or UK), grammar and punctuation rules, commonly confused words, repeated words, dialogue punctuation, name consistency against your character list, and optional style hints (adverbs, passive voice, filler, clichés, long sentences). Accept, Ignore, Add to dictionary or turn a check off, with undo and reviewed bulk fixes. **It never changes your text on its own.** |
+| **Proofreading** | **Live underlines as you write**, like Grammarly or Google Docs. On your device: Hunspell spelling (US or UK), grammar and punctuation rules, commonly confused words and idioms, repeated words, dialogue punctuation, name consistency against your character list (catches swapped letters like "Elsei"), and optional style fixes (cut or replace adverbs and filler words). Every underline offers something to change the text to; notes without a concrete fix are never shown. **Deep grammar check** with [LanguageTool](https://languagetool.org): install the private grammar engine (`scripts\install-grammar-engine.ps1`) and AuthorDesk runs it on this PC with English usage data, with no limits and nothing sent anywhere; or opt in to the free online service or your own server. Accept, Ignore, Add to dictionary or turn a check off, with undo and reviewed bulk fixes. **It never changes your text on its own.** |
 | **Search** | Search everything (Ctrl+K): manuscript, references, board, timeline, threads and notes, with filters and snippets. Opening a result highlights the matches. |
 | **Import your existing book** | A folder or zip of chapter files (`.md` or `.txt`) plus spreadsheets for characters, locations, world entries, story board, timeline and plot threads. You see a preview before anything is imported, and entries are linked by name. Exact layout: [**IMPORTING.md**](IMPORTING.md). |
+| **Dedication & About the Author** | Write these once on the **Home** page. Each one can apply to all your books, every book in the project, or specific books, and you choose which to include in every export (Word, text, Markdown, KDP). |
 | **Publish on Amazon KDP** | Kindle eBook as **EPUB 3** (Amazon's recommended format) or **Word**, and a **paperback/hardcover interior** `.docx` at KDP trim sizes. Mirrored margins meet KDP's gutter rules, chapters start on right-hand pages, front and back matter are added, and an optional **table of contents** is included. A pre-publish checklist catches common problems. |
 | **Backup and export** | A complete `.authorproj` archive (manifest, schema version, SHA-256 checksums), and import with a preview: restore, merge, or import as a copy. Also exports to DOCX, TXT, Markdown, JSON and references CSV, plus backup reminders. |
 | **Sync (optional)** | A self-hosted sync server you run yourself. Independent edits merge automatically. If both devices change the same prose, both versions are kept and you choose between them side by side. |
@@ -139,15 +142,18 @@ If you'd rather not use the script, this is all it runs for the exe:
 
 ### Packaging a release zip
 
-A release needs the exe **and** the built app next to it:
+Run `scripts\package-release.ps1`. It runs the tests, builds the app and exe, and writes `releases\AuthorDesk-v<version>-windows.zip`, taking the version from `const string Version` in `launcher\AuthorDesk.cs`:
 
 ```
-AuthorDesk-v0.1-windows.zip
+AuthorDesk-v0.2-windows.zip
 ├── AuthorDesk.exe
 ├── dist\                  ← contents of app\dist
+├── scripts\install-grammar-engine.ps1
 ├── sync-server.example.txt
 └── README.txt
 ```
+
+To publish: bump `Version` (and `AssemblyVersion`, plus `app\package.json`), package, then create a GitHub release tagged `v<version>` with the zip attached. Installed copies pick it up on their next launch; the updater takes the release asset whose name ends in `-windows.zip`.
 
 The launcher looks for the app in `.\app\dist`, then `.\dist`, then `..\app\dist`, relative to the exe, so both the repository layout and this flat release layout work.
 
@@ -319,7 +325,7 @@ IMPORTING.md        exact import layout
 ## Privacy and security
 
 - **No analytics, tracking or third-party services.** Proofreading runs entirely on your device.
-- **No manuscript text is ever sent anywhere** unless you turn on sync or Drive, and even then it goes only to your own server or your own Drive.
+- **No manuscript text is ever sent anywhere** unless you turn on sync, Drive or the online grammar check. Sync and Drive go only to your own server or your own Drive. The online check sends only the paragraphs of the scene you're editing, and only after you agree to an explanation of exactly what is sent (Settings → Proofreading).
 - **AuthorDesk never silently changes your prose.** Every proofreading change is your click, and it can be undone.
 - **No secrets** in the app bundle or this repository. `.env`, `sync-server.txt`, databases and backups are git-ignored.
 - **The launcher answers only loopback requests.**
@@ -349,7 +355,7 @@ Details: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Known limitations
 
-- Spell check covers US and UK English. Grammar checks are rule-based hints, not a full parser, and no AI grammar service is connected (by design).
+- Spell check covers US and UK English. The on-device grammar checks are rule-based hints, not a full parser; turn on the optional LanguageTool check for deeper grammar. The free LanguageTool service allows about 20 checks a minute, so after a large paste the rest of the scene is checked a little later.
 - Google Drive is untested with a real account. There's no folder picker: backups go to an "AuthorDesk Backups" folder that AuthorDesk creates.
 - Sync: deleting a project on one device doesn't delete it on others; use *Delete cloud copy*. Revision snapshots stay on each device.
 - Word `.docx` files can't be imported directly (see [IMPORTING.md](IMPORTING.md)).

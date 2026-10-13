@@ -9,6 +9,10 @@ import { useArchiveImport } from '../components/ImportPanel';
 import { confirmDialog, promptDialog, toast } from '../store';
 import { ARCHIVE_EXTENSION } from '../../importExport/archive';
 import { ThemePicker } from '../components/ThemePicker';
+import { OnlineCheckSettings } from '../components/OnlineCheck';
+import { ruleLabel } from '../../proofreading/rules';
+import { isPublicEndpoint } from '../../proofreading/languageTool';
+import { useSyncUi } from '../../sync/controller';
 
 const SHORTCUTS: [string, string][] = [
   ['Ctrl+K or Ctrl+Shift+F', 'Search everything'],
@@ -24,6 +28,7 @@ const SHORTCUTS: [string, string][] = [
 
 export function SettingsPage({ projectId }: { projectId: string | null }) {
   const s = useSettings();
+  const sync = useSyncUi();
   const importer = useArchiveImport();
   return (
     <div className="page narrow settings-page">
@@ -106,21 +111,33 @@ export function SettingsPage({ projectId }: { projectId: string | null }) {
           </div>
         </fieldset>
         {s.disabledRules.length > 0 && (
-          <p>
-            Turned-off checks: {s.disabledRules.join(', ')}{' '}
-            <button className="small" onClick={() => void updateSettings({ disabledRules: [] })}>
-              Turn all back on
-            </button>
-          </p>
+          <div className="field">
+            <span>Checks you turned off</span>
+            <ul className="turned-off">
+              {s.disabledRules.map((id) => (
+                <li key={id}>
+                  {ruleLabel(id)}{' '}
+                  <button className="small" onClick={() => void updateSettings({ disabledRules: s.disabledRules.filter((x) => x !== id) })}>
+                    Turn back on
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {s.disabledRules.length > 1 && (
+              <button className="small" onClick={() => void updateSettings({ disabledRules: [] })}>
+                Turn all back on
+              </button>
+            )}
+          </div>
         )}
         <label className="check">
           <input type="checkbox" checked={s.browserSpellcheck} onChange={(e) => void updateSettings({ browserSpellcheck: e.target.checked })} /> Also use the browser’s
           built-in spell check (red squiggles from Chrome/Edge)
         </label>
         <p className="muted small">
-          All checks run on this device with a bundled dictionary. No text is sent to any service. An optional online grammar service could be added later; it would
-          be off by default and explain exactly what is sent.
+          Underlines appear as you write, a moment after you pause. The standard checks run on this device with a bundled dictionary and never send text anywhere.
         </p>
+        <OnlineCheckSettings />
         {projectId && <DictionaryEditor projectId={projectId} />}
       </section>
 
@@ -154,13 +171,23 @@ export function SettingsPage({ projectId }: { projectId: string | null }) {
             storage (IndexedDB). Nothing is uploaded automatically.
           </li>
           <li>
-            <strong>Sent to sync storage:</strong> nothing — cross-device sync is not connected.
+            <strong>Sent to sync storage:</strong>{' '}
+            {sync.server === 'signed-in'
+              ? `your projects, to your own sync server (signed in as ${sync.username ?? 'you'}).`
+              : 'nothing — you are not signed in to a sync server.'}
           </li>
           <li>
             <strong>Sent to Google Drive:</strong> only backups you explicitly create after connecting, using access limited to files AuthorDesk creates.
           </li>
           <li>
-            <strong>Third parties:</strong> none. Proofreading is local. No analytics, no tracking, and your writing is never used for training.
+            <strong>Online grammar check:</strong>{' '}
+            {s.onlineCheck.enabled && s.onlineCheck.consentedAt
+              ? `on — paragraphs of the scene you are editing are sent to ${isPublicEndpoint(s.onlineCheck.endpoint) ? 'LanguageTool (api.languagetool.org)' : 'your LanguageTool server'} for checking.`
+              : 'off — proofreading runs entirely on this device.'}
+          </li>
+          <li>
+            <strong>Third parties:</strong> {s.onlineCheck.enabled && s.onlineCheck.consentedAt && isPublicEndpoint(s.onlineCheck.endpoint) ? 'LanguageTool only, as above.' : 'none.'} No
+            analytics, no tracking, and your writing is never used for training.
           </li>
           <li>Backups and exports you save are ordinary files that you control; deleting data here doesn’t delete them.</li>
         </ul>

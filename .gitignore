@@ -28,3 +28,8 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+
+# Release packages (scripts/package-release.ps1) and updater scratch
+releases/
+.update/
+*.old

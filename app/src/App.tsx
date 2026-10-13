@@ -1,18 +1,20 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { href, navigate, useRoute, type View } from './ui/router';
 import { getUi, setUi, useUi } from './ui/store';
 import { useProject } from './ui/data';
 import { DialogHost, ToastHost } from './ui/components/common';
 import { HomePage } from './ui/pages/HomePage';
 import { WritePage } from './ui/pages/WritePage';
-import { BoardPage } from './ui/pages/BoardPage';
-import { ReferencesPage } from './ui/pages/ReferencesPage';
-import { TimelinePage } from './ui/pages/TimelinePage';
-import { ThreadsPage } from './ui/pages/ThreadsPage';
-import { NotesPage } from './ui/pages/NotesPage';
-import { SearchPage } from './ui/pages/SearchPage';
-import { DataPage } from './ui/pages/DataPage';
-import { SettingsPage } from './ui/pages/SettingsPage';
+
+// Home and Write load with the app; other pages (and their export/import code) load the first time they are opened.
+const BoardPage = lazy(() => import('./ui/pages/BoardPage').then((m) => ({ default: m.BoardPage })));
+const ReferencesPage = lazy(() => import('./ui/pages/ReferencesPage').then((m) => ({ default: m.ReferencesPage })));
+const TimelinePage = lazy(() => import('./ui/pages/TimelinePage').then((m) => ({ default: m.TimelinePage })));
+const ThreadsPage = lazy(() => import('./ui/pages/ThreadsPage').then((m) => ({ default: m.ThreadsPage })));
+const NotesPage = lazy(() => import('./ui/pages/NotesPage').then((m) => ({ default: m.NotesPage })));
+const SearchPage = lazy(() => import('./ui/pages/SearchPage').then((m) => ({ default: m.SearchPage })));
+const DataPage = lazy(() => import('./ui/pages/DataPage').then((m) => ({ default: m.DataPage })));
+const SettingsPage = lazy(() => import('./ui/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 import { useSettings, updateSettings } from './storage/settings';
 import { flushAllEdits } from './editor/EditorContext';
 import { useSyncStatus } from './sync/useSyncStatus';
@@ -227,7 +229,9 @@ export function App() {
           copying the text as a precaution.
         </div>
       )}
-      <div className="page-wrap">{page}</div>
+      <div className="page-wrap">
+        <Suspense fallback={<p className="muted page-loading">Loading…</p>}>{page}</Suspense>
+      </div>
       {focusMode && (
         <button className="exit-focus" onClick={() => setUi({ focusMode: false })}>
           Exit focus (Esc)

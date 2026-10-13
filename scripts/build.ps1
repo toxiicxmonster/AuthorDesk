@@ -31,6 +31,7 @@ if ($running) { throw 'AuthorDesk.exe is running. Quit it from the tray icon, th
   "/out:$exe" `
   "/win32icon:$(Join-Path $root 'launcher\AuthorDesk.ico')" `
   /reference:System.Windows.Forms.dll /reference:System.Drawing.dll `
+  /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll /reference:System.Web.Extensions.dll `
   (Join-Path $root 'launcher\AuthorDesk.cs')
 if ($LASTEXITCODE) { throw 'Launcher build failed' }
 Write-Host "Built $exe"

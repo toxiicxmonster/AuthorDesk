@@ -5,11 +5,14 @@ import './styles/app.css';
 import { getSettings, requestPersistentStorage } from './storage/settings';
 import { applyTheme, resolveTheme } from './ui/theme';
 import { runMigrations } from './storage/migrations';
+import { repairUntitledBooks } from './storage/repo';
+import { adoptLocalEngine } from './proofreading/grammarEngine';
 import { registerSW } from 'virtual:pwa-register';
 import { detectServer } from './sync/controller';
 
 async function start() {
   await runMigrations();
+  await repairUntitledBooks().catch((e) => console.warn('Could not repair book titles', e));
   // Apply the theme before the first paint so there is no flash of the wrong colours.
   const s = await getSettings();
   applyTheme(resolveTheme(s.theme, s.customThemes, window.matchMedia('(prefers-color-scheme: dark)').matches));
@@ -21,6 +24,7 @@ async function start() {
   );
   registerSW({ immediate: true });
   void detectServer();
+  void adoptLocalEngine();
 }
 
 start().catch((e) => {

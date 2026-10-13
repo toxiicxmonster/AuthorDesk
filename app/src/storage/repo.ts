@@ -115,6 +115,47 @@ export async function createProject(name: string, opts: { kind?: Project['kind']
   return { project, book };
 }
 
+/**
+ * Rename a project. In a one-book project the book *is* the project to the writer, so its title
+ * follows; in a series, only books still sharing the old name are carried along.
+ */
+export async function renameProject(projectId: string, name: string) {
+  const project = await db.projects.get(projectId);
+  if (!project) return;
+  const books = (await db.books.where('projectId').equals(projectId).toArray()).filter((b) => !b.archivedAt);
+  await updateRecord('projects', projectId, { name });
+  for (const b of books) {
+    if (b.title !== name && (books.length === 1 || b.title === project.name)) await updateRecord('books', b.id, { title: name });
+  }
+}
+
+/** Rename a book; in a one-book project the project name follows so the header, Home and exports agree. */
+export async function renameBook(bookId: string, title: string) {
+  const book = await db.books.get(bookId);
+  if (!book) return;
+  await updateRecord('books', bookId, { title });
+  const project = await db.projects.get(book.projectId);
+  const books = (await db.books.where('projectId').equals(book.projectId).toArray()).filter((b) => !b.archivedAt);
+  if (project && books.length === 1 && project.name !== title) await updateRecord('projects', project.id, { name: title });
+}
+
+export const DEFAULT_BOOK_TITLE = 'Untitled novel';
+
+/**
+ * Older versions renamed only one of project name / book title, leaving a one-book project half "Untitled novel".
+ * Copy the real title over the placeholder. Safe to run on every start: it only touches the placeholder.
+ */
+export async function repairUntitledBooks() {
+  for (const project of await db.projects.toArray()) {
+    if (project.archivedAt) continue;
+    const books = (await db.books.where('projectId').equals(project.id).toArray()).filter((b) => !b.archivedAt);
+    if (books.length !== 1) continue;
+    const [book] = books;
+    if (book.title === DEFAULT_BOOK_TITLE && project.name.trim() && project.name !== DEFAULT_BOOK_TITLE) await updateRecord('books', book.id, { title: project.name });
+    else if (project.name === DEFAULT_BOOK_TITLE && book.title.trim() && book.title !== DEFAULT_BOOK_TITLE) await updateRecord('projects', project.id, { name: book.title });
+  }
+}
+
 export async function createBook(projectId: string, title: string): Promise<Book> {
   const order = await db.books.where('projectId').equals(projectId).count();
   const book = await createRecord('books', projectId, { title, subtitle: '', order });

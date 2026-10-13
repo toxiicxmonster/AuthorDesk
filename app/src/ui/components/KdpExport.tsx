@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Modal, CommitInput } from './common';
 import { db } from '../../storage/db';
-import { updateRecord } from '../../storage/repo';
+import { renameBook, updateRecord } from '../../storage/repo';
 import { bookManuscript } from '../../importExport/exporters';
 import type { ProjectData } from '../../importExport/archive';
 import {
@@ -23,6 +23,8 @@ import { saveFile } from '../../importExport/download';
 import { flushAllEdits } from '../../editor/EditorContext';
 import { reportError, toast } from '../store';
 import type { Book } from '../../domain/schema';
+import { resolveExtraPages } from '../../domain/bookPages';
+import { ExtraPagesPicker, useExtraPagesData, type ExtraPagesChoice } from './BookPages';
 
 type Format = 'epub' | 'ebook-docx' | 'print';
 
@@ -63,6 +65,8 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
   const [cover, setCover] = useState<(EpubCover & { name: string }) | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<Format | null>(null);
+  const [pageChoice, setPageChoice] = useState<ExtraPagesChoice>({});
+  const pageData = useExtraPagesData(projectId);
   const set = (p: Partial<SavedChoices>) => setChoices((c) => ({ ...c, ...p }));
   const setOpt = (p: Partial<PublishOptions>) => setChoices((c) => ({ ...c, options: { ...c.options, ...p } }));
 
@@ -84,7 +88,18 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
     return { book, manuscript: bookManuscript({ books: [book], chapters, scenes } as unknown as ProjectData, bookId) };
   }, [bookId, projectId]);
 
-  const model = useMemo(() => (data ? buildPublishModel(data.book, data.manuscript.chapters, choices.options) : null), [data, choices.options]);
+  // Dedication / About the Author come from the pages managed on Home (automatic choice, a specific page, or none).
+  const pages = useMemo(
+    () => (pageData ? resolveExtraPages(bookId, projectId, pageData.projects, pageData.books, pageChoice) : { dedication: '', aboutAuthor: '' }),
+    [pageData, bookId, projectId, pageChoice],
+  );
+  const model = useMemo(
+    () =>
+      data
+        ? buildPublishModel(data.book, data.manuscript.chapters, { ...choices.options, includeDedication: !!pages.dedication, includeAboutAuthor: !!pages.aboutAuthor }, pages)
+        : null,
+    [data, choices.options, pages],
+  );
   const trim = TRIM_SIZES.find((t) => t.id === choices.trim) ?? TRIM_SIZES[3];
   const layout = useMemo(() => (model ? printLayout(model, trim, choices.fontSize) : null), [model, trim, choices.fontSize]);
   const checks = useMemo(() => (model ? preflight(model, choices.format === 'print' ? 'print' : 'ebook', layout ?? undefined) : []), [model, choices.format, layout]);
@@ -280,21 +295,16 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
               </label>
             )}
             <label className="check">
-              <input type="checkbox" checked={choices.options.includeDedication} onChange={(e) => setOpt({ includeDedication: e.target.checked })} /> Dedication
-            </label>
-            <label className="check">
-              <input type="checkbox" checked={choices.options.includeAboutAuthor} onChange={(e) => setOpt({ includeAboutAuthor: e.target.checked })} /> About the author
-            </label>
-            <label className="check">
               <input type="checkbox" checked={choices.options.sceneTitles} onChange={(e) => setOpt({ sceneTitles: e.target.checked })} /> Show scene titles
             </label>
           </div>
+          <ExtraPagesPicker projectId={projectId} bookId={bookId} value={pageChoice} onChange={setPageChoice} />
         </section>
 
         <section>
           <h3>3. Book details</h3>
           <div className="two-col">
-            <CommitInput label="Title" value={book.title} onCommit={(v) => v.trim() && void updateRecord('books', book.id, { title: v.trim() })} />
+            <CommitInput label="Title" value={book.title} onCommit={(v) => v.trim() && void renameBook(book.id, v.trim())} />
             <CommitInput label="Subtitle (optional)" value={book.subtitle} onCommit={(v) => void updateRecord('books', book.id, { subtitle: v })} />
             <CommitInput label="Author name (as on the cover)" value={info.author} onCommit={(v) => saveInfo({ author: v.trim() })} />
             <CommitInput label="Copyright year" value={info.copyrightYear} onCommit={(v) => saveInfo({ copyrightYear: v.trim() })} />
@@ -311,8 +321,6 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
               </select>
             </label>
           </div>
-          <CommitInput label="Dedication (optional)" multiline rows={2} value={info.dedication} onCommit={(v) => saveInfo({ dedication: v })} />
-          <CommitInput label="About the author (optional, goes at the end)" multiline rows={3} value={info.aboutAuthor} onCommit={(v) => saveInfo({ aboutAuthor: v })} />
         </section>
       </div>
 

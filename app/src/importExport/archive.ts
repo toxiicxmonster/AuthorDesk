@@ -66,7 +66,8 @@ export async function buildArchive(projectId: string, opts: { includeSnapshots?:
     counts[name] = data[name].length;
   }
   const settings = await getSettings();
-  const prefs = { ...settings, lastProjectId: null, lastBackupAt: null };
+  // Consent to the online check is per device and never travels in a backup.
+  const prefs = { ...settings, lastProjectId: null, lastBackupAt: null, onlineCheck: { ...settings.onlineCheck, enabled: false, consentedAt: null } };
   const prefBytes = strToU8(JSON.stringify(prefs));
   files['preferences.json'] = prefBytes;
   checksums['preferences.json'] = await sha256Hex(prefBytes);

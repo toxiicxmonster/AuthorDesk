@@ -6,21 +6,28 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
 [assembly: AssemblyTitle("AuthorDesk")]
 [assembly: AssemblyProduct("AuthorDesk")]
 [assembly: AssemblyDescription("Private writing studio for novelists")]
-[assembly: AssemblyVersion("0.1.0.0")]
+[assembly: AssemblyVersion("0.2.0.0")]
 
 namespace AuthorDesk
 {
     static class Program
     {
+        // Release version; bump with each GitHub release (tag "v" + Version). scripts\package-release.ps1 reads it.
+        const string Version = "0.2";
+        const string UpdateRepo = "toxiicxmonster/AuthorDesk";
+
         // Fixed port: the browser stores your work per origin, so the address must never change.
         const int Port = 47820;
         static readonly string Origin = "http://localhost:" + Port + "/";
@@ -31,6 +38,12 @@ namespace AuthorDesk
         static NotifyIcon tray;
         static string dataDir;
         static string syncServer; // optional https URL of an AuthorDesk sync server, from sync-server.txt
+
+        // Optional private grammar engine (LanguageTool), installed by scripts\install-grammar-engine.ps1.
+        // It listens on loopback only; the app reaches it through /grammar/* on this server (same origin).
+        const int GrammarPort = 47821;
+        static string grammarDir;
+        static Process grammar;
 
         [STAThread]
         static int Main(string[] args)
@@ -47,6 +60,9 @@ namespace AuthorDesk
 
             syncServer = ReadSyncServer();
             try { ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12 | (SecurityProtocolType)12288; } catch { ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12; }
+
+            Application.EnableVisualStyles();
+            if (TryAutoUpdate()) return 0; // the updated AuthorDesk has been started in our place
 
             root = FindDist();
             if (root == null)
@@ -72,10 +88,11 @@ namespace AuthorDesk
                 return 1;
             }
 
+            StartGrammarEngine();
+
             var serverThread = new Thread(ServeLoop) { IsBackground = true, Name = "AuthorDesk server" };
             serverThread.Start();
 
-            Application.EnableVisualStyles();
             SetupTray();
 
             Process browser = OpenWindow(true);
@@ -218,6 +235,7 @@ namespace AuthorDesk
         {
             try { if (tray != null) { tray.Visible = false; tray.Dispose(); } } catch { }
             try { if (listener != null) listener.Stop(); } catch { }
+            try { if (grammar != null && !grammar.HasExited) grammar.Kill(); } catch { }
             Application.Exit();
             Environment.Exit(0);
         }
@@ -268,6 +286,16 @@ namespace AuthorDesk
                 if (path == PingPath)
                 {
                     Write(res, "authordesk", "text/plain");
+                    return;
+                }
+                if (path == "/grammar/status")
+                {
+                    Write(res, GrammarStatusJson(), "application/json");
+                    return;
+                }
+                if (path == "/grammar/v2/check")
+                {
+                    ProxyGrammar(ctx);
                     return;
                 }
                 if (path.StartsWith("/api/"))
@@ -385,6 +413,346 @@ namespace AuthorDesk
                 }
                 using (var body = upstream.GetResponseStream()) body.CopyTo(res.OutputStream);
             }
+        }
+
+        // ---------- Auto-update (release installs only) ----------
+
+        /// On launch, a release install (AuthorDesk.exe next to dist\) updates itself to the latest GitHub release.
+        /// A source checkout (app\ or .git next to the exe) never does; neither does one with no-auto-update.txt.
+        /// Books are not in this folder (they live in the browser profile under %LOCALAPPDATA%), so they are untouched.
+        static bool TryAutoUpdate()
+        {
+            string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+            CleanupOldUpdate(exeDir);
+            if (!File.Exists(Path.Combine(exeDir, "dist", "index.html"))) return false;
+            if (Directory.Exists(Path.Combine(exeDir, "app")) || Directory.Exists(Path.Combine(exeDir, ".git"))) return false;
+            if (File.Exists(Path.Combine(exeDir, "no-auto-update.txt")) || File.Exists(Path.Combine(dataDir, "no-auto-update.txt"))) return false;
+
+            string tag, assetUrl;
+            if (!LatestRelease(out tag, out assetUrl)) return false;
+            if (CompareVersions(tag.TrimStart('v', 'V'), Version) <= 0) return false;
+
+            Form splash = Splash("Updating AuthorDesk to " + tag + "...");
+            string work = Path.Combine(exeDir, ".update"); // same drive as the install, so folders can be moved in
+            try
+            {
+                if (Directory.Exists(work)) Directory.Delete(work, true);
+                Directory.CreateDirectory(work);
+                string zip = Path.Combine(work, "release.zip");
+                using (var wc = new WebClient())
+                {
+                    wc.Headers[HttpRequestHeader.UserAgent] = "AuthorDesk-updater";
+                    wc.DownloadFile(assetUrl, zip);
+                }
+                string unpacked = Path.Combine(work, "files");
+                ZipFile.ExtractToDirectory(zip, unpacked);
+                string root = unpacked;
+                if (!File.Exists(Path.Combine(root, "AuthorDesk.exe")))
+                {
+                    var dirs = Directory.GetDirectories(unpacked);
+                    if (dirs.Length == 1) root = dirs[0];
+                }
+                if (!File.Exists(Path.Combine(root, "AuthorDesk.exe")) || !File.Exists(Path.Combine(root, "dist", "index.html")))
+                    throw new InvalidDataException("the release package is incomplete");
+                InstallUpdate(root, exeDir);
+                Log("Updated from " + Version + " to " + tag);
+            }
+            catch (Exception ex)
+            {
+                Log("Update to " + tag + " failed: " + ex.Message);
+                CloseSplash(splash);
+                return false; // carry on with the installed version
+            }
+            finally
+            {
+                try { if (Directory.Exists(work)) Directory.Delete(work, true); } catch { }
+            }
+            CloseSplash(splash);
+            try
+            {
+                Process.Start(new ProcessStartInfo(Path.Combine(exeDir, "AuthorDesk.exe")) { UseShellExecute = false, WorkingDirectory = exeDir });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log("Could not start the updated AuthorDesk: " + ex.Message);
+                return false;
+            }
+        }
+
+        /// Asks GitHub for the latest release and its Windows zip. Quietly gives up when offline or rate-limited.
+        static bool LatestRelease(out string tag, out string assetUrl)
+        {
+            tag = null;
+            assetUrl = null;
+            try
+            {
+                var req = (HttpWebRequest)WebRequest.Create("https://api.github.com/repos/" + UpdateRepo + "/releases/latest");
+                req.UserAgent = "AuthorDesk-updater";
+                req.Accept = "application/vnd.github+json";
+                req.Timeout = 5000;
+                req.ReadWriteTimeout = 5000;
+                string json;
+                using (var res = (HttpWebResponse)req.GetResponse())
+                using (var sr = new StreamReader(res.GetResponseStream())) json = sr.ReadToEnd();
+                var release = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
+                tag = release["tag_name"] as string;
+                var assets = release["assets"] as System.Collections.ArrayList;
+                if (tag == null || assets == null) return false;
+                foreach (Dictionary<string, object> a in assets)
+                {
+                    string name = a["name"] as string;
+                    if (name != null && name.EndsWith("-windows.zip", StringComparison.OrdinalIgnoreCase))
+                    {
+                        assetUrl = a["browser_download_url"] as string;
+                        break;
+                    }
+                }
+                return assetUrl != null && assetUrl.StartsWith("https://github.com/" + UpdateRepo + "/releases/download/", StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                Log("Update check skipped: " + ex.Message);
+                return false;
+            }
+        }
+
+        /// Compares dotted versions numerically ("0.10" > "0.9"; "0.2" == "0.2.0").
+        static int CompareVersions(string a, string b)
+        {
+            string[] x = a.Split('.'), y = b.Split('.');
+            for (int i = 0; i < Math.Max(x.Length, y.Length); i++)
+            {
+                int p, q;
+                int.TryParse(i < x.Length ? x[i] : "0", out p);
+                int.TryParse(i < y.Length ? y[i] : "0", out q);
+                if (p != q) return p.CompareTo(q);
+            }
+            return 0;
+        }
+
+        /// Moves the new files in, keeping each replaced item as *.old; on any failure everything is put back.
+        /// The running exe can't be overwritten but can be renamed, which is what makes this possible.
+        static void InstallUpdate(string from, string to)
+        {
+            var done = new List<KeyValuePair<string, string>>(); // installed path -> its backup (null if it was new)
+            try
+            {
+                foreach (string src in Directory.GetFileSystemEntries(from))
+                {
+                    string name = Path.GetFileName(src);
+                    if (name.Equals("sync-server.txt", StringComparison.OrdinalIgnoreCase)) continue; // the author's own settings
+                    string dest = Path.Combine(to, name);
+                    string backup = null;
+                    if (File.Exists(dest) || Directory.Exists(dest))
+                    {
+                        backup = dest + ".old";
+                        DeletePath(backup);
+                        if (Directory.Exists(dest)) Directory.Move(dest, backup); else File.Move(dest, backup);
+                    }
+                    done.Add(new KeyValuePair<string, string>(dest, backup));
+                    if (Directory.Exists(src)) Directory.Move(src, dest); else File.Move(src, dest);
+                }
+            }
+            catch
+            {
+                for (int i = done.Count - 1; i >= 0; i--)
+                {
+                    try
+                    {
+                        DeletePath(done[i].Key);
+                        if (done[i].Value != null)
+                        {
+                            if (Directory.Exists(done[i].Value)) Directory.Move(done[i].Value, done[i].Key);
+                            else if (File.Exists(done[i].Value)) File.Move(done[i].Value, done[i].Key);
+                        }
+                    }
+                    catch { }
+                }
+                throw;
+            }
+        }
+
+        /// Removes backups left by the last update (the old exe may still be closing; then it goes next time).
+        static void CleanupOldUpdate(string dir)
+        {
+            try
+            {
+                foreach (string old in Directory.GetFileSystemEntries(dir, "*.old"))
+                {
+                    try { DeletePath(old); } catch { }
+                }
+            }
+            catch { }
+        }
+
+        static void DeletePath(string path)
+        {
+            if (Directory.Exists(path)) Directory.Delete(path, true);
+            else if (File.Exists(path)) File.Delete(path);
+        }
+
+        static Form Splash(string text)
+        {
+            try
+            {
+                var f = new Form
+                {
+                    Text = "AuthorDesk",
+                    FormBorderStyle = FormBorderStyle.FixedDialog,
+                    StartPosition = FormStartPosition.CenterScreen,
+                    ClientSize = new Size(360, 90),
+                    ControlBox = false,
+                    ShowInTaskbar = true,
+                    TopMost = true,
+                };
+                try { f.Icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location); } catch { }
+                f.Controls.Add(new Label { Text = text, AutoSize = false, Bounds = new Rectangle(16, 14, 328, 24) });
+                f.Controls.Add(new ProgressBar { Style = ProgressBarStyle.Marquee, Bounds = new Rectangle(16, 46, 328, 18) });
+                f.Show();
+                f.Refresh();
+                return f;
+            }
+            catch { return null; }
+        }
+
+        static void CloseSplash(Form f)
+        {
+            try { if (f != null) { f.Close(); f.Dispose(); } } catch { }
+        }
+
+        // ---------- Private grammar engine ----------
+
+        static string GrammarJava { get { return Path.Combine(grammarDir, "jre", "bin", "javaw.exe"); } }
+        static string GrammarJar { get { return Path.Combine(grammarDir, "languagetool", "languagetool-server.jar"); } }
+        static bool GrammarInstalled { get { return File.Exists(GrammarJava) && File.Exists(GrammarJar); } }
+
+        static void StartGrammarEngine()
+        {
+            grammarDir = Path.Combine(dataDir, "grammar-engine");
+            if (!GrammarInstalled || GrammarReady()) return; // not installed, or one is already serving
+            try
+            {
+                string props = Path.Combine(grammarDir, "server.properties");
+                var psi = new ProcessStartInfo(GrammarJava,
+                    "-Xms256m -Xmx2g -cp \"" + GrammarJar + "\" org.languagetool.server.HTTPServer --port " + GrammarPort +
+                    (File.Exists(props) ? " --config \"" + props + "\"" : ""))
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Path.GetDirectoryName(GrammarJar),
+                };
+                grammar = Process.Start(psi);
+                KillWithLauncher(grammar);
+                Log("Grammar engine started");
+            }
+            catch (Exception ex)
+            {
+                Log("Could not start grammar engine: " + ex.Message);
+            }
+        }
+
+        static bool GrammarReady()
+        {
+            try
+            {
+                var req = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + GrammarPort + "/v2/languages");
+                req.Timeout = 1000;
+                using (var r = (HttpWebResponse)req.GetResponse()) return r.StatusCode == HttpStatusCode.OK;
+            }
+            catch { return false; }
+        }
+
+        static string GrammarStatusJson()
+        {
+            bool installed = grammarDir != null && GrammarInstalled;
+            bool ngrams = installed && Directory.Exists(Path.Combine(grammarDir, "ngrams", "en"));
+            bool ready = installed && GrammarReady();
+            bool starting = installed && !ready && grammar != null && !grammar.HasExited;
+            return "{\"installed\":" + (installed ? "true" : "false") + ",\"ngrams\":" + (ngrams ? "true" : "false") +
+                ",\"ready\":" + (ready ? "true" : "false") + ",\"starting\":" + (starting ? "true" : "false") + "}";
+        }
+
+        static void ProxyGrammar(HttpListenerContext ctx)
+        {
+            var inReq = ctx.Request;
+            var res = ctx.Response;
+            res.Headers["Cache-Control"] = "no-store";
+            if (inReq.HttpMethod != "POST") { res.StatusCode = 405; return; }
+            var req = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + GrammarPort + "/v2/check");
+            req.Method = "POST";
+            req.ContentType = inReq.ContentType;
+            req.Accept = "application/json";
+            req.Timeout = 90000;
+            req.ReadWriteTimeout = 90000;
+            HttpWebResponse upstream;
+            try
+            {
+                using (var outStream = req.GetRequestStream()) inReq.InputStream.CopyTo(outStream);
+                upstream = (HttpWebResponse)req.GetResponse();
+            }
+            catch (WebException wex)
+            {
+                upstream = wex.Response as HttpWebResponse;
+                if (upstream == null)
+                {
+                    res.StatusCode = 503;
+                    Write(res, "{\"error\":\"The grammar engine is not running yet.\"}", "application/json");
+                    return;
+                }
+            }
+            using (upstream)
+            {
+                res.StatusCode = (int)upstream.StatusCode;
+                res.ContentType = upstream.ContentType;
+                using (var body = upstream.GetResponseStream()) body.CopyTo(res.OutputStream);
+            }
+        }
+
+        // A job object closes with the launcher, taking the engine with it even if the launcher crashes.
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        static extern IntPtr CreateJobObject(IntPtr attrs, string name);
+        [DllImport("kernel32.dll")]
+        static extern bool SetInformationJobObject(IntPtr job, int infoClass, ref JobExtendedLimits info, uint length);
+        [DllImport("kernel32.dll")]
+        static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct JobBasicLimits
+        {
+            public long PerProcessUserTimeLimit, PerJobUserTimeLimit;
+            public uint LimitFlags;
+            public UIntPtr MinimumWorkingSetSize, MaximumWorkingSetSize;
+            public uint ActiveProcessLimit;
+            public UIntPtr Affinity;
+            public uint PriorityClass, SchedulingClass;
+        }
+        [StructLayout(LayoutKind.Sequential)]
+        struct IoCounters { public ulong ReadOps, WriteOps, OtherOps, ReadBytes, WriteBytes, OtherBytes; }
+        [StructLayout(LayoutKind.Sequential)]
+        struct JobExtendedLimits
+        {
+            public JobBasicLimits Basic;
+            public IoCounters Io;
+            public UIntPtr ProcessMemoryLimit, JobMemoryLimit, PeakProcessMemoryUsed, PeakJobMemoryUsed;
+        }
+
+        static IntPtr job = IntPtr.Zero;
+
+        static void KillWithLauncher(Process p)
+        {
+            try
+            {
+                if (job == IntPtr.Zero)
+                {
+                    job = CreateJobObject(IntPtr.Zero, null);
+                    var info = new JobExtendedLimits();
+                    info.Basic.LimitFlags = 0x2000; // JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+                    SetInformationJobObject(job, 9, ref info, (uint)Marshal.SizeOf(typeof(JobExtendedLimits)));
+                }
+                AssignProcessToJobObject(job, p.Handle);
+            }
+            catch (Exception ex) { Log("Job object: " + ex.Message); }
         }
 
         static void Write(HttpListenerResponse res, string text, string type)

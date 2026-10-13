@@ -862,16 +862,18 @@ details.banner {
   text-underline-offset: 4px;
   cursor: pointer;
 }
-.pr-error {
-  text-decoration-color: var(--err-line);
-  text-decoration-style: wavy;
-}
-.pr-warning {
-  text-decoration-color: var(--warn-line);
-}
+/* Overlapping suggestions share one span with both classes; later rules win, so the more serious look shows. */
 .pr-style {
   text-decoration-color: var(--style-line);
   text-decoration-style: dotted;
+}
+.pr-warning {
+  text-decoration-color: var(--warn-line);
+  text-decoration-style: solid;
+}
+.pr-error {
+  text-decoration-color: var(--err-line);
+  text-decoration-style: wavy;
 }
 .pr-active {
   background: var(--accent-soft);
@@ -914,6 +916,22 @@ details.banner {
 }
 .popover p {
   margin: 0.4rem 0;
+}
+.pop-close {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  font-size: 0.8rem;
+  min-height: 26px;
+  padding: 0 0.45rem;
+}
+.pop-item + .pop-item {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+}
+.pop-item:first-of-type .pop-head {
+  padding-right: 2rem;
 }
 .pop-head {
   display: flex;
@@ -2579,4 +2597,101 @@ input[type='checkbox'] {
 .kdp-right {
   align-self: end;
   padding-bottom: 0.6rem;
+}
+
+/* Settings → Proofreading: turned-off checks and the online check */
+.turned-off {
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0 0.5rem;
+  display: grid;
+  gap: 0.25rem;
+}
+.turned-off li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.online-check {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+.online-check legend {
+  padding: 0 0.25rem;
+  font-weight: 600;
+}
+.online-check code {
+  overflow-wrap: anywhere;
+}
+
+/* Home → Dedication & About the Author */
+.book-pages-group + .book-pages-group {
+  margin-top: 0.75rem;
+}
+.book-pages-group h3 {
+  font-size: 1rem;
+  margin: 0.5rem 0 0.25rem;
+}
+.book-pages-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+  display: grid;
+  gap: 0.35rem;
+}
+.book-pages-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+}
+.book-pages-list li .row {
+  margin-left: auto;
+}
+.link-like {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-height: 0;
+}
+.link-like:hover strong {
+  text-decoration: underline;
+}
+.check-grid.indent {
+  margin-left: 1.5rem;
+}
+.extra-pages {
+  margin: 0.5rem 0;
+}
+@media (min-width: 900px) {
+  .book-pages {
+    grid-column: span 2;
+  }
+  .book-pages .book-pages-groups {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .book-pages .book-pages-group + .book-pages-group {
+    margin-top: 0;
+  }
+}
+.book-pages-list li > .link-like {
+  flex-basis: 100%;
+}
+.extra-pages-fields {
+  display: grid;
+  gap: 0.25rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+.extra-pages-fields select {
+  width: 100%;
+  max-width: 100%;
 }

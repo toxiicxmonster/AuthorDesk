@@ -1,6 +1,10 @@
 import { resetDbForTests, db } from '../src/storage/db';
 import {
   createProject,
+  createBook,
+  renameProject,
+  renameBook,
+  repairUntitledBooks,
   createChapter,
   createScene,
   reorder,
@@ -200,5 +204,48 @@ describe('search', () => {
     expect(r.map((x) => x.kind).sort()).toEqual(['reference', 'scene']);
     expect(r.find((x) => x.kind === 'scene')?.target).toEqual({ view: 'write', itemId: sc.id });
     expect(await searchProject(project.id, 'lighthouse', { kinds: ['reference'] })).toHaveLength(1);
+  });
+});
+
+describe('renaming', () => {
+  it('keeps a one-book project and its book in step, whichever side is renamed', async () => {
+    const { project, book } = await createProject('Untitled novel');
+    await renameProject(project.id, 'The Salt Road');
+    expect((await db.projects.get(project.id))!.name).toBe('The Salt Road');
+    expect((await db.books.get(book.id))!.title).toBe('The Salt Road');
+    await renameBook(book.id, 'Salt Road');
+    expect((await db.projects.get(project.id))!.name).toBe('Salt Road');
+    expect((await db.books.get(book.id))!.title).toBe('Salt Road');
+  });
+
+  it('repairs a one-book project whose names had already drifted apart', async () => {
+    const { project, book } = await createProject('Untitled novel');
+    await db.projects.update(project.id, { name: 'Drifted' });
+    await renameProject(project.id, 'Fixed');
+    expect((await db.books.get(book.id))!.title).toBe('Fixed');
+  });
+
+  it('in a series, only carries books that shared the old name; renaming one book leaves the series alone', async () => {
+    const { project, book } = await createProject('Saga', { kind: 'series' });
+    const second = await createBook(project.id, 'Book Two');
+    await renameProject(project.id, 'The Saga');
+    expect((await db.books.get(book.id))!.title).toBe('The Saga');
+    expect((await db.books.get(second.id))!.title).toBe('Book Two');
+    await renameBook(second.id, 'Second Book');
+    expect((await db.projects.get(project.id))!.name).toBe('The Saga');
+  });
+  it('repairs a book left as "Untitled novel" after only the project was renamed (older versions)', async () => {
+    const { project, book } = await createProject('Untitled novel');
+    await db.projects.update(project.id, { name: 'Wearing His But Choosing Yours' });
+    await repairUntitledBooks();
+    expect((await db.books.get(book.id))!.title).toBe('Wearing His But Choosing Yours');
+    // And the other way round; a real title on both sides is never touched.
+    const other = await createProject('Untitled novel');
+    await db.books.update(other.book.id, { title: 'Salt Road' });
+    const kept = await createProject('Series Name');
+    await db.books.update(kept.book.id, { title: 'Book One' });
+    await repairUntitledBooks();
+    expect((await db.projects.get(other.project.id))!.name).toBe('Salt Road');
+    expect((await db.books.get(kept.book.id))!.title).toBe('Book One');
   });
 });

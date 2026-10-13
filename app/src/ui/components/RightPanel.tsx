@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import type { Chapter, ReferenceEntry, Scene } from '../../domain/schema';
 import { REFERENCE_TYPES, type ReferenceType } from '../../domain/schema';
 import { REFERENCE_TEMPLATES, REFERENCE_TYPE_ICONS, REFERENCE_TYPE_LABELS } from '../../domain/referenceTemplates';
-import { detectMentions, matchesReference } from '../../domain/references';
+import { createReference, detectMentions, matchesReference } from '../../domain/references';
 import { useProjectTable, useReferences } from '../data';
 import { navigate } from '../router';
 import { confirmDialog, promptDialog, reportError, setUi, toast, useUi } from '../store';
@@ -14,6 +14,8 @@ import { useEditorCtx, flushAllEdits } from '../../editor/EditorContext';
 import { applyPlaced, getSuggestions, type PlacedSuggestion } from '../../editor/proofreadExtension';
 import { TextSelection } from '@tiptap/pm/state';
 import { CATEGORY_LABELS } from '../../proofreading/types';
+import { LT_PROVIDER_ID } from '../../proofreading/languageTool';
+import { useSettings } from '../../storage/settings';
 import { Icon } from './Icon';
 
 export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapter: Chapter; nextScene: Scene | null }) {
@@ -307,6 +309,8 @@ function ProofPanel({ projectId }: { projectId: string }) {
   const [, force] = useState(0);
   const [cat, setCat] = useState<string>('');
   const [bulk, setBulk] = useState<PlacedSuggestion[] | null>(null);
+  const settings = useSettings();
+  const online = settings.onlineCheck.enabled && !!settings.onlineCheck.consentedAt;
   useEffect(() => {
     if (!editor) return;
     const f = () => force((n) => n + 1);
@@ -316,7 +320,6 @@ function ProofPanel({ projectId }: { projectId: string }) {
     };
   }, [editor]);
   void proofVersion;
-  void projectId;
   if (!editor) return <p className="muted">Open a scene to proofread.</p>;
   const items = getSuggestions(editor.state);
   const shown = items.filter((s) => !cat || s.category === cat);
@@ -336,7 +339,12 @@ function ProofPanel({ projectId }: { projectId: string }) {
         <button onClick={rerunProofread}>Re-check</button>
         <span className="muted small" aria-live="polite">{proofStatus}</span>
       </div>
-      <p className="muted small">Checked on this computer — your text is never sent anywhere. Nothing changes unless you choose a fix. Click a suggestion to jump to it.</p>
+      <p className="muted small">
+        {online
+          ? 'Checked on this computer, plus the online grammar check (turn it off in Settings → Proofreading).'
+          : 'Checked on this computer — your text is never sent anywhere.'}{' '}
+        Nothing changes unless you choose a fix. Click a suggestion to jump to it.
+      </p>
       {cats.length > 1 && (
         <select value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Filter by category">
           <option value="">All categories ({items.length})</option>
@@ -356,9 +364,25 @@ function ProofPanel({ projectId }: { projectId: string }) {
             <button className="sugg-main" onClick={() => focus(s)}>
               <span className={`sev sev-${s.severity}`}>{s.severity === 'error' ? 'Error' : s.severity === 'warning' ? 'Check' : 'Style'}</span>{' '}
               <strong>“{s.original}”</strong>
+              {s.providerId === LT_PROVIDER_ID && <span className="muted small"> · LanguageTool</span>}
               <span className="block small">{s.message}</span>
             </button>
-            {s.replacements[0] !== undefined && (
+            {s.ruleId === 'new-name' ? (
+              <button
+                className="primary small"
+                onClick={async () => {
+                  try {
+                    await createReference(projectId, 'character', s.original);
+                    toast(`Added “${s.original}” to your characters`);
+                    rerunProofread();
+                  } catch (e) {
+                    reportError(e, 'Could not add the name');
+                  }
+                }}
+              >
+                + Add to characters
+              </button>
+            ) : s.replacements[0] !== undefined && (
               <button
                 className="primary small"
                 onClick={() => {

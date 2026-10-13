@@ -1,8 +1,11 @@
 import type { Editor } from '@tiptap/core';
 import { db } from '../storage/db';
 import { getSettings } from '../storage/settings';
-import { checkBlocks } from '../proofreading/providers';
-import type { ProofreadContext } from '../proofreading/types';
+import { checkBlocks, findNewNames, SPELL_PROVIDER_ID } from '../proofreading/providers';
+import { knownNameSpans, protectNames } from '../proofreading/names';
+import { checkOnline } from '../proofreading/languageTool';
+import { dedupe, normalizeRuleId } from '../proofreading/rules';
+import type { ProofreadContext, Suggestion } from '../proofreading/types';
 import { hashText } from '../domain/text';
 import { collectTextBlocks } from './blocks';
 import { setSuggestionsMeta, proofreadKey, type PlacedSuggestion } from './proofreadExtension';
@@ -20,7 +23,7 @@ export async function buildProofreadContext(projectId: string): Promise<Proofrea
   }
   return {
     dialect: settings.dialect,
-    disabledRules: new Set(settings.disabledRules),
+    disabledRules: new Set(settings.disabledRules.map(normalizeRuleId)),
     disabledCategories: new Set(settings.disabledCategories),
     dictionary: new Set(dict.map((d) => d.word.toLowerCase())),
     knownNames,
@@ -36,33 +39,82 @@ export interface ProofreadOutcome {
   count: number;
   spellingError: string | null;
   stale: boolean;
+  /** Online check: null when it is off; otherwise a short status ("checked", or why it didn't fully run). */
+  online: { error: string | null; unchecked: number } | null;
 }
 
-/** Check the whole scene and place suggestions in the editor. Never modifies the text. */
-export async function runProofread(editor: Editor, projectId: string): Promise<ProofreadOutcome> {
+/**
+ * Check the whole scene and place suggestions in the editor. Never modifies the text.
+ * On-device results are placed first; if the online check is on, its results are merged in when they arrive
+ * (`onLocal` reports the first phase so the status can update meanwhile).
+ */
+export async function runProofread(
+  editor: Editor,
+  projectId: string,
+  opts: { onLocal?: (o: ProofreadOutcome) => void; /** false = don't send anything; reuse online results for unchanged paragraphs. */ sendOnline?: boolean } = {},
+): Promise<ProofreadOutcome> {
+  const { onLocal, sendOnline = true } = opts;
   const docAtStart = editor.state.doc;
   const blocks = collectTextBlocks(docAtStart);
-  const ctx = await buildProofreadContext(projectId);
-  const ignored = new Set((await db.ignored.where('projectId').equals(projectId).toArray()).map((i) => i.key));
-  const { results, spellingError } = await checkBlocks(
-    blocks.map((b) => b.text),
-    ctx,
-  );
-  if (editor.isDestroyed) return { count: 0, spellingError, stale: true };
+  const texts = blocks.map((b) => b.text);
+  const [ctx, settings, ignoredRows] = await Promise.all([buildProofreadContext(projectId), getSettings(), db.ignored.where('projectId').equals(projectId).toArray()]);
+  const ignored = new Set(ignoredRows.map((i) => i.key));
+  const [{ results, spellingError }, newNames] = await Promise.all([
+    checkBlocks(texts, ctx),
+    findNewNames(texts, ctx).catch(() => texts.map((): Suggestion[] => [])),
+  ]);
+  /**
+   * Names are never flagged: known names (and names waiting to be added) are shielded from every check,
+   * on-device and online; an unlisted name gets an "add it?" prompt instead.
+   */
+  const finalize = (list: Suggestion[], bi: number): Suggestion[] => {
+    // "Elsei" next to a listed "Elsie" is a typo of a known character, not a new person.
+    const prompts = (newNames[bi] ?? []).filter((p) => !list.some((s) => s.ruleId === 'name-consistency' && s.start < p.end && p.start < s.end));
+    const spans: [number, number][] = [...knownNameSpans(texts[bi], ctx.knownNames), ...prompts.map((p): [number, number] => [p.start, p.end])];
+    // Only show what offers something to change the text to (name prompts offer "add to characters" instead).
+    const actionable = protectNames(texts[bi], list, spans).filter((s) => s.replacements.length > 0);
+    return [...actionable, ...prompts].sort((a, b) => a.start - b.start);
+  };
+
+  const place = (lists: Suggestion[][]): number => {
+    const placed: PlacedSuggestion[] = [];
+    lists.forEach((raw, bi) => {
+      const b = blocks[bi];
+      const list = finalize(raw, bi);
+      for (const s of list) {
+        const context = b.text.slice(Math.max(0, s.start - 20), s.end + 20);
+        const key = ignoreKey(s.ruleId, s.original, context);
+        if (ignored.has(key)) continue;
+        placed.push({ ...s, key: `${key}@${b.pos + s.start}`, from: b.pos + s.start, to: b.pos + s.end });
+      }
+    });
+    editor.view.dispatch(editor.state.tr.setMeta(proofreadKey, setSuggestionsMeta(placed)).setMeta('addToHistory', false));
+    return placed.length;
+  };
   // The author kept typing while we checked: these offsets belong to an old version. Discard them.
-  if (editor.state.doc !== docAtStart) return { count: 0, spellingError, stale: true };
-  const placed: PlacedSuggestion[] = [];
-  results.forEach((list, bi) => {
-    const b = blocks[bi];
-    for (const s of list) {
-      const context = b.text.slice(Math.max(0, s.start - 20), s.end + 20);
-      const key = ignoreKey(s.ruleId, s.original, context);
-      if (ignored.has(key)) continue;
-      placed.push({ ...s, key: `${key}@${b.pos + s.start}`, from: b.pos + s.start, to: b.pos + s.end });
-    }
-  });
-  editor.view.dispatch(editor.state.tr.setMeta(proofreadKey, setSuggestionsMeta(placed)).setMeta('addToHistory', false));
-  return { count: placed.length, spellingError, stale: false };
+  const stale = () => editor.isDestroyed || editor.state.doc !== docAtStart;
+
+  if (stale()) return { count: 0, spellingError, stale: true, online: null };
+  const online = settings.onlineCheck.enabled && settings.onlineCheck.consentedAt ? settings.onlineCheck : null;
+  if (!online) return { count: place(results), spellingError, stale: false, online: null };
+  // Keep earlier online findings for paragraphs that haven't changed (no network).
+  const known = await checkOnline(texts, ctx, online, undefined, true);
+  // LanguageTool reads the whole sentence, so on the same word its spelling fix beats the dictionary's guess ("dont" → "don't", not "cont").
+  const merged = (extra: Suggestion[][]) =>
+    results.map((list, i) => {
+      const online = extra[i] ?? [];
+      const local = list.filter((s) => !(s.providerId === SPELL_PROVIDER_ID && online.some((o) => o.category === 'spelling' && o.replacements.length && o.start < s.end && s.start < o.end)));
+      return dedupe([...local, ...online]);
+    });
+  const local: ProofreadOutcome = { count: place(merged(known.results)), spellingError, stale: false, online: { error: null, unchecked: known.unchecked } };
+  if (!sendOnline || !known.unchecked) return local;
+  onLocal?.(local);
+
+  const remote = await checkOnline(texts, ctx, online);
+  if (stale()) return { ...local, stale: true };
+  // On-device suggestions come first so they win ties with the same span.
+  const count = place(merged(remote.results));
+  return { count, spellingError, stale: false, online: { error: remote.error, unchecked: remote.unchecked } };
 }
 
 export function clearProofread(editor: Editor) {

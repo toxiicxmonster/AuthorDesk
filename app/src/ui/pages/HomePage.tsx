@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useBooks, useManuscript, useProject, useProjects, getRecent } from '../data';
 import { href, navigate } from '../router';
-import { createProject, createChapter, createRecord, deleteProjectCascade, updateRecord, localDateKey } from '../../storage/repo';
+import { DEFAULT_BOOK_TITLE, createProject, createChapter, createRecord, deleteProjectCascade, renameProject, updateRecord, localDateKey } from '../../storage/repo';
 import { createReference } from '../../domain/references';
 import { db } from '../../storage/db';
 import { confirmDialog, promptDialog, toast } from '../store';
@@ -14,6 +14,7 @@ import { useSyncUi } from '../../sync/controller';
 import { SyncPanel } from '../components/SyncPanel';
 import { useArchiveImport } from '../components/ImportPanel';
 import { createSampleProject } from '../../storage/sample';
+import { BookPagesCard } from '../components/BookPages';
 
 export function HomePage({ projectId }: { projectId: string | null }) {
   return projectId ? <Dashboard projectId={projectId} /> : <ProjectList />;
@@ -32,7 +33,7 @@ function ProjectList() {
     return m;
   }, []);
   const create = async () => {
-    const n = name.trim() || 'Untitled novel';
+    const n = name.trim() || DEFAULT_BOOK_TITLE;
     const { project } = await createProject(n);
     setName('');
     navigate(project.id, 'write');
@@ -318,13 +319,14 @@ function Dashboard({ projectId }: { projectId: string }) {
             Last backup: {relativeTime(settings.lastBackupAt)}
           </p>
         </section>
+        <BookPagesCard projectId={projectId} />
       </div>
       <div className="dash-foot">
         <a href="#/">← All books</a>
         <button
           onClick={async () => {
             const n = await promptDialog('Rename this book', 'Title', project.name);
-            if (n) await updateRecord('projects', projectId, { name: n });
+            if (n?.trim()) await renameProject(projectId, n.trim());
           }}
         >
           Rename

@@ -18,7 +18,9 @@ real-world verification · ⬜ not started.
 | Manuscript editor, chapter/scene navigation | ✅ | §5 |
 | Character and world reference | ✅ | §6 |
 | Story board, outline, timeline, plot threads | ✅ | §7, §8 |
-| Proofreading (on-device) | ✅ | §9; no remote provider connected, by design |
+| Proofreading (live, on-device) | ✅ | §9 |
+| Optional online grammar check (LanguageTool) | ✅ | §9; opt-in with consent, off by default |
+| Dedication & About the Author pages | ✅ | §22; managed on Home, chosen per export |
 | Search, backlinks | ✅ | §12 |
 | Archive import/export, other export formats | ✅ | §11 |
 | Cross-device sync (self-hosted server) | 🟡 | §10; needs an HTTPS deployment and a real phone install |
@@ -985,6 +987,30 @@ action.
 -   Everything is previewed before import.
 -   The exact layout is in `IMPORTING.md`. `docs/import-template/` is
     both the documented example and the in-app starter template.
+
+### Dedication & About the Author pages
+
+-   Written once on the Home page and stored with the project, so they
+    are included in backups and sync.
+-   Each page applies to all the author's books (every project), every
+    book in a project, or specific books.
+-   Every export (Word, text, Markdown, Amazon KDP) picks the matching
+    page automatically, and the author can choose another or leave it
+    out.
+
+### Live and online proofreading
+
+-   Underlines refresh about half a second after the author pauses,
+    like Grammarly or Google Docs.
+-   Optional online grammar check via LanguageTool's free API (no key,
+    no account) or a self-hosted LanguageTool server:
+    -   off by default
+    -   turned on only after an explanation of exactly what is sent
+    -   sends only the paragraphs of the open scene, and only those that
+        changed
+    -   never runs offline
+    -   satisfies §9's "clear opt-in, explanation of what is sent, and
+        an off switch"
 
 ### Amazon KDP publishing
 

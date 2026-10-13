@@ -17,8 +17,23 @@ describe('proofreading rules', () => {
     const text = 'She walked to the the door.';
     const [s] = find(text, 'repeated-word');
     expect(s).toBeDefined();
-    expect(text.slice(s.start, s.end)).toBe('the the');
-    expect(applySuggestion(text, s, s.replacements[0])).toBe('She walked to the door.');
+    // Only the second "the" is marked; "Remove" is the only fix for a word with no synonyms.
+    expect(s.start).toBe(text.indexOf('the the') + 4);
+    expect(text.slice(s.start, s.end)).toBe('the');
+    expect(s.replacements).toEqual(['']);
+    expect(applySuggestion(text, { ...s, start: s.start - 1, original: ' the' }, '')).toBe('She walked to the door.');
+  });
+
+  it('offers synonyms, never the same word, for a repeated content word', () => {
+    const [s] = find('It was really really cold.', 'repeated-word');
+    expect(s.original).toBe('really');
+    expect(s.replacements[0]).toBe('');
+    expect(s.replacements.slice(1)).toEqual(expect.arrayContaining(['truly', 'genuinely']));
+    expect(s.replacements).not.toContain('really');
+    expect(s.message).toMatch(/use a different word/);
+    // Synonyms take the case of the repeat they replace.
+    expect(find('Really Really?', 'repeated-word')[0].replacements).toContain('Truly');
+    expect(find('Really really?', 'repeated-word')[0].replacements).toContain('truly');
   });
 
   it('allows legitimate repeats like "had had"', () => {
@@ -57,8 +72,8 @@ describe('proofreading rules', () => {
   });
 
   it('respects the dialect setting', () => {
-    expect(find('The colour was grey.', 'dialect', ctx({ dialect: 'en-US' })).map((s) => s.replacements[0])).toEqual(['color', 'gray']);
-    expect(find('The color was gray.', 'dialect', ctx({ dialect: 'en-GB' })).map((s) => s.replacements[0])).toEqual(['colour', 'grey']);
+    expect(find('The colour was grey.', 'dialect', ctx({ dialect: 'en-US' })).map((s) => s.replacements[0])).toEqual(['color']);
+    expect(find('The color was gray.', 'dialect', ctx({ dialect: 'en-GB' })).map((s) => s.replacements[0])).toEqual(['colour']);
   });
 
   it('flags inconsistent spellings of known names', () => {

@@ -16,6 +16,7 @@ import {
   moveScene,
   reorder,
   unarchiveRecord,
+  renameBook,
   updateRecord,
 } from '../../storage/repo';
 import { flushAllEdits } from '../../editor/EditorContext';
@@ -178,7 +179,7 @@ export function Navigator({ projectId, books, book, tree, currentSceneId }: Prop
               label: 'Rename book',
               run: async () => {
                 const t = await promptDialog('Rename book', 'Title', book.title);
-                if (t) await updateRecord('books', book.id, { title: t });
+                if (t?.trim()) await renameBook(book.id, t.trim());
               },
             },
             book && {

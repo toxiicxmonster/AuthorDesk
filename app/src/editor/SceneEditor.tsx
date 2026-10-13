@@ -11,14 +11,18 @@ import { getSettings, updateSettings, useSettings } from '../storage/settings';
 import { setUi, toast, useUi, reportError } from '../ui/store';
 import { cleanPastedHtml, editorExtensions } from './extensions';
 import { registerFlusher } from './EditorContext';
-import { applyPlaced, getSuggestions, activeSuggestionMeta, proofreadKey, removeSuggestionMeta, type PlacedSuggestion } from './proofreadExtension';
-import { baseKey, runProofread, clearProofread } from './proofreadRunner';
+import { applyPlaced, getSuggestions, suggestionsAt, activeSuggestionMeta, proofreadKey, removeSuggestionMeta, type PlacedSuggestion } from './proofreadExtension';
+import { baseKey, runProofread, clearProofread, type ProofreadOutcome } from './proofreadRunner';
 import { FindBar } from './FindBar';
 import { ReferencePicker } from '../ui/components/ReferencePicker';
 import { CATEGORY_LABELS } from '../proofreading/types';
+import { createReference } from '../domain/references';
 
 const SAVE_DELAY = 700;
-const PROOF_DELAY = 1500;
+/** Underlines refresh this soon after a pause in typing (on-device checks; unchanged paragraphs come from a cache). */
+const PROOF_DELAY = 600;
+/** The optional online check waits for a longer pause, so it sends each edited paragraph about once. */
+const ONLINE_DELAY = 2500;
 
 interface Props {
   scene: Scene;
@@ -38,6 +42,7 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
   const dirty = useRef(false);
   const saveTimer = useRef<number | undefined>(undefined);
   const proofTimer = useRef<number | undefined>(undefined);
+  const onlineTimer = useRef<number | undefined>(undefined);
   const savedRev = useRef(scene.rev);
   const [words, setWords] = useState(scene.wordCount);
   const [chars, setChars] = useState(countChars(scene.plainText));
@@ -45,9 +50,11 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
   const [findOpen, setFindOpen] = useState(!!initialFind);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [conflict, setConflict] = useState(false);
-  const [popover, setPopover] = useState<{ s: PlacedSuggestion; x: number; y: number } | null>(null);
+  const [popover, setPopover] = useState<({ items: PlacedSuggestion[] } & PopoverPlacement) | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const proofOn = settings.proofreadEnabled;
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const sceneRef = useRef(scene);
   sceneRef.current = scene;
 
@@ -71,7 +78,9 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
       window.clearTimeout(saveTimer.current);
       saveTimer.current = window.setTimeout(() => void save(), SAVE_DELAY);
       window.clearTimeout(proofTimer.current);
-      proofTimer.current = window.setTimeout(() => void proofread(), PROOF_DELAY);
+      window.clearTimeout(onlineTimer.current);
+      proofTimer.current = window.setTimeout(() => void proofread(false), PROOF_DELAY);
+      if (settingsRef.current.onlineCheck.enabled) onlineTimer.current = window.setTimeout(() => void proofread(true), ONLINE_DELAY);
       const text = ed.getText({ blockSeparator: '\n\n' });
       setWords(countWords(text));
       setChars(countChars(text));
@@ -100,23 +109,26 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
     }
   }, [editor]);
 
-  const proofread = useCallback(async () => {
-    if (!editor || editor.isDestroyed || !proofOn) return;
-    onProofread('Checking…');
-    try {
-      const r = await runProofread(editor, sceneRef.current.projectId);
-      if (r.stale) return;
-      onProofread(
-        r.spellingError
-          ? `Spelling unavailable (${r.spellingError}); other checks ran`
-          : r.count
-            ? `${r.count} suggestion${r.count === 1 ? '' : 's'}`
-            : 'No suggestions',
-      );
-    } catch (e) {
-      onProofread(`Check failed: ${e instanceof Error ? e.message : e}`);
-    }
-  }, [editor, onProofread, proofOn]);
+  const proofread = useCallback(
+    async (sendOnline = true) => {
+      if (!editor || editor.isDestroyed || !proofOn) return;
+      const describe = (r: ProofreadOutcome, checkingOnline = false) => {
+        const parts = [r.count ? `${r.count} suggestion${r.count === 1 ? '' : 's'}` : 'No suggestions'];
+        if (r.spellingError) parts.push(`spelling unavailable (${r.spellingError})`);
+        if (checkingOnline) parts.push('checking online…');
+        else if (r.online?.error) parts.push(r.online.error);
+        return parts.join(' · ');
+      };
+      try {
+        const r = await runProofread(editor, sceneRef.current.projectId, { sendOnline, onLocal: (l) => onProofread(describe(l, true)) });
+        if (r.stale) return;
+        onProofread(describe(r));
+      } catch (e) {
+        onProofread(`Check failed: ${e instanceof Error ? e.message : e}`);
+      }
+    },
+    [editor, onProofread, proofOn],
+  );
 
   // Expose editor to panels; register flush for navigation/export/unload.
   useEffect(() => {
@@ -126,6 +138,8 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
     window.addEventListener('pagehide', onHide);
     document.addEventListener('visibilitychange', onHide);
     return () => {
+      window.clearTimeout(proofTimer.current);
+      window.clearTimeout(onlineTimer.current);
       unregister();
       window.removeEventListener('pagehide', onHide);
       document.removeEventListener('visibilitychange', onHide);
@@ -134,7 +148,14 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
     };
   }, [editor, onEditor, save]);
 
-  // Initial and on-demand proofreading.
+  // Initial and on-demand proofreading; re-run only when proofreading settings change (not on theme changes etc.).
+  const proofSettingsKey = [
+    settings.dialect,
+    settings.disabledCategories.join(),
+    settings.disabledRules.join(),
+    settings.onlineCheck.enabled && settings.onlineCheck.consentedAt ? settings.onlineCheck.endpoint : '',
+    settings.onlineCheck.picky,
+  ].join('|');
   useEffect(() => {
     if (!editor) return;
     if (proofOn) void proofread();
@@ -142,7 +163,7 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
       clearProofread(editor);
       onProofread('Proofreading is off');
     }
-  }, [editor, proofOn, proofread, proofRequest, onProofread, settings.dialect, settings.disabledCategories, settings.disabledRules]);
+  }, [editor, proofOn, proofread, proofRequest, onProofread, proofSettingsKey]);
 
   // Changes from another tab or a sync: reload if we have nothing unsaved; otherwise flag a conflict.
   useEffect(() => {
@@ -199,12 +220,18 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
     }
     const sug = target.closest('[data-sid]') as HTMLElement | null;
     if (sug && editor) {
-      const s = getSuggestions(editor.state).find((x) => x.key === sug.dataset.sid);
-      if (s) {
-        const box = wrapRef.current!.getBoundingClientRect();
-        const r = sug.getBoundingClientRect();
-        setPopover({ s, x: Math.min(r.left - box.left, box.width - 300), y: r.bottom - box.top + wrapRef.current!.scrollTop + 6 });
-        editor.view.dispatch(editor.state.tr.setMeta(proofreadKey, activeSuggestionMeta(s.key)));
+      // The span may stand for several overlapping suggestions; find them all by position.
+      let items: PlacedSuggestion[] = [];
+      try {
+        const from = editor.view.posAtDOM(sug, 0);
+        items = suggestionsAt(editor.state, from, from + Math.max(1, sug.textContent?.length ?? 0));
+      } catch {
+        /* fall back to the span's own id */
+      }
+      if (!items.length) items = getSuggestions(editor.state).filter((x) => x.key === sug.dataset.sid);
+      if (items.length) {
+        setPopover({ items, ...popoverPlacement(e.currentTarget as HTMLElement, sug.getBoundingClientRect()) });
+        editor.view.dispatch(editor.state.tr.setMeta(proofreadKey, activeSuggestionMeta(items[0].key)));
         return;
       }
     }
@@ -268,9 +295,10 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
         {popover && (
           <SuggestionPopover
             editor={editor}
-            s={popover.s}
+            items={popover.items}
             x={popover.x}
             y={popover.y}
+            above={popover.above}
             projectId={scene.projectId}
             onClose={() => {
               setPopover(null);
@@ -359,23 +387,61 @@ function Toolbar({ editor, onFind, onLink, onSnapshot }: { editor: Editor; onFin
   );
 }
 
+interface PopoverPlacement {
+  x: number;
+  y: number;
+  /** Open upwards from y (not enough room below the word). */
+  above: boolean;
+}
+
+const POPOVER_WIDTH = 300;
+const POPOVER_ROOM = 260;
+
+/**
+ * Where to put the popover inside `page`, the scrolling element it is rendered in (its containing block):
+ * coordinates are relative to page's content, so its own scroll offset is added.
+ */
+export function popoverPlacement(page: HTMLElement, word: Pick<DOMRect, 'left' | 'top' | 'bottom'>): PopoverPlacement {
+  const box = page.getBoundingClientRect();
+  const x = Math.max(0, Math.min(word.left - box.left + page.scrollLeft, page.clientWidth - POPOVER_WIDTH - 8));
+  const above = box.bottom - word.bottom < POPOVER_ROOM && word.top - box.top > POPOVER_ROOM;
+  const y = (above ? word.top - box.top - 6 : word.bottom - box.top + 6) + page.scrollTop;
+  return { x, y, above };
+}
+
 function SuggestionPopover({
   editor,
-  s,
+  items,
   x,
   y,
+  above,
   projectId,
   onClose,
   onRerun,
 }: {
   editor: Editor;
-  s: PlacedSuggestion;
+  /** Every suggestion on the clicked words, most useful first. */
+  items: PlacedSuggestion[];
   x: number;
   y: number;
+  above: boolean;
   projectId: string;
   onClose: () => void;
   onRerun: () => void;
 }) {
+  return (
+    <div className="popover" style={{ left: x, top: y, transform: above ? 'translateY(-100%)' : undefined }} role="dialog" aria-label="Writing suggestion">
+      <button className="pop-close" onClick={onClose} aria-label="Close">
+        ✕
+      </button>
+      {items.map((s) => (
+        <SuggestionItem key={s.key} editor={editor} s={s} projectId={projectId} onClose={onClose} onRerun={onRerun} />
+      ))}
+    </div>
+  );
+}
+
+function SuggestionItem({ editor, s, projectId, onClose, onRerun }: { editor: Editor; s: PlacedSuggestion; projectId: string; onClose: () => void; onRerun: () => void }) {
   const accept = (rep: string) => {
     const ok = applyPlaced(editor.state, editor.view.dispatch, s, rep);
     onClose();
@@ -407,27 +473,71 @@ function SuggestionPopover({
     onClose();
     toast(`Turned off this check. Re-enable it in Settings → Proofreading.`);
   };
+  const wordList = s.category === 'spelling' || s.category === 'consistency';
+  if (s.ruleId === 'new-name') {
+    const addAs = async (type: 'character' | 'location') => {
+      try {
+        const ref = await createReference(projectId, type, s.original);
+        onClose();
+        toast(`Added “${s.original}” to your ${type === 'character' ? 'characters' : 'places'}. It won’t be flagged again.`, {
+          action: { label: 'Open', run: () => setUi({ quickRefId: ref.id, rightOpen: true, rightTab: 'reference' }) },
+        });
+        onRerun();
+      } catch (e) {
+        reportError(e, 'Could not add the name');
+      }
+    };
+    return (
+      <div className="pop-item">
+        <div className="pop-head">
+          <span className="sev sev-warning">New name?</span>
+          <span className="muted">Characters & world</span>
+        </div>
+        <p>{s.message}</p>
+        <div className="pop-reps">
+          <button className="primary" onClick={() => void addAs('character')}>
+            Add to characters
+          </button>
+          <button onClick={() => void addAs('location')}>Add as a place</button>
+        </div>
+        {s.replacements.length > 0 && (
+          <div className="pop-reps">
+            <span className="small muted">Typo? Change to:</span>
+            {s.replacements.map((r) => (
+              <button key={r} onClick={() => accept(r)}>
+                {r}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="pop-actions">
+          <button onClick={addToDictionary} title="Add to the dictionary so it isn’t flagged, without making a character entry">
+            Not a name
+          </button>
+          <button onClick={ignore}>Ignore</button>
+          <button onClick={disableRule}>Turn off this check</button>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="popover" style={{ left: Math.max(0, x), top: y }} role="dialog" aria-label="Writing suggestion">
+    <div className="pop-item">
       <div className="pop-head">
         <span className={`sev sev-${s.severity}`}>{s.severity === 'error' ? 'Likely error' : s.severity === 'warning' ? 'Check' : 'Style'}</span>
         <span className="muted">{CATEGORY_LABELS[s.category]}</span>
       </div>
       <p>{s.message}</p>
-      {s.replacements.length > 0 && (
-        <div className="pop-reps">
-          {s.replacements.map((r) => (
-            <button key={r} className="primary" onClick={() => accept(r)}>
-              {r === ' ' ? 'Single space' : r === '' ? 'Remove' : r}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="pop-reps">
+        {s.replacements.map((r) => (
+          <button key={r} className="primary" onClick={() => accept(r)}>
+            {r === ' ' ? 'Single space' : r === '' ? 'Remove' : r}
+          </button>
+        ))}
+      </div>
       <div className="pop-actions">
         <button onClick={ignore}>Ignore</button>
-        {(s.category === 'spelling' || s.category === 'consistency') && <button onClick={addToDictionary}>Add to dictionary</button>}
+        {wordList && <button onClick={addToDictionary}>Add to dictionary</button>}
         <button onClick={disableRule}>Turn off this check</button>
-        <button onClick={onClose} aria-label="Close">✕</button>
       </div>
     </div>
   );

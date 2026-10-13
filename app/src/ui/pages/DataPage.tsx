@@ -5,6 +5,8 @@ import { exportDocx, exportMarkdownZip, exportReferencesCsv, exportText } from '
 import { saveFile, stamp, fileSafe } from '../../importExport/download';
 import { BundleImportCard } from '../components/BundleImport';
 import { KdpExportDialog } from '../components/KdpExport';
+import { ExtraPagesPicker, useExtraPagesData, type ExtraPagesChoice } from '../components/BookPages';
+import { resolveExtraPages } from '../../domain/bookPages';
 import * as drive from '../../importExport/googleDrive';
 import { useArchiveImport } from '../components/ImportPanel';
 import { updateSettings, useSettings } from '../../storage/settings';
@@ -23,6 +25,11 @@ export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }:
   const importer = useArchiveImport();
   const [kdpOpen, setKdpOpen] = useState(autoKdp);
   const book = books.find((b) => b.id === bookId) ?? books[0];
+  const [pageChoice, setPageChoice] = useState<ExtraPagesChoice>({});
+  const pageData = useExtraPagesData(projectId);
+  /** Dedication / About the Author for a book: the chosen pages for the selected book, automatic for the others. */
+  const pagesFor = (id: string) =>
+    pageData ? resolveExtraPages(id, projectId, pageData.projects, pageData.books, id === book?.id ? pageChoice : {}) : { dedication: '', aboutAuthor: '' };
   const name = fileSafe(project?.name ?? 'project');
 
   const run = async (label: string, fn: () => Promise<void>) => {
@@ -89,7 +96,13 @@ export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }:
         {books.length > 1 && (
           <label className="field inline">
             <span>Book</span>
-            <select value={book?.id} onChange={(e) => setBookId(e.target.value)}>
+            <select
+              value={book?.id}
+              onChange={(e) => {
+                setBookId(e.target.value);
+                setPageChoice({});
+              }}
+            >
               {books.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.title}
@@ -98,14 +111,15 @@ export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }:
             </select>
           </label>
         )}
+        {book && <ExtraPagesPicker projectId={projectId} bookId={book.id} value={pageChoice} onChange={setPageChoice} />}
         <div className="row gap wrap">
-          <button disabled={!!busy || !book} onClick={() => run('DOCX export', async () => void (await saveFile(await exportDocx(projectId, book!.id), `${fileSafe(book!.title)}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')))}>
+          <button disabled={!!busy || !book} onClick={() => run('DOCX export', async () => void (await saveFile(await exportDocx(projectId, book!.id, pagesFor(book!.id)), `${fileSafe(book!.title)}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')))}>
             Word (.docx)
           </button>
-          <button disabled={!!busy || !book} onClick={() => run('Text export', async () => void (await saveFile(await exportText(projectId, book!.id), `${fileSafe(book!.title)}.txt`, 'text/plain')))}>
+          <button disabled={!!busy || !book} onClick={() => run('Text export', async () => void (await saveFile(await exportText(projectId, book!.id, pagesFor(book!.id)), `${fileSafe(book!.title)}.txt`, 'text/plain')))}>
             Plain text (.txt)
           </button>
-          <button disabled={!!busy} onClick={() => run('Markdown export', async () => void (await saveFile(await exportMarkdownZip(projectId), `${name}_markdown.zip`, 'application/zip')))}>
+          <button disabled={!!busy} onClick={() => run('Markdown export', async () => void (await saveFile(await exportMarkdownZip(projectId, pagesFor), `${name}_markdown.zip`, 'application/zip')))}>
             Markdown folder (.zip)
           </button>
           <button disabled={!!busy} onClick={() => run('JSON export', async () => void (await saveFile(await exportJson(projectId), `${name}_${stamp()}.json`, 'application/json')))}>

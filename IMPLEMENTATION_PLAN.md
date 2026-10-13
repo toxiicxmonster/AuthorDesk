@@ -21,6 +21,15 @@ Last updated: 2026-10-11. Legend: ✅ done & tested · 🟡 done, needs real-wor
 ## Phase 4 — Proofreading ✅
 - Provider interface; local rules; Hunspell spelling (US/UK) in a worker; custom dictionary; reference names as known words; suggestion popover (accept / ignore / add to dictionary / turn off check); undo; reviewed bulk apply (errors only, preview + confirm); stale protection; category toggles; privacy statement. Remote provider: interface only (intentionally not wired).
 
+### Proofreading review (2026-10-11) ✅
+- Live checking: on-device underlines refresh 0.6 s after a pause; unchanged paragraphs come from a per-paragraph cache; the editor moves existing underlines on each keystroke instead of rebuilding them.
+- Accuracy fixes: "its true name"/"its time" no longer flagged; "to loose an arrow" allowed; a/an handles acronyms ("an FBI agent") and "a utopia"; repeated-word check works with accented letters; US/UK check covers inflections (coloured, realising, centres…) and no longer flags grey or meter; swapped letters in names ("Elsei") are caught (transposition-aware edit distance); dictionary words no longer reported as misspelled names ("Hidden" vs "Halden"); common contractions without apostrophes (dont, didnt…) fixed; new idioms (bated breath, toe the line, wreak havoc…).
+- Confused-word checks have stable named ids (old numbered ids in settings are mapped).
+- Spell worker: verdict and suggestion caches per dialect (switching US/UK no longer reuses the other dialect's suggestions); web/email addresses skipped.
+- Optional **LanguageTool** online check (`proofreading/languageTool.ts`): explicit consent dialog, off by default, paragraph-level cache so only edited paragraphs are re-sent, stays under the free API limits (20 requests / 75 KB a minute), never runs offline, no API key, self-hosted server supported (https or localhost). Character names and the custom dictionary filter its spelling results; its context-aware spelling fix wins over the dictionary's on the same word. Consent is per device and never stored in backups.
+- Settings privacy section now reflects real sync and online-check state.
+- Tested: 23 new unit tests (rules, cache, LanguageTool batching/offsets/cache/limits/errors/offline/address validation) and a live check in a test browser against the real LanguageTool API with sample text.
+
 ## Phase 5 — Archive import/export ✅
 - `.authorproj` with manifest, schema version, checksums; validation (paths, sizes, schema, integrity); preview; restore / merge (keep existing / use imported / keep both) / import as copy (id remap); DOCX, TXT, Markdown, JSON, CSV; text/Markdown chapter import; round-trip tests.
 
@@ -55,6 +64,15 @@ Last updated: 2026-10-11. Legend: ✅ done & tested · 🟡 done, needs real-wor
 - ✅ Large-manuscript test (300k words, 300 chapters, 2,000 references; fake IndexedDB so real browsers are faster): search 36 ms, backlinks 34 ms, archive build+parse 193 ms, proofreading 5k words 25 ms (`tests/perf.test.ts`).
 - ⬜ PWA install test on Android (needs the HTTPS host).
 - ⬜ Security review of a deployed server.
+
+## Dedication & About the Author pages ✅
+- Managed on Home; stored on the project record (`bookPages`, included in backups and sync). Scope: all my books (every project), this project, or specific books.
+- Every export picks the matching page automatically, with a per-export override or "leave it out": Word, plain text, Markdown (as `00 - Dedication.md` / `NN - About the Author.md`), and all KDP formats.
+- Text written in older versions (per-book KDP "Book details") is moved into pages once, automatically.
+- Tested: page choice and scope ranking, tracked saves with undo, legacy migration, inclusion in text/Markdown/KDP exports; checked in a test browser.
+
+## Performance
+- Secondary pages (Board, World, Timeline, Threads, Notes, Search, Backup, Settings) load on first use: the main bundle went from 1.2 MB to 0.8 MB. Everything is still cached for offline use.
 
 ## Repository & releases
 - ✅ Source pushed to GitHub (`toxiicxmonster/AuthorDesk`, `main`). Ignored: `AuthorDesk.exe`, `app/dist`, `node_modules`, `.env*`, `sync-server.txt`, databases, backups, exports.
