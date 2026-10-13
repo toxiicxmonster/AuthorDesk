@@ -1,4 +1,5 @@
 import { synonymsFor } from './synonyms';
+import { strongerWords } from './stronger';
 import { levenshtein } from '../domain/text';
 import type { Category, ProofreadContext, Severity, Suggestion } from './types';
 
@@ -102,6 +103,30 @@ const CONFUSED: [string, RegExp, string, string, string][] = [
   ['confused-shoo-in', /\bshoe[- ]in\b/i, 'shoo-in', 'A sure winner is a “shoo-in”.', '“shoe-in” → “shoo-in”'],
   ['confused-irregardless', /\birregardless\b/i, 'regardless', '“Irregardless” is widely considered nonstandard; “regardless” says the same thing.', '“irregardless” → “regardless”'],
   ['confused-wreak-havoc', /\b(wreck|reek)(s|ed|ing)? havoc\b/i, 'wreak$2 havoc', 'The phrase is “wreak havoc”.', '“wreck havoc” → “wreak havoc”'],
+  ['confused-sneak-a-peek', /\b(sneak|take|took|taking|have|had|get|got|catch|caught) a peak\b/i, '$1 a peek', 'A quick look is a “peek”; a “peak” is a summit.', '“sneak a peak” → “sneak a peek”'],
+  ['confused-could-care-less', /\b(I|you|we|they|he|she) could care less\b/i, "$1 couldn't care less", 'The idiom is “couldn’t care less” (it can’t get any lower).', '“could care less” → “couldn’t care less”'],
+  ['confused-make-do', /\bmake due\b/i, 'make do', 'The phrase is “make do”.', '“make due” → “make do”'],
+  ['confused-case-in-point', /\bcase and point\b/i, 'case in point', 'The phrase is “case in point”.', '“case and point” → “case in point”'],
+  ['confused-moot-point', /\bmute point\b/i, 'moot point', 'An irrelevant point is “moot”.', '“mute point” → “moot point”'],
+  ['confused-sleight-of-hand', /\bslight of hand\b/i, 'sleight of hand', 'Trickery is “sleight of hand”.', '“slight of hand” → “sleight of hand”'],
+  ['confused-tongue-in-cheek', /\btongue and cheek\b/i, 'tongue in cheek', 'The phrase is “tongue in cheek”.', '“tongue and cheek” → “tongue in cheek”'],
+  ['confused-scapegoat', /\bescape goat\b/i, 'scapegoat', '“Scapegoat” is one word.', '“escape goat” → “scapegoat”'],
+  ['confused-all-of-a-sudden', /\ball of the sudden\b/i, 'all of a sudden', 'The phrase is “all of a sudden”.', '“all of the sudden” → “all of a sudden”'],
+  ['confused-whet-appetite', /\bwet (my|your|his|her|their|our|the) appetite\b/i, 'whet $1 appetite', 'To sharpen an appetite is to “whet” it.', '“wet your appetite” → “whet”'],
+  ['confused-beck-and-call', /\bbeckon call\b/i, 'beck and call', 'The phrase is “beck and call”.', '“beckon call” → “beck and call”'],
+  ['confused-dog-eat-dog', /\bdoggy[- ]dog world\b/i, 'dog-eat-dog world', 'The phrase is “dog-eat-dog world”.', '“doggy dog world”'],
+  ['confused-exact-revenge', /\bextract(s|ed|ing)? revenge\b/i, 'exact$1 revenge', 'Revenge is “exacted”.', '“extract revenge” → “exact revenge”'],
+  ['confused-hunger-pangs', /\bhunger pains\b/i, 'hunger pangs', 'The phrase is “hunger pangs”.', '“hunger pains” → “hunger pangs”'],
+  ['confused-faze', /\b(didn['’]t|doesn['’]t|don['’]t|won['’]t|never|not) phase\b/i, '$1 faze', 'To unsettle someone is to “faze” them.', '“didn’t phase me” → “faze”'],
+  ['confused-rein-in', /\breign(s|ed|ing)? in\b/i, 'rein$1 in', 'To restrain is to “rein in”, like a horse.', '“reign in” → “rein in”'],
+  ['confused-uncharted', /\bunchartered\b/i, 'uncharted', 'Unmapped territory is “uncharted”.', '“unchartered” → “uncharted”'],
+  ['confused-supposedly', /\bsupposably\b/i, 'supposedly', 'The word is “supposedly”.', '“supposably” → “supposedly”'],
+  ['confused-espresso', /\bexpresso\b/i, 'espresso', 'The coffee is “espresso”.', '“expresso” → “espresso”'],
+  ['confused-prima-donna', /\bpre[- ]?madonna\b/i, 'prima donna', 'The phrase is “prima donna”.', '“pre-Madonna” → “prima donna”'],
+  ['confused-home-in', /\bhon(e|ed|es|ing) in on\b/i, 'hom$1 in on', 'To close in on a target is to “home in on” it.', '“hone in on” → “home in on”'],
+  ['confused-first-served', /\bfirst come,? first serve\b/i, 'first come, first served', 'The phrase is “first come, first served”.', '“first serve” → “first served”'],
+  ['confused-statute', /\bstatue of limitations\b/i, 'statute of limitations', 'A law is a “statute”.', '“statue of limitations”'],
+  ['confused-by-accident', /\bon accident\b/i, 'by accident', 'The standard phrase is “by accident”.', '“on accident” → “by accident”'],
 ];
 
 /** Ids used before the confused-word checks had names (index into the old list). */
@@ -427,6 +452,22 @@ export const RULES: Rule[] = [
     },
   },
   {
+    id: 'stronger-word',
+    // Clarity (on by default), not the optional style hints: every hit comes with concrete rewrites.
+    category: 'clarity',
+    severity: 'style',
+    run: (text) => strongerWords(text),
+  },
+  // Speech tags that say the same thing twice: "whispered quietly", "shouted loudly", "replied back".
+  regexRule(
+    'dialogue-redundant-tag',
+    'dialogue',
+    'warning',
+    /\b(whisper(?:ed|s|ing)?|murmur(?:ed|s|ing)?) (?:quietly|softly)\b|\b(shout(?:ed|s|ing)?|yell(?:ed|s|ing)?|scream(?:ed|s|ing)?|bellow(?:ed|s|ing)?) loudly\b|\b(repl(?:ied|ies|y|ying)|answer(?:ed|s|ing)?|respond(?:ed|s|ing)?) back\b/i,
+    (m) => `“${m[0]}” says it twice: the verb already carries the meaning.`,
+    (m) => [m[1] ?? m[2] ?? m[3]],
+  ),
+  {
     // Offers what to write instead: cut the adverb (tidying commas and capitals), or a synonym where one is known.
     id: 'adverb',
     category: 'style',
@@ -499,6 +540,8 @@ const RULE_LABELS: Record<string, string> = {
   'a-an-vowel': '“a” before a vowel sound',
   'an-a-consonant': '“an” before a consonant sound',
   'common-misspelling': 'Common misspellings',
+  'stronger-word': 'Stronger word for verb + adverb or “very” + adjective',
+  'dialogue-redundant-tag': 'Redundant speech tags (“whispered quietly”)',
   'dialogue-period-before-tag': 'Period before a speech tag',
   'dialogue-tag-capital': 'Capitalised speech tag',
   'dialogue-missing-comma': 'Missing comma before a speech tag',

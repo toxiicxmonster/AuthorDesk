@@ -18,14 +18,14 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("AuthorDesk")]
 [assembly: AssemblyProduct("AuthorDesk")]
 [assembly: AssemblyDescription("Private writing studio for novelists")]
-[assembly: AssemblyVersion("0.2.0.0")]
+[assembly: AssemblyVersion("0.3.0.0")]
 
 namespace AuthorDesk
 {
     static class Program
     {
         // Release version; bump with each GitHub release (tag "v" + Version). scripts\package-release.ps1 reads it.
-        const string Version = "0.2";
+        const string Version = "0.3";
         const string UpdateRepo = "toxiicxmonster/AuthorDesk";
 
         // Fixed port: the browser stores your work per origin, so the address must never change.

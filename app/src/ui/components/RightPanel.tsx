@@ -17,6 +17,7 @@ import { CATEGORY_LABELS } from '../../proofreading/types';
 import { LT_PROVIDER_ID } from '../../proofreading/languageTool';
 import { useSettings } from '../../storage/settings';
 import { Icon } from './Icon';
+import { DialoguePanel } from './DialoguePanel';
 
 export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapter: Chapter; nextScene: Scene | null }) {
   const tab = useUi((s) => s.rightTab);
@@ -24,6 +25,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
     ['reference', 'Look up'],
     ['scene', 'Scene notes'],
     ['proof', 'Suggestions'],
+    ['dialogue', 'Dialogue'],
     ['history', 'Versions'],
   ];
   return (
@@ -42,6 +44,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
         {tab === 'reference' && <QuickReference scene={scene} />}
         {tab === 'scene' && <SceneInspector scene={scene} chapter={chapter} nextScene={nextScene} />}
         {tab === 'proof' && <ProofPanel projectId={scene.projectId} />}
+        {tab === 'dialogue' && <DialoguePanel projectId={scene.projectId} />}
         {tab === 'history' && <HistoryPanel scene={scene} />}
       </div>
     </aside>

@@ -19,7 +19,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   capitalization: 'Capitalization',
   confused: 'Commonly confused words',
   repetition: 'Repeated words',
-  dialogue: 'Dialogue punctuation',
+  dialogue: 'Dialogue',
   consistency: 'Name & term consistency',
   clarity: 'Clarity & readability',
   style: 'Style (adverbs, passive voice, filler)',

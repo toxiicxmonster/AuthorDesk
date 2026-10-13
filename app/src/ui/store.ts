@@ -30,7 +30,7 @@ interface UiState {
   dialog: DialogRequest | null;
   leftOpen: boolean;
   rightOpen: boolean;
-  rightTab: 'reference' | 'scene' | 'proof' | 'history';
+  rightTab: 'reference' | 'scene' | 'proof' | 'dialogue' | 'history';
   quickRefId: string | null;
   searchOpen: boolean;
   helpOpen: boolean;
