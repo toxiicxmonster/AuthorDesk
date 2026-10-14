@@ -93,7 +93,7 @@ export function DialogueVoice({ line, paragraph, characters, anchor }: { line: D
           {Object.values(character.fields).some((v) => v?.trim()) ? '' : ' (none yet; add personality and voice notes to their entry for better results)'}
         </p>
       )}
-      {latest && <AiResultCard editor={editor} r={latest} busy={busy} onStop={() => abort.current?.abort()} onAgain={() => void run()} />}
+      {latest && <AiResultCard key={latest.id} editor={editor} r={latest} busy={busy} onStop={() => abort.current?.abort()} onAgain={() => void run()} />}
       {earlier.length > 0 && (
         <details className="ai-earlier">
           <summary className="small">Earlier suggestions ({earlier.length})</summary>

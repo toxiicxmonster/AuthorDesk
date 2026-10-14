@@ -259,7 +259,7 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
         </details>
       </section>
 
-      {latest && <AiResultCard editor={editor} r={latest} busy={busy} onStop={() => abort.current?.abort()} onAgain={() => void run(latest.task, latest.passage)} />}
+      {latest && <AiResultCard key={latest.id} editor={editor} r={latest} busy={busy} onStop={() => abort.current?.abort()} onAgain={() => void run(latest.task, latest.passage)} />}
       {earlier.length > 0 && (
         <details className="ai-earlier">
           <summary className="small">Earlier suggestions ({earlier.length})</summary>

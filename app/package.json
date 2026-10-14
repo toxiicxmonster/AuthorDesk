@@ -1,6 +1,6 @@
 {
   "name": "authordesk",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "AuthorDesk - local-first writing studio for novelists",
   "scripts": {
     "dev": "vite",
