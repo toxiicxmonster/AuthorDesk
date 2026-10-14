@@ -153,7 +153,19 @@ const verbIndex = (() => {
   return m;
 })();
 
-/** Weak verb + adverb (either order) and intensifier + adjective, each with stronger single-word rewrites. */
+/** Verbs that don't take an object: words between them and the adverb must start with a preposition. */
+const INTRANSITIVE = new Set(['run', 'walk', 'go', 'move', 'fall', 'sit', 'sleep', 'cry', 'laugh', 'smile', 'breathe', 'shake', 'try', 'look']);
+const PREPOSITIONS = new Set(
+  'at,to,across,into,through,down,up,along,over,toward,towards,around,past,out,back,away,off,onto,from,in,on,by,under,behind,beside,between,inside,outside,upstairs,downstairs,home'.split(','),
+);
+// What can open an object ("closed the door loudly", "held her hand tightly", "said it quietly").
+const OBJECT_START = new Set('the,a,an,his,her,my,their,our,your,its,this,that,these,those,it,him,them,me,us,one,both'.split(','));
+// Words that start a new clause or action: the adverb after them belongs to something else.
+const CLAUSE_BREAK = new Set('and,but,or,so,then,while,as,because,when,that,which,who,if,until,before,after,where,though,although,to'.split(','));
+/** How many words may sit between the verb and its adverb. */
+const MAX_BETWEEN = 4;
+
+/** Weak verb + adverb (either order, or with a few words between) and intensifier + adjective, each with stronger rewrites. */
 export function strongerWords(text: string): StrongerHit[] {
   const out: StrongerHit[] = [];
   const words = /[\p{L}'’-]+/gu;
@@ -165,17 +177,30 @@ export function strongerWords(text: string): StrongerHit[] {
   for (let i = 0; i < toks.length; i++) {
     const t = toks[i];
     const lower = t.w.toLowerCase();
-    // Verb then adverb ("ran quickly", "closed the door loudly" is out of reach: only adjacent words).
+    // Verb then adverb: "ran quickly", or with words between that belong with the verb ("closed the door loudly",
+    // "walked across the room slowly"). The replacement keeps those words: "slammed the door".
     const verbs = verbIndex.get(lower);
     const next = toks[i + 1];
     const gapOk = (a: { e: number }, b: { s: number }) => /^ $/.test(text.slice(a.e, b.s));
-    if (verbs && next && gapOk(t, next)) {
-      const adv = next.w.toLowerCase();
-      for (const [e, form] of verbs) {
-        if (!adverbsFor(e).includes(adv)) continue;
-        const reps = VERB_ADVERB[e][2].map((f) => matchCase(t.w, f[form]));
-        out.push({ start: t.s, end: next.e, original: text.slice(t.s, next.e), replacements: reps, message: `“${text.slice(t.s, next.e)}”: one precise verb says it more vividly than a verb propped up by an adverb.` });
-        break;
+    if (verbs) {
+      found: for (let j = i + 1; j <= Math.min(i + 1 + MAX_BETWEEN, toks.length - 1); j++) {
+        if (!gapOk(toks[j - 1], toks[j])) break;
+        const adv = toks[j].w.toLowerCase();
+        const between = toks.slice(i + 1, j).map((x) => x.w.toLowerCase());
+        if (between.length && (CLAUSE_BREAK.has(between[between.length - 1]) || between.some((w) => CLAUSE_BREAK.has(w) || /ly$/.test(w) || verbIndex.has(w)))) break;
+        for (const [e, form] of verbs) {
+          if (!adverbsFor(e).includes(adv)) continue;
+          if (between.length) {
+            const base = VERB_ADVERB[e][0][0];
+            const ok = PREPOSITIONS.has(between[0]) || (!INTRANSITIVE.has(base) && OBJECT_START.has(between[0]));
+            if (!ok) continue;
+          }
+          const original = text.slice(t.s, toks[j].e);
+          const middle = j > i + 1 ? text.slice(toks[i + 1].s, toks[j - 1].e) : '';
+          const reps = VERB_ADVERB[e][2].map((f) => matchCase(t.w, f[form]) + (middle ? ` ${middle}` : ''));
+          out.push({ start: t.s, end: toks[j].e, original, replacements: reps, message: `“${original}”: one precise verb says it more vividly than a verb propped up by an adverb.` });
+          break found;
+        }
       }
     }
     // Adverb then verb ("quickly ran").

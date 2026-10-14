@@ -86,19 +86,24 @@ export const localProvider: ProofreadingProvider = {
 };
 
 /** A fuzzy "did you mean <character name>?" hit, as opposed to a lowercase-name hit ("elara" → "Elara"). */
-function isFuzzyNameHit(s: Suggestion): boolean {
-  return s.ruleId === 'name-consistency' && s.replacements[0]?.toLowerCase() !== s.original.toLowerCase();
+/**
+ * A name check's hit that a real dictionary word should cancel: a near miss of a name ("Hidden" vs "Halden") or a
+ * name's first word in lower case ("glass" in "a glass of milk", next to a place called Glass Health Hospital).
+ */
+function isNameHit(s: Suggestion): boolean {
+  return s.ruleId === 'name-consistency';
 }
 
 /**
  * Combine rule and dictionary results for one block:
  * - a rule's spelling hit (common misspelling, US/UK) explains more than the dictionary's, so it wins on the same word;
- * - "possible misspelling of <name>" is dropped when the word is a real dictionary word ("Hidden" vs "Halden").
+ * - "possible misspelling of <name>" and "<name> is capitalized" are dropped when the word is a real dictionary word
+ *   ("Hidden" vs "Halden"; "glass" vs "Glass Health Hospital").
  */
-function combine(rules: Suggestion[], spelling: Suggestion[], knownWords: ReadonlySet<string>): Suggestion[] {
+export function combine(rules: Suggestion[], spelling: Suggestion[], knownWords: ReadonlySet<string>): Suggestion[] {
   const ruleSpelling = rules.filter((r) => r.category === 'spelling');
   const spell = spelling.filter((s) => !ruleSpelling.some((r) => s.start < r.end && r.start < s.end));
-  const kept = rules.filter((r) => !(isFuzzyNameHit(r) && knownWords.has(r.original)));
+  const kept = rules.filter((r) => !(isNameHit(r) && knownWords.has(r.original)));
   return dedupe([...kept, ...spell]);
 }
 
@@ -130,7 +135,7 @@ export async function checkBlocks(
   if (!todo.length) return { results: results as Suggestion[][], spellingError: null };
 
   const rules = todo.map((i) => runRules(texts[i], ctx));
-  const lookup = [...new Set(rules.flat().filter(isFuzzyNameHit).map((s) => s.original))];
+  const lookup = [...new Set(rules.flat().filter(isNameHit).map((s) => s.original))];
   let spelling: Suggestion[][] = todo.map(() => []);
   let known = new Set<string>();
   let spellingError: string | null = null;

@@ -19,6 +19,7 @@
   --style-line: #4a7fb5;
   --note-line: #2e8b57;
   --echo-line: #12898f;
+  --hard-line: #d35400;
   --conflict-line: #8e44ad;
   --page: #fffdf8;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.06);
@@ -49,9 +50,11 @@
     --style-line: #7fb0ea;
   --note-line: #6fcf8f;
   --echo-line: #4fd1d1;
+  --hard-line: #f0a060;
   --conflict-line: #c39bd3;
     --note-line: #6fcf8f;
     --echo-line: #4fd1d1;
+    --hard-line: #f0a060;
     --conflict-line: #c39bd3;
     --page: #22211f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.3);
@@ -872,7 +875,7 @@ details.banner {
   cursor: pointer;
 }
 /* Each kind of mark has its own colour and line: red wavy = likely error, purple double = contradicts a character's
-   entry, amber solid = check, teal dotted (thick) = echo word, blue dotted = style, green dashed = a detail a character's
+   entry, amber solid = check, teal dotted (thick) = echo word, orange dashed (thin) = hard to read, blue dotted = style, green dashed = a detail a character's
    entry could gain. */
 .pr-note {
   text-decoration-color: var(--note-line);
@@ -882,6 +885,11 @@ details.banner {
   text-decoration-color: var(--echo-line);
   text-decoration-style: dotted;
   text-decoration-thickness: 3px;
+}
+.pr-hard {
+  text-decoration-color: var(--hard-line);
+  text-decoration-style: dashed;
+  text-decoration-thickness: 1px;
 }
 .pr-style {
   text-decoration-color: var(--style-line);
@@ -963,6 +971,19 @@ details.banner {
   justify-content: space-between;
   font-size: 0.8rem;
 }
+/* The AI Editor's best version of the sentence, inside a suggestion popover. */
+.pop-ai {
+  margin: 0.45rem 0 0.2rem;
+  padding: 0.4rem 0.5rem;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 4px;
+}
+.pop-ai p {
+  margin: 0.2rem 0 0;
+  font-size: 0.92rem;
+  white-space: pre-wrap;
+}
 .pop-reps,
 .pop-actions {
   display: flex;
@@ -994,6 +1015,9 @@ details.banner {
 }
 .sev-echo {
   color: var(--echo-line);
+}
+.sev-hard {
+  color: var(--hard-line);
 }
 .sev-conflict {
   color: var(--conflict-line);
@@ -3115,4 +3139,293 @@ code.path {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
+}
+
+/* Edit pass (side panel): a checklist of suggestions and findings to work through. */
+.edit-pass {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.pass-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pass-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.pass-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.pass-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.pass-item {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+}
+.pass-item p {
+  margin: 0.25rem 0 0;
+}
+.pass-item.st-done,
+.pass-item.st-dismissed,
+.pass-item.st-changed {
+  opacity: 0.6;
+}
+.pass-item-head {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pass-quote {
+  text-align: left;
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+.start-pass {
+  margin: 0.4rem 0 0.8rem;
+  align-items: center;
+}
+
+/* Series: books and where each entry appears across them. */
+.series-books {
+  margin: 0.3rem 0 0.6rem;
+  padding-left: 1.4rem;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.series-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.92rem;
+}
+.series-table th,
+.series-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+.series-table td.num {
+  position: relative;
+  min-width: 4.5rem;
+}
+.series-bar {
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  background: var(--accent-soft);
+  z-index: 0;
+}
+.series-table td.num {
+  isolation: isolate;
+}
+.series-n {
+  position: relative;
+  z-index: 1;
+}
+
+/* Maps: relationship web, family tree, places with pins. */
+.map-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.rel-map {
+  width: 100%;
+  height: auto;
+  max-height: 72vh;
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  touch-action: none;
+  user-select: none;
+}
+.rel-edge line,
+.family-tree line {
+  stroke: var(--muted, #888);
+  stroke-width: 1.5;
+}
+.rel-edge text {
+  font-size: 12px;
+  fill: var(--text);
+  paint-order: stroke;
+  stroke: var(--page);
+  stroke-width: 4px;
+}
+.rel-node {
+  cursor: pointer;
+}
+.rel-node rect {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.rel-node:hover rect,
+.rel-node:focus rect {
+  fill: var(--accent-soft);
+}
+.rel-node text {
+  font-size: 13px;
+  fill: var(--text);
+  pointer-events: none;
+}
+.family-tree {
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.family-tree .kin-line {
+  stroke-width: 2;
+}
+.family-tree .kin-far {
+  stroke-dasharray: 6 4;
+}
+.family-tree .kin-side {
+  stroke-dasharray: 2 4;
+}
+.family-tree .kin-spouse line {
+  stroke-width: 1.5;
+}
+.place-map-wrap {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.place-map {
+  position: relative;
+  flex: 1 1 420px;
+  max-width: 100%;
+}
+.place-map.pinning {
+  cursor: crosshair;
+}
+.place-map img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.pin span {
+  display: inline-block;
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+}
+.pin.on span {
+  background: var(--accent);
+  color: var(--surface);
+}
+.pin-card {
+  flex: 0 1 260px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem;
+  background: var(--surface);
+}
+.pin-card ul {
+  margin: 0.3rem 0;
+  padding-left: 1.1rem;
+}
+
+.beat-map {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.6rem 0;
+}
+.beat-map td,
+.beat-map th {
+  padding: 0.35rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.beat-map select {
+  max-width: 100%;
+}
+
+/* Character arc: a cell per chapter, darker where they're more present. */
+.arc-strip {
+  display: flex;
+  gap: 2px;
+  margin: 0.3rem 0;
+  flex-wrap: wrap;
+}
+.arc-cell {
+  flex: 0 0 14px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: transparent;
+}
+.arc-cell.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  cursor: pointer;
+}
+
+/* AI summaries in the Scene notes tab. */
+.summary-assist {
+  margin: -0.2rem 0 0.6rem;
+}
+.ai-draft {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 4px;
+  padding: 0.4rem 0.55rem;
+}
+.ai-draft p {
+  margin: 0.2rem 0;
+}
+.draft-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+  margin: 0.3rem 0;
+}
+
+.addon-health {
+  margin-top: 0.3rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.addon-log pre {
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.4rem;
 }

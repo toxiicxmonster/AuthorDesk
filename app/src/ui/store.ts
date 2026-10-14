@@ -1,4 +1,4 @@
-import type { AiTaskId } from '../ai/prompts';
+import type { MarkBest, MarkRequest } from '../ai/markRewrite';
 import { useSyncExternalStore } from 'react';
 
 export type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'error';
@@ -31,10 +31,12 @@ interface UiState {
   dialog: DialogRequest | null;
   leftOpen: boolean;
   rightOpen: boolean;
-  rightTab: 'reference' | 'scene' | 'proof' | 'dialogue' | 'ai' | 'history';
+  rightTab: 'reference' | 'scene' | 'proof' | 'dialogue' | 'ai' | 'pass' | 'history';
   quickRefId: string | null;
   /** Set when a flagged mark asks the AI Editor to work on its sentence; `id` changes for each request. */
-  aiRequest: { id: number; text: string; context: string; task: AiTaskId; focus: string | null; from: number; to: number } | null;
+  aiRequest: MarkRequest | null;
+  /** The best AI version for that request, shown in the mark's popover. */
+  aiBest: MarkBest | null;
   searchOpen: boolean;
   helpOpen: boolean;
 }
@@ -51,6 +53,7 @@ let state: UiState = {
   rightTab: 'reference',
   quickRefId: null,
   aiRequest: null,
+  aiBest: null,
   searchOpen: false,
   helpOpen: false,
 };

@@ -5,7 +5,8 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\install-grammar-engine.ps1 -SkipNgrams  # without n-grams (~300 MB; less accurate)
 # Safe to re-run: parts already at the pinned version are kept, interrupted downloads resume, and only parts whose
 # pinned version changed are replaced. AuthorDesk runs this automatically when a release pins newer versions.
-param([switch]$SkipNgrams)
+#   ... -Repair       reinstalls Java and LanguageTool (small), and the n-gram data only if it's missing
+param([switch]$SkipNgrams, [switch]$Repair)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
@@ -82,10 +83,10 @@ function ExtractSingleFolder([string]$zip, [string]$target) {
 
 # 1. Java runtime (LanguageTool needs Java 17+).
 $jreDir = Join-Path $dest 'jre'
-if ((Pinned $jreDir) -ne $JavaVersion) {
+if ((Pinned $jreDir) -ne $JavaVersion -or $Repair) {
   # An earlier install of exactly this build only lacks the record.
   $release = Join-Path $jreDir 'release'
-  if ((Test-Path $release) -and (Select-String -Path $release -SimpleMatch "JAVA_RUNTIME_VERSION=`"$JavaVersion" -Quiet)) { SetPinned $jreDir $JavaVersion }
+  if (-not $Repair -and (Test-Path $release) -and (Select-String -Path $release -SimpleMatch "JAVA_RUNTIME_VERSION=`"$JavaVersion" -Quiet)) { SetPinned $jreDir $JavaVersion }
   else {
     ExtractSingleFolder (Fetch $JavaUrl 'jre.zip' 'Java runtime' $JavaSha) $jreDir
     SetPinned $jreDir $JavaVersion
@@ -95,7 +96,7 @@ Write-Host 'Java runtime ready.'
 
 # 2. LanguageTool server.
 $ltDir = Join-Path $dest 'languagetool'
-if ((Pinned $ltDir) -ne $LtVersion) {
+if ((Pinned $ltDir) -ne $LtVersion -or $Repair) {
   $jar = Join-Path $ltDir 'languagetool-server.jar'
   $have = ''
   if (Test-Path $jar) {
@@ -108,7 +109,7 @@ if ((Pinned $ltDir) -ne $LtVersion) {
       if ($m.Success) { $have = $m.Groups[1].Value }
     } catch { }
   }
-  if ($have -eq $LtVersion) { SetPinned $ltDir $LtVersion }
+  if ($have -eq $LtVersion -and -not $Repair) { SetPinned $ltDir $LtVersion }
   else {
     ExtractSingleFolder (Fetch $LtUrl "LanguageTool-$LtVersion.zip" 'LanguageTool' $LtSha) $ltDir
     SetPinned $ltDir $LtVersion

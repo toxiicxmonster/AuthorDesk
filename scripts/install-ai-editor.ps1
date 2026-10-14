@@ -6,7 +6,8 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\install-ai-editor.ps1 -Backend cpu    # force a build (cuda, vulkan, cpu)
 # Safe to re-run: finished steps are skipped, interrupted downloads resume, every file is checked against its SHA-256.
 # AuthorDesk runs this automatically when a release pins a newer llama.cpp build or model.
-param([ValidateSet('auto', 'nemo', 'qwen7b')][string]$Model = 'auto', [ValidateSet('auto', 'cuda', 'vulkan', 'cpu')][string]$Backend = 'auto')
+#   ... -Repair    reinstalls llama.cpp and checks the model against its SHA-256 (re-downloading it only if damaged)
+param([ValidateSet('auto', 'nemo', 'qwen7b')][string]$Model = 'auto', [ValidateSet('auto', 'cuda', 'vulkan', 'cpu')][string]$Backend = 'auto', [switch]$Repair)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
@@ -85,6 +86,7 @@ Write-Host "Using the $Backend build of llama.cpp ($LlamaBuild) with $($m.name).
 # 2. llama.cpp
 $llamaDir = Join-Path $dest 'llama'
 $stamp = Join-Path $llamaDir 'build.txt'
+if ($Repair -and (Test-Path $stamp)) { Remove-Item -Force $stamp }
 if (-not (Test-Path $stamp) -or (Get-Content $stamp) -ne "$LlamaBuild $Backend") {
   if (Test-Path $llamaDir) { Remove-Item -Recurse -Force $llamaDir }
   New-Item -ItemType Directory -Force $llamaDir | Out-Null
@@ -104,6 +106,11 @@ Write-Host 'llama.cpp ready.'
 $modelDir = Join-Path $dest 'models'
 New-Item -ItemType Directory -Force $modelDir | Out-Null
 $modelPath = Join-Path $modelDir $m.file
+if ($Repair -and (Test-Path $modelPath)) {
+  Progress 'Checking the model'
+  if ((Get-FileHash -Algorithm SHA256 $modelPath).Hash.ToLower() -ne $m.sha) { Write-Host 'The model file is damaged; downloading it again.'; Remove-Item -Force $modelPath }
+  else { Write-Host 'Model file checked: OK.' }
+}
 if (-not (Test-Path $modelPath)) {
   $file = Fetch $m.url $m.file $m.sha "the model ($($m.name))"
   Move-Item $file $modelPath

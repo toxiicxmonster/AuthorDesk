@@ -45,7 +45,7 @@ You don't need Node or any developer tools to use AuthorDesk.
 
 **Add-ons:** on first launch AuthorDesk offers to install the private grammar engine and AI Editor in the background, and keeps them updated when a release pins newer versions (about 17 GB, with a free-space check; *Not now* and *Don't ask again* are there too, and **Settings → Add-ons** installs them later). Or install them by hand:
 
-**Private AI Editor (optional):** run `powershell -ExecutionPolicy Bypass -File scripts\install-ai-editor.ps1` (about 8 GB). It rewrites, tightens and smooths passages in a side panel, judges adverbs in context and keeps character notes up to date, using llama.cpp and an open-source model on your PC. Its suggestions are never written into your book.
+**Private AI Editor (optional):** run `powershell -ExecutionPolicy Bypass -File scripts\install-ai-editor.ps1` (about 8 GB). It rewrites, tightens and smooths passages in a side panel, judges adverbs in context and keeps character notes up to date, using llama.cpp and an open-source model on your PC. Nothing goes into your book until you click **Use** on a version you like.
 
 **Private grammar engine (recommended):** run `powershell -ExecutionPolicy Bypass -File scripts\install-grammar-engine.ps1` from the AuthorDesk folder once (about 9 GB). AuthorDesk then checks grammar on this PC with no limits and nothing sent anywhere.
 

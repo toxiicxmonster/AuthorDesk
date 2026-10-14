@@ -24,6 +24,22 @@ describe('stronger words instead of adverbs', () => {
     expect(s.message).toMatch(/precise verb/);
   });
 
+  it('finds the adverb a few words after its verb, keeping the words between', () => {
+    expect(strongerWords('He closed the door loudly.')[0]).toMatchObject({ original: 'closed the door loudly', replacements: ['slammed the door'] });
+    expect(strongerWords('She walked across the room slowly.')[0]).toMatchObject({ original: 'walked across the room slowly', replacements: ['ambled across the room', 'strolled across the room', 'sauntered across the room'] });
+    expect(strongerWords('He looked at her angrily.')[0].replacements).toEqual(['glared at her', 'scowled at her']);
+    expect(strongerWords('“Fine,” she said it quietly.')[0].replacements[0]).toBe('murmured it');
+    expect(strongerWords('I hold her hand tightly.')[0].replacements).toEqual(['clutch her hand', 'grip her hand', 'clench her hand']);
+  });
+
+  it('doesn’t reach across punctuation, a new clause, or an object an intransitive verb can’t take', () => {
+    expect(strongerWords('He closed the door, loudly.')).toEqual([]);
+    expect(strongerWords('He closed the door and left quickly.')).toEqual([]);
+    expect(strongerWords('She ran the shop quickly.')).toEqual([]);
+    expect(strongerWords('She walked the dog slowly.')).toEqual([]);
+    expect(strongerWords('He closed the big heavy wooden door loudly.')).toEqual([]);
+  });
+
   it('leaves words alone when they are not a weak pair', () => {
     expect(strongerWords('She ran the shop quickly.')).toEqual([]);
     expect(strongerWords('The very idea!')).toEqual([]);

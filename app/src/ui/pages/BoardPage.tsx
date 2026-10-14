@@ -23,6 +23,7 @@ import { Menu } from '../components/Menu';
 import { Icon } from '../components/Icon';
 import { confirmDialog, promptDialog, reportError, toast } from '../store';
 import { ReferencePicker } from '../components/ReferencePicker';
+import { BeatMapDialog } from '../components/BeatMapDialog';
 import { REFERENCE_TYPE_ICONS } from '../../domain/referenceTemplates';
 
 interface Filters {
@@ -50,6 +51,7 @@ export function BoardPage({ projectId, focusId }: { projectId: string; focusId: 
   const [drag, setDrag] = useState<string | null>(null);
   const [dropAt, setDropAt] = useState<string | null>(null);
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [beatMapOpen, setBeatMapOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -66,6 +68,8 @@ export function BoardPage({ projectId, focusId }: { projectId: string; focusId: 
   const lanes = lanesAll.filter((l) => l.bookId === book?.id && !l.archivedAt).sort((a, b) => a.order - b.order);
   const cards = cardsAll.filter((c) => c.bookId === book?.id);
   const tags = useMemo(() => [...new Set(cards.flatMap((c) => c.tags))].sort(), [cards]);
+  // Beat cards in story order (lane by lane), for mapping the draft to them.
+  const beatCards = lanes.flatMap((l) => cards.filter((c) => c.laneId === l.id && c.type === 'beat' && !c.archivedAt).sort((a, b) => a.order - b.order));
   const characters = refs.filter((r) => r.type === 'character' && !r.archivedAt);
   const locations = refs.filter((r) => r.type === 'location' && !r.archivedAt);
 
@@ -139,6 +143,7 @@ export function BoardPage({ projectId, focusId }: { projectId: string; focusId: 
             </button>
             {filtering && <button onClick={() => setFilters(NO_FILTERS)}>Clear</button>}
             <button onClick={() => setTemplateOpen(true)}>Use a story structure…</button>
+            {beatCards.length > 0 && <button onClick={() => setBeatMapOpen(true)}>Map my draft to the beats…</button>}
             {showFilters && (
             <div className="filter-panel row gap wrap">
             <select value={filters.character} onChange={(e) => setFilters({ ...filters, character: e.target.value })} aria-label="Character">
@@ -338,6 +343,7 @@ export function BoardPage({ projectId, focusId }: { projectId: string; focusId: 
       )}
       {editingCard && <CardEditor card={editingCard} onClose={() => { setEditing(null); if (focusId) navigate(projectId, 'board'); }} />}
       {templateOpen && <TemplatePicker onPick={applyTemplate} onClose={() => setTemplateOpen(false)} />}
+      {beatMapOpen && <BeatMapDialog bookId={book.id} beats={beatCards} onClose={() => setBeatMapOpen(false)} />}
     </div>
   );
 }

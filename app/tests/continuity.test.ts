@@ -79,7 +79,7 @@ describe('continuity in the editor', () => {
     expect(eyes).toMatchObject({ severity: 'conflict', original: 'grey eyes' });
     expect(eyes.message).toMatch(/Winnie Hartley’s eyes are “grey” here, but “green” earlier in “Chapter 1”/);
     expect(eyes.data).toMatchObject({ otherSceneId: s1.id, otherFind: 'green eyes' });
-    expect(marks.find((m) => m.ruleId === 'continuity-death')!.message).toMatch(/died in chapter 1, but they speak here/);
+    expect(marks.find((m) => m.ruleId === 'continuity-death')!.message).toMatch(/says “deceased, Ch. 1”, but they speak here/);
     expect(ed.getHTML()).toBe(before);
 
     // "It changed on purpose" is remembered.

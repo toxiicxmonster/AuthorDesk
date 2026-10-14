@@ -5,6 +5,7 @@ import { checkBlocks, findNewNames, SPELL_PROVIDER_ID } from '../proofreading/pr
 import { knownNameSpans, protectNames } from '../proofreading/names';
 import { characterDetailSuggestions, type CharacterInfo } from '../proofreading/characterFacts';
 import { avoidEchoes, findEchoes } from '../proofreading/echo';
+import { findHardSentences, hardSentenceMessage } from '../proofreading/hardSentence';
 import { findContradictions, findDeathIssues } from '../proofreading/continuity';
 import { bookScenesFor, placeFactsCached } from '../proofreading/continuityData';
 import { synonymsFor } from '../proofreading/synonyms';
@@ -119,6 +120,25 @@ export async function runProofread(
       });
     }
   }
+  // Hard to read (orange): long, many-claused or very dense sentences. The fix is the AI Editor's "Clearer" version.
+  const hard = texts.map((): Suggestion[] => []);
+  if (aiInstalled && !ctx.disabledRules.has('hard-sentence') && !ctx.disabledCategories.has('clarity')) {
+    texts.forEach((t, bi) => {
+      for (const h of findHardSentences(t)) {
+        hard[bi].push({
+          start: h.start,
+          end: h.end,
+          original: t.slice(h.start, h.end),
+          replacements: [],
+          category: 'clarity',
+          severity: 'hard',
+          ruleId: 'hard-sentence',
+          providerId: 'local-hard',
+          message: hardSentenceMessage(h),
+        });
+      }
+    });
+  }
   // Continuity (purple): this scene describes a character differently from elsewhere in the book, or a character
   // speaks after their entry says they died.
   const continuity = texts.map((): Suggestion[] => []);
@@ -160,7 +180,7 @@ export async function runProofread(
           severity: 'conflict',
           ruleId: 'continuity-death',
           providerId: 'local-continuity',
-          message: `${d.characterName}’s entry says they died in chapter ${d.diedIn + 1}, but they speak here.`,
+          message: `${d.characterName}’s entry says “${d.status}”, but they speak here.`,
           data: { ignoreKey: d.key, characterId: d.characterId, characterName: d.characterName },
         });
       }
@@ -187,7 +207,7 @@ export async function runProofread(
     // across chapters comes before "add this to the entry" (settle which is right first).
     const cont = (continuity[bi] ?? []).filter((c) => !(details[bi] ?? []).some((d) => d.ruleId === 'character-conflict' && overlaps(c, d)));
     const mine = (details[bi] ?? []).filter((d) => !(d.ruleId === 'character-fact' && cont.some((c) => overlaps(c, d))));
-    return [...actionable, ...prompts, ...mine, ...cont, ...echo].sort((a, b) => a.start - b.start);
+    return [...actionable, ...prompts, ...mine, ...cont, ...echo, ...(hard[bi] ?? [])].sort((a, b) => a.start - b.start);
   };
 
   let lastLists: Suggestion[][] = results;

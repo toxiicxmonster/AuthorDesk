@@ -14,6 +14,8 @@ const TimelinePage = lazy(() => import('./ui/pages/TimelinePage').then((m) => ({
 const ThreadsPage = lazy(() => import('./ui/pages/ThreadsPage').then((m) => ({ default: m.ThreadsPage })));
 const NotesPage = lazy(() => import('./ui/pages/NotesPage').then((m) => ({ default: m.NotesPage })));
 const SearchPage = lazy(() => import('./ui/pages/SearchPage').then((m) => ({ default: m.SearchPage })));
+const SeriesPage = lazy(() => import('./ui/pages/SeriesPage').then((m) => ({ default: m.SeriesPage })));
+const MapsPage = lazy(() => import('./ui/pages/MapsPage').then((m) => ({ default: m.MapsPage })));
 const ReviewPage = lazy(() => import('./ui/pages/ReviewPage').then((m) => ({ default: m.ReviewPage })));
 const DataPage = lazy(() => import('./ui/pages/DataPage').then((m) => ({ default: m.DataPage })));
 const SettingsPage = lazy(() => import('./ui/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
@@ -31,10 +33,12 @@ const NAV: [View, string, IconName, string][] = [
   ['write', 'Write', 'write', 'Write your manuscript'],
   ['board', 'Board', 'board', 'Story board: plan with cards'],
   ['refs', 'World', 'people', 'Characters, places & world notes'],
+  ['maps', 'Maps', 'map', 'Relationships, family trees and maps of places'],
   ['timeline', 'Timeline', 'timeline', 'When things happen in your story'],
   ['threads', 'Threads', 'threads', 'Plot threads across chapters'],
   ['notes', 'Notes', 'notes', 'Research & notes'],
   ['review', 'Review', 'review', 'The whole book at once: overused words, pacing, readability'],
+  ['series', 'Series', 'series', 'Every book in the series, and where each character and place appears'],
   ['data', 'Backup', 'backup', 'Backup, export & sync'],
 ];
 
@@ -149,6 +153,12 @@ export function App() {
       case 'review':
         page = <ReviewPage projectId={pid} />;
         break;
+      case 'series':
+        page = <SeriesPage projectId={pid} />;
+        break;
+      case 'maps':
+        page = <MapsPage projectId={pid} selectedId={route.itemId} />;
+        break;
       case 'search':
         page = <SearchPage projectId={pid} initialQuery={route.params.get('q') ?? ''} />;
         break;
@@ -184,7 +194,7 @@ export function App() {
           </a>
           {pid && (
             <nav className="topnav" aria-label="Sections">
-              {NAV.map(([v, label, icon, hint]) => (
+              {NAV.filter(([v]) => v !== 'series' || project?.kind === 'series').map(([v, label, icon, hint]) => (
                 <a
                   key={v}
                   href={href(pid, v)}

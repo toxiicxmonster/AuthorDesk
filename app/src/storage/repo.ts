@@ -49,6 +49,20 @@ export async function createRecord<T extends TableName>(
   return rec;
 }
 
+/** Create many records of one table in a single transaction (e.g. the items of an edit pass). */
+export async function createRecords<T extends TableName>(name: T, projectId: string, list: NewRecord<T>[]): Promise<TableTypes[T][]> {
+  const now = nowIso();
+  const recs = list.map((data) => ({ archivedAt: null, rev: 1, ...data, id: data.id ?? newId(), projectId, createdAt: now, updatedAt: now }) as TableTypes[T]);
+  await db.transaction('rw', [table(name), db.changes], async () => {
+    await table(name).bulkAdd(recs);
+    const at = nowIso();
+    const deviceId = getDeviceId();
+    await db.changes.bulkAdd(recs.map((r) => ({ table: name, recordId: r.id, projectId, rev: 1, op: 'put' as const, at, deviceId })));
+  });
+  if (recs.length) noteChange(projectId);
+  return recs;
+}
+
 /** Patch a record, bumping rev and updatedAt. */
 export async function updateRecord<T extends TableName>(
   name: T,
@@ -165,6 +179,11 @@ export async function createBook(projectId: string, title: string): Promise<Book
   void chapter;
   for (let i = 0; i < DEFAULT_LANES.length; i++) {
     await createRecord('boardLanes', projectId, { bookId: book.id, title: DEFAULT_LANES[i], order: i });
+  }
+  // A second book makes the project a series: its books share characters and places, and continuity spans them.
+  if (order >= 1) {
+    const project = await db.projects.get(projectId);
+    if (project && project.kind !== 'series') await updateRecord('projects', projectId, { kind: 'series' });
   }
   return book;
 }

@@ -131,6 +131,7 @@ export function themeTokens(c: ThemeColors): Record<string, string> {
     '--style-line': dark ? '#7fb0ea' : '#4a7fb5',
     '--note-line': dark ? '#6fcf8f' : '#2e8b57',
     '--echo-line': dark ? '#4fd1d1' : '#12898f',
+    '--hard-line': dark ? '#f0a060' : '#d35400',
     '--conflict-line': dark ? '#c39bd3' : '#8e44ad',
     '--page': c.page,
     '--shadow': dark ? '0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.3)' : '0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06)',

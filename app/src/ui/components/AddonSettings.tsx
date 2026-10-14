@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { ADDONS, ADDON_ORDER, busy, fetchSetupStatus, installAddons, spaceNeeded, type AddonId, type SetupStatus } from '../../setup/addons';
 import { updateSettings, useSettings } from '../../storage/settings';
-import { toast } from '../store';
+import { confirmDialog, toast } from '../store';
+import { checkAddon, fetchAddonLogs, repairAddon, type HealthResult } from '../../setup/health';
 import { SETUP_STARTED } from './AddonSetup';
 
 /** Settings → Add-ons: what's installed, and an Install button for what isn't. */
 export function AddonSettings() {
   const s = useSettings();
   const [st, setSt] = useState<SetupStatus | null | undefined>(undefined);
+  const [health, setHealth] = useState<Partial<Record<AddonId, HealthResult | 'checking'>>>({});
+  const [log, setLog] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -38,6 +41,25 @@ export function AddonSettings() {
     if (st.freeGb >= 0 && st.freeGb < spaceNeeded([id])) return toast(`${ADDONS[id].label} needs about ${spaceNeeded([id])} GB free; this PC has ${st.freeGb} GB.`);
     const next = await installAddons([id]);
     if (!next) return toast('Couldn’t start the installer.');
+    setSt(next);
+    window.dispatchEvent(new Event(SETUP_STARTED));
+  };
+
+  const check = async (id: AddonId) => {
+    setHealth((h) => ({ ...h, [id]: 'checking' }));
+    const r = await checkAddon(id);
+    setHealth((h) => ({ ...h, [id]: r }));
+  };
+  const repair = async (id: AddonId) => {
+    const ok = await confirmDialog(
+      `Repair the ${ADDONS[id].label}?`,
+      'AuthorDesk checks its files and replaces anything damaged, in the background. It’s paused for a few minutes meanwhile. Large files that check out fine aren’t downloaded again.',
+      { confirmLabel: 'Repair' },
+    );
+    if (!ok) return;
+    const next = await repairAddon(id);
+    if (!next) return toast('Couldn’t start the repair.');
+    setHealth((h) => ({ ...h, [id]: undefined }));
     setSt(next);
     window.dispatchEvent(new Event(SETUP_STARTED));
   };
@@ -76,10 +98,33 @@ export function AddonSettings() {
               </div>
               <span className="block small muted">{ADDONS[id].what}</span>
               {p.state === 'failed' && p.message && <span className="block small danger-text">{p.message}</span>}
+              {p.installed && p.state !== 'installing' && p.state !== 'queued' && (
+                <div className="row gap small addon-health">
+                  <button className="small" onClick={() => void check(id)} disabled={health[id] === 'checking'}>
+                    {health[id] === 'checking' ? 'Checking…' : 'Check'}
+                  </button>
+                  <button className="small" onClick={() => void repair(id)}>
+                    Repair
+                  </button>
+                  {health[id] && health[id] !== 'checking' && (
+                    <span className={(health[id] as HealthResult).ok ? 'ok-text' : 'danger-text'}>
+                      {(health[id] as HealthResult).ok ? '✓ ' : ''}
+                      {(health[id] as HealthResult).message}
+                    </span>
+                  )}
+                </div>
+              )}
             </li>
           );
         })}
       </ul>
+      <details className="addon-log" onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && void fetchAddonLogs().then(setLog)}>
+        <summary className="small">Show the add-on log (for troubleshooting)</summary>
+        <pre className="small">{log ?? 'Loading…'}</pre>
+        <button className="small" onClick={() => void navigator.clipboard.writeText(log ?? '').then(() => toast('Log copied.'))}>
+          Copy
+        </button>
+      </details>
       <label className="check small">
         <input type="checkbox" checked={s.addonPrompt === 'ask'} onChange={(e) => void updateSettings({ addonPrompt: e.target.checked ? 'ask' : 'never' })} /> Offer
         to install missing add-ons when AuthorDesk starts

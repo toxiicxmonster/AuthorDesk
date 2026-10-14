@@ -9,7 +9,7 @@ import { countChars, countWords } from '../domain/text';
 import { saveSceneContent, createSnapshot, createRecord, updateRecord } from '../storage/repo';
 import { db } from '../storage/db';
 import { getSettings, updateSettings, useSettings } from '../storage/settings';
-import { confirmDialog, setUi, toast, useUi, reportError } from '../ui/store';
+import { confirmDialog, getUi, setUi, toast, useUi, reportError } from '../ui/store';
 import { cleanPastedHtml, editorExtensions } from './extensions';
 import { registerFlusher } from './EditorContext';
 import { applyPlaced, getSuggestions, suggestionsAt, activeSuggestionMeta, proofreadKey, removeSuggestionMeta, type PlacedSuggestion } from './proofreadExtension';
@@ -21,6 +21,9 @@ import { createReference } from '../domain/references';
 import { applyFact, type Attribute } from '../proofreading/characterFacts';
 import { fetchAiStatus } from '../ai/aiEditor';
 import { aiTaskForMark } from '../ai/markTask';
+import { bestForMark, type MarkRequest } from '../ai/markRewrite';
+import { wordDiff } from '../ai/diff';
+import { applyVersion } from '../ui/components/AiResults';
 import { sentenceAround } from '../ai/adverbJudge';
 import { contextSynonyms } from '../ai/contextSynonyms';
 import { avoidEchoes } from '../proofreading/echo';
@@ -246,7 +249,12 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
       if (items.length) {
         setPopover({ items, ...popoverPlacement(e.currentTarget as HTMLElement, sug.getBoundingClientRect()) });
         editor.view.dispatch(editor.state.tr.setMeta(proofreadKey, activeSuggestionMeta(items[0].key)));
-        if (aiInstalled.current && window.innerWidth > 900) openAiFor(editor, items);
+        if (aiInstalled.current) {
+          // The AI Editor works on the mark's sentence: in the side panel on wide screens, in the popover otherwise.
+          const panel = window.innerWidth > 900;
+          const request = aiRequestFor(editor, items, panel);
+          if (request) setUi({ aiRequest: request, aiBest: null, ...(panel ? { rightOpen: true, rightTab: 'ai' as const } : {}) });
+        }
         return;
       }
     }
@@ -429,8 +437,8 @@ export function popoverPlacement(page: HTMLElement, word: Pick<DOMRect, 'left' |
   return { x, y, above };
 }
 
-/** Opens the AI Editor on the sentence of the first mark it can help with, running the action that suits it. */
-function openAiFor(editor: Editor, items: PlacedSuggestion[]) {
+/** The AI Editor request for the first mark it can help with: that mark's sentence and the action that suits it. */
+function aiRequestFor(editor: Editor, items: PlacedSuggestion[], panel: boolean): MarkRequest | null {
   for (const it of items) {
     const pick = aiTaskForMark(it);
     if (!pick) continue;
@@ -444,9 +452,9 @@ function openAiFor(editor: Editor, items: PlacedSuggestion[]) {
     const text = whole ? para : sentence;
     // Where the passage is, so "Use" can put the chosen version in its place.
     const from = $pos.start() + offset;
-    setUi({ rightOpen: true, rightTab: 'ai', aiRequest: { id: Date.now(), text, context: para, task: pick.task, focus: pick.focus, from, to: from + text.length } });
-    return;
+    return { id: Date.now(), text, context: para, task: pick.task, focus: pick.focus, from, to: from + text.length, markKey: it.key, panel };
   }
+  return null;
 }
 
 function SuggestionPopover({
@@ -686,6 +694,7 @@ function SuggestionItem({
         <span className="muted">{CATEGORY_LABELS[s.category]}</span>
       </div>
       <p>{s.message}</p>
+      {aiInstalled && <AiInline editor={editor} s={s} onClose={onClose} />}
       {s.ruleId === 'echo-word' && aiInstalled ? (
         <EchoFits editor={editor} s={s} accept={accept} />
       ) : (
@@ -701,6 +710,60 @@ function SuggestionItem({
         <button onClick={ignore}>Ignore</button>
         {wordList && <button onClick={addToDictionary}>Add to dictionary</button>}
         <button onClick={disableRule}>Turn off this check</button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The AI Editor's best version of a mark's sentence, right in the popover, with Use. On wide screens the side panel
+ * runs the request (with more versions there); on small screens the popover runs it itself.
+ */
+function AiInline({ editor, s, onClose }: { editor: Editor; s: PlacedSuggestion; onClose: () => void }) {
+  const request = useUi((u) => (u.aiRequest?.markKey === s.key ? u.aiRequest : null));
+  const best = useUi((u) => (request && u.aiBest?.requestId === request.id ? u.aiBest : null));
+  useEffect(() => {
+    if (!request || request.panel || getUi().aiBest?.requestId === request.id) return;
+    const ctrl = new AbortController();
+    bestForMark(request, { signal: ctrl.signal })
+      .then((text) => setUi({ aiBest: { requestId: request.id, text, done: true, error: null } }))
+      .catch((e) => {
+        if (!ctrl.signal.aborted) setUi({ aiBest: { requestId: request.id, text: null, done: true, error: e instanceof Error ? e.message : 'The AI Editor ran into a problem.' } });
+      });
+    return () => ctrl.abort();
+  }, [request]);
+  if (!request) return null;
+  const more = () => {
+    onClose();
+    setUi({ rightOpen: true, rightTab: 'ai', aiRequest: { ...request, id: Date.now(), panel: true }, aiBest: null });
+  };
+  if (!best) return <p className="small muted pop-ai">AI Editor: writing a suggestion…</p>;
+  if (!best.text) return null;
+  const text = best.text;
+  return (
+    <div className="pop-ai">
+      <span className="small muted">AI Editor suggests</span>
+      <p>
+        {wordDiff(request.text, text).map((part, i) =>
+          part.changed ? (
+            <mark key={i} className="ai-changed">
+              {part.text}
+            </mark>
+          ) : (
+            <span key={i}>{part.text}</span>
+          ),
+        )}
+      </p>
+      <div className="pop-reps">
+        <button
+          className="primary"
+          onClick={() => {
+            if (applyVersion(editor, { from: request.from, to: request.to, text: request.text }, text)) onClose();
+          }}
+        >
+          Use
+        </button>
+        {!request.panel && <button onClick={more}>More in the AI Editor</button>}
       </div>
     </div>
   );

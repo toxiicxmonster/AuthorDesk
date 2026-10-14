@@ -82,6 +82,8 @@ export const sceneSchema = z.looseObject({
   plainText: z.string().default(''),
   wordCount: z.number().int().nonnegative().default(0),
   summary: z.string().default(''),
+  /** Sentence fingerprint of the text an AI summary was written from (to flag it when the scene changes a lot). */
+  summaryBasis: z.array(z.string()).optional(),
   status: writingStatus.default('drafting'),
   povCharacterId: id.nullable().default(null),
   locationId: id.nullable().default(null),
@@ -198,6 +200,46 @@ export const snapshotSchema = z.looseObject({
   reason: z.string().default('auto'),
 });
 
+export const REVISION_STATUSES = ['open', 'done', 'dismissed', 'later'] as const;
+export type RevisionStatus = (typeof REVISION_STATUSES)[number];
+
+/** One item of an edit pass: a suggestion or review finding to work through, anchored to its scene by its text. */
+export const revisionSchema = z.looseObject({
+  ...base,
+  passId: id,
+  /** The pass's name ("Edit pass: Chapter 3, 14 Oct"), repeated on each item. */
+  passName: z.string(),
+  sceneId: id,
+  chapterId: id.nullable().default(null),
+  /** Reading order within the pass. */
+  order: z.number().default(0),
+  /** The flagged words, and the sentence around them, to find the place again after edits. */
+  quote: z.string(),
+  context: z.string().default(''),
+  /** What kind of item: a check's category ("grammar", "repetition"…) or a review finding ("sticky", "long"). */
+  kind: z.string(),
+  ruleId: z.string().default(''),
+  message: z.string(),
+  replacements: z.array(z.string()).default([]),
+  status: z.enum(REVISION_STATUSES).default('open'),
+  note: z.string().default(''),
+});
+
+/** Where a reference sits on a map: its node on the relationship map, or its pin on a location's picture. */
+export const mapPoint = z.object({ referenceId: id, x: z.number(), y: z.number() });
+
+/** A map: the relationship map (node positions) or a location's picture with pins on it. */
+export const mapSchema = z.looseObject({
+  ...base,
+  kind: z.enum(['relationships', 'location']),
+  /** For a location map: the place whose picture this is. */
+  referenceId: id.nullable().default(null),
+  title: z.string().default(''),
+  /** Location maps: the picture (data URL, downscaled). */
+  image: z.string().default(''),
+  points: z.array(mapPoint).default([]),
+});
+
 export const dictionaryEntrySchema = z.looseObject({
   ...base,
   word: z.string().min(1),
@@ -216,6 +258,9 @@ export type BoardCard = z.infer<typeof boardCardSchema>;
 export type Note = z.infer<typeof noteSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type DictionaryEntry = z.infer<typeof dictionaryEntrySchema>;
+export type Revision = z.infer<typeof revisionSchema>;
+export type MapRecord = z.infer<typeof mapSchema>;
+export type MapPoint = z.infer<typeof mapPoint>;
 
 /** Every project-scoped table, in dependency order (parents first). Shared by storage and archives. */
 export const PROJECT_TABLES = {
@@ -232,6 +277,8 @@ export const PROJECT_TABLES = {
   notes: noteSchema,
   snapshots: snapshotSchema,
   dictionary: dictionaryEntrySchema,
+  revisions: revisionSchema,
+  maps: mapSchema,
 } as const;
 
 export type TableName = keyof typeof PROJECT_TABLES;
@@ -251,6 +298,8 @@ export interface TableTypes {
   notes: Note;
   snapshots: Snapshot;
   dictionary: DictionaryEntry;
+  revisions: Revision;
+  maps: MapRecord;
 }
 
 export interface CustomTheme {

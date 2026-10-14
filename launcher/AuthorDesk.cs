@@ -18,14 +18,14 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("AuthorDesk")]
 [assembly: AssemblyProduct("AuthorDesk")]
 [assembly: AssemblyDescription("Private writing studio for novelists")]
-[assembly: AssemblyVersion("0.5.1.0")]
+[assembly: AssemblyVersion("0.6.0.0")]
 
 namespace AuthorDesk
 {
     static class Program
     {
         // Release version; bump with each GitHub release (tag "v" + Version). scripts\package-release.ps1 reads it.
-        const string Version = "0.5.1";
+        const string Version = "0.6";
         const string UpdateRepo = "toxiicxmonster/AuthorDesk";
 
         // Fixed port: the browser stores your work per origin, so the address must never change.
@@ -313,8 +313,14 @@ namespace AuthorDesk
                 if (path == "/setup/install" && ctx.Request.HttpMethod == "POST")
                 {
                     // Installs what's missing and updates what's out of date.
-                    QueueSetup((ctx.Request.QueryString["parts"] ?? "").Split(','), true);
+                    QueueSetup((ctx.Request.QueryString["parts"] ?? "").Split(','), true, ctx.Request.QueryString["repair"] == "1");
                     Write(res, SetupStatusJson(), "application/json");
+                    return;
+                }
+                if (path == "/setup/log")
+                {
+                    // The end of the launcher's log and the add-on install logs, for Settings → Add-ons (support).
+                    Write(res, LogTail(), "text/plain; charset=utf-8");
                     return;
                 }
                 if (path == "/ai/status")
@@ -922,6 +928,7 @@ namespace AuthorDesk
             public string State = "idle"; // idle, queued, installing, done, failed
             public string Message = "";
             public bool Updating; // replacing an older installed version
+            public bool Repair; // re-running the script with -Repair (checks and reinstalls an installed add-on)
             public long NeedGb; // free space to require before starting
         }
 
@@ -1028,6 +1035,11 @@ namespace AuthorDesk
 
         static void QueueSetup(string[] ids, bool updating)
         {
+            QueueSetup(ids, updating, false);
+        }
+
+        static void QueueSetup(string[] ids, bool updating, bool repair)
+        {
             var parts = SetupParts();
             lock (setupLock)
             {
@@ -1036,11 +1048,12 @@ namespace AuthorDesk
                     SetupPart part;
                     if (!parts.TryGetValue(raw.Trim(), out part)) continue;
                     bool update = PartInstalled(part.Id);
-                    if (update && !(updating && UpdateNeeded(part))) continue;
+                    if (update && !repair && !(updating && UpdateNeeded(part))) continue;
                     if (part.State == "queued" || part.State == "installing" || ScriptPath(part) == null) continue;
                     part.State = "queued";
                     part.Message = "";
                     part.Updating = update;
+                    part.Repair = repair && update;
                     setupQueue.Enqueue(part);
                 }
                 if (setupRunning || setupQueue.Count == 0) return;
@@ -1070,7 +1083,7 @@ namespace AuthorDesk
                     Directory.CreateDirectory(part.Dir);
                     string log = Path.Combine(dataDir, "setup-" + part.Id + ".log");
                     var psi = new ProcessStartInfo("powershell.exe",
-                        "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + ScriptPath(part) + "\"")
+                        "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + ScriptPath(part) + "\"" + (part.Repair ? " -Repair" : ""))
                     {
                         UseShellExecute = false,
                         CreateNoWindow = true,
@@ -1474,6 +1487,27 @@ namespace AuthorDesk
             res.ContentType = type;
             res.ContentLength64 = b.Length;
             res.OutputStream.Write(b, 0, b.Length);
+        }
+
+        /// The last lines of the launcher log and of each add-on's install log.
+        static string LogTail()
+        {
+            var sb = new StringBuilder();
+            foreach (string name in new[] { "launcher.log", "setup-grammar.log", "setup-ai.log" })
+            {
+                string f = Path.Combine(dataDir, name);
+                if (!File.Exists(f)) continue;
+                try
+                {
+                    string[] lines;
+                    using (var fs = new FileStream(f, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    using (var sr = new StreamReader(fs)) lines = sr.ReadToEnd().Split('\n');
+                    sb.Append("== ").Append(name).Append(" ==\n");
+                    for (int i = Math.Max(0, lines.Length - 60); i < lines.Length; i++) sb.Append(lines[i].TrimEnd('\r')).Append('\n');
+                }
+                catch (Exception e) { sb.Append("== ").Append(name).Append(": ").Append(e.Message).Append(" ==\n"); }
+            }
+            return sb.Length > 0 ? sb.ToString() : "(no logs yet)";
         }
 
         static void Log(string msg)

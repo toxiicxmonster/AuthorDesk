@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { db } from '../../storage/db';
 import { navigate } from '../router';
 import { findContradictions, findDeathIssues, type Contradiction, type DeathIssue } from '../../proofreading/continuity';
-import { bookScenes, placeFactsCached } from '../../proofreading/continuityData';
+import { bookScenes, placeFactsCached, seriesScenes } from '../../proofreading/continuityData';
 import type { ReferenceEntry } from '../../domain/schema';
 import { toast } from '../store';
 
@@ -13,7 +13,7 @@ export function ContinuityReport({ projectId, bookId, refs, runKey }: { projectI
   const load = async () => {
     const chars = refs.filter((r) => !r.archivedAt && r.type === 'character');
     const names = refs.filter((r) => !r.archivedAt).flatMap((r) => [r.name, ...r.aliases]);
-    const [scenes, ignored] = await Promise.all([bookScenes(bookId), db.ignored.where('projectId').equals(projectId).toArray()]);
+    const [scenes, ignored] = await Promise.all([seriesScenes(projectId).then((s) => s ?? bookScenes(bookId)), db.ignored.where('projectId').equals(projectId).toArray()]);
     const dismissed = new Set(ignored.map((i) => i.key).filter((k) => k.startsWith('continuity|')));
     const info = chars.map((c) => ({ id: c.id, name: c.name, aliases: c.aliases, appearance: c.fields.appearance ?? '' }));
     setFound({

@@ -1,3 +1,5 @@
+import { runRules } from '../src/proofreading/rules';
+import { combine } from '../src/proofreading/providers';
 import { Editor } from '@tiptap/core';
 import { knownNameSpans, nameCandidates, newNameSuggestions, protectNames, type WordKind } from '../src/proofreading/names';
 import type { Suggestion } from '../src/proofreading/types';
@@ -118,5 +120,12 @@ describe('in the editor', () => {
     expect(found).toContain('name-consistency:elara');
     expect(found.filter((f) => f.endsWith(':Elara'))).toEqual([]);
     ed.destroy();
+  });
+  it('doesn’t ask for a capital on an ordinary word that starts a place’s name', () => {
+    // The rule flags both; the dictionary lookup (in the spelling worker) then cancels the real word only.
+    const ctx = { dialect: 'en-US' as const, disabledRules: new Set<string>(), disabledCategories: new Set<string>(), dictionary: new Set<string>(), knownNames: ['Glass Health Hospital', 'Elara'] };
+    const hits = runRules('My half-empty glass of milk, and elara.', ctx).filter((s) => s.ruleId === 'name-consistency');
+    expect(hits.map((h) => h.original)).toEqual(['glass', 'elara']);
+    expect(combine(hits, [], new Set(['glass'])).map((h) => h.original)).toEqual(['elara']);
   });
 });

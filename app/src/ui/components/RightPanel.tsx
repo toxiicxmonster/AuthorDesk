@@ -19,6 +19,8 @@ import { useSettings } from '../../storage/settings';
 import { Icon } from './Icon';
 import { DialoguePanel } from './DialoguePanel';
 import { AiEditorPanel } from './AiEditorPanel';
+import { EditPassPanel } from './EditPassPanel';
+import { ChapterSummaryAssist, SceneSummaryAssist } from './SummaryAssist';
 
 export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapter: Chapter; nextScene: Scene | null }) {
   const tab = useUi((s) => s.rightTab);
@@ -28,6 +30,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
     ['proof', 'Suggestions'],
     ['dialogue', 'Dialogue'],
     ['ai', 'AI Editor'],
+    ['pass', 'Edit pass'],
     ['history', 'Versions'],
   ];
   return (
@@ -48,6 +51,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
         {tab === 'proof' && <ProofPanel projectId={scene.projectId} />}
         {tab === 'dialogue' && <DialoguePanel projectId={scene.projectId} />}
         {tab === 'ai' && <AiEditorPanel projectId={scene.projectId} />}
+        {tab === 'pass' && <EditPassPanel projectId={scene.projectId} sceneId={scene.id} />}
         {tab === 'history' && <HistoryPanel scene={scene} />}
       </div>
     </aside>
@@ -205,10 +209,12 @@ function SceneInspector({ scene, chapter, nextScene }: { scene: Scene; chapter: 
       <h4>Chapter</h4>
       <CommitInput label="Chapter title" value={chapter.title} onCommit={(v) => v.trim() && void updateRecord('chapters', chapter.id, { title: v.trim() })} />
       <CommitInput label="Chapter summary" multiline value={chapter.summary} onCommit={(v) => void updateRecord('chapters', chapter.id, { summary: v })} />
+      <ChapterSummaryAssist chapter={chapter} />
       <StatusSelect label="Chapter status" value={chapter.status} onChange={(v) => void updateRecord('chapters', chapter.id, { status: v })} />
       <h4>Scene</h4>
       <CommitInput label="Scene title" value={scene.title} onCommit={(v) => v.trim() && upd({ title: v.trim() })} />
       <CommitInput label="Summary" multiline value={scene.summary} onCommit={(v) => upd({ summary: v })} />
+      <SceneSummaryAssist scene={scene} />
       <StatusSelect value={scene.status} onChange={(v) => upd({ status: v })} />
       <label className="field">
         <span>POV character</span>

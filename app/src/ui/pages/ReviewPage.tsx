@@ -4,8 +4,13 @@ import { navigate } from '../router';
 import { runReview } from '../../review/runReview';
 import type { Finding, PaceKind, ReviewReport } from '../../review/metrics';
 import { flushAllEdits } from '../../editor/EditorContext';
-import { reportError } from '../store';
+import { reportError, setUi, toast } from '../store';
+import { startEditPass } from '../../storage/revisions';
 import { ContinuityReport } from '../components/ContinuityReport';
+import { useLiveQuery } from 'dexie-react-hooks';
+import type { ReferenceEntry } from '../../domain/schema';
+import { bookScenes } from '../../proofreading/continuityData';
+import { ARC_GAP, arcChapters, arcWarnings, characterArcs } from '../../review/arcs';
 
 /**
  * Review: the whole book at once. Statistics and lists a scene-by-scene check can't show, each item one click from
@@ -71,6 +76,7 @@ export function ReviewPage({ projectId }: { projectId: string }) {
         </button>
       </div>
       <p className="muted small">The whole book at once: patterns that only show across chapters. Click anything to jump to it. Nothing here changes your text.</p>
+      {book && tree && <StartEditPass projectId={projectId} bookId={book.id} bookTitle={book.title} chapters={tree.chapters} firstScene={(chapterId) => tree.scenesByChapter.get(chapterId)?.[0]?.id ?? tree.sceneOrder[0]?.id ?? null} />}
 
       {!report ? (
         <p className="muted">{busy ? 'Reading the book…' : 'Nothing to review yet.'}</p>
@@ -80,9 +86,92 @@ export function ReviewPage({ projectId }: { projectId: string }) {
         <>
           <ReviewBody report={report} go={go} projectId={projectId} firstScene={(chapterId) => tree?.scenesByChapter.get(chapterId)?.[0]?.id ?? null} />
           {book && <ContinuityReport projectId={projectId} bookId={book.id} refs={refs} runKey={String(ranAt?.getTime() ?? 0)} />}
+          {book && <ArcGaps projectId={projectId} bookId={book.id} refs={refs} names={names} runKey={String(ranAt?.getTime() ?? 0)} />}
         </>
       )}
     </div>
+  );
+}
+
+/** Collects a chapter's or the book's suggestions and findings into an edit-pass checklist, then opens it. */
+function StartEditPass({
+  projectId,
+  bookId,
+  bookTitle,
+  chapters,
+  firstScene,
+}: {
+  projectId: string;
+  bookId: string;
+  bookTitle: string;
+  chapters: { id: string; title: string }[];
+  firstScene: (chapterId: string) => string | null;
+}) {
+  const [scope, setScope] = useState('');
+  const [busy, setBusy] = useState(false);
+  const start = async () => {
+    setBusy(true);
+    try {
+      await flushAllEdits();
+      const i = chapters.findIndex((c) => c.id === scope);
+      const where = scope ? chapters[i].title || `Chapter ${i + 1}` : bookTitle || 'Whole book';
+      const name = `Edit pass: ${where}, ${new Date().toLocaleDateString([], { day: 'numeric', month: 'short' })}`;
+      const { count } = await startEditPass(projectId, bookId, scope || null, name);
+      if (!count) return toast('Nothing to work through there. Clean copy!');
+      toast(`Edit pass ready: ${count} item${count === 1 ? '' : 's'}.`);
+      const sceneId = firstScene(scope || chapters[0]?.id || '');
+      if (sceneId) navigate(projectId, 'write', sceneId);
+      setUi({ rightOpen: true, rightTab: 'pass' });
+    } catch (e) {
+      reportError(e, 'Could not start the edit pass');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="row gap wrap start-pass">
+      <span className="small">Work through it like an editor’s notes:</span>
+      <select value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Edit pass scope">
+        <option value="">Whole book</option>
+        {chapters.map((c, i) => (
+          <option key={c.id} value={c.id}>
+            {c.title || `Chapter ${i + 1}`}
+          </option>
+        ))}
+      </select>
+      <button onClick={() => void start()} disabled={busy}>
+        {busy ? 'Collecting…' : 'Start an edit pass'}
+      </button>
+    </div>
+  );
+}
+
+/** Characters who drop out of the story for a long stretch (from their mentions and dialogue, chapter by chapter). */
+function ArcGaps({ projectId, bookId, refs, names, runKey }: { projectId: string; bookId: string; refs: ReferenceEntry[]; names: string[]; runKey: string }) {
+  const scenes = useLiveQuery(() => bookScenes(bookId), [bookId, runKey]);
+  const warnings = useMemo(() => {
+    if (!scenes) return null;
+    const chapters = arcChapters(scenes);
+    return arcWarnings(characterArcs(chapters, refs, names), chapters);
+  }, [scenes, refs, names]);
+  if (!warnings) return null;
+  return (
+    <section className="card">
+      <h2>Characters who drop out</h2>
+      {!warnings.length ? (
+        <p className="muted small">Nobody you’re following disappears for {ARC_GAP} or more chapters.</p>
+      ) : (
+        <ul className="review-list">
+          {warnings.map((w, i) => (
+            <li key={i}>
+              <button className="link-btn" onClick={() => (w.sceneId ? navigate(projectId, 'write', w.sceneId) : navigate(projectId, 'refs', w.referenceId))}>
+                {w.message}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

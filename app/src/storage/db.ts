@@ -60,6 +60,8 @@ export class AuthorDb extends Dexie {
   notes!: EntityTable<TableTypes['notes'], 'id'>;
   snapshots!: EntityTable<TableTypes['snapshots'], 'id'>;
   dictionary!: EntityTable<TableTypes['dictionary'], 'id'>;
+  revisions!: EntityTable<TableTypes['revisions'], 'id'>;
+  maps!: EntityTable<TableTypes['maps'], 'id'>;
   settings!: EntityTable<SettingRow, 'key'>;
   changes!: EntityTable<ChangeLogEntry, 'seq'>;
   ignored!: EntityTable<IgnoredSuggestion, 'id'>;
@@ -89,6 +91,11 @@ export class AuthorDb extends Dexie {
     this.version(2).stores({
       syncMeta: 'key',
       conflicts: 'id, projectId, recordId',
+    });
+    // v0.6: edit passes and maps.
+    this.version(3).stores({
+      revisions: 'id, projectId, passId, sceneId',
+      maps: 'id, projectId, referenceId',
     });
   }
 }

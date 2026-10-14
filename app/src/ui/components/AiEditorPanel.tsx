@@ -3,7 +3,7 @@ import type { Editor } from '@tiptap/core';
 import { useEditorCtx } from '../../editor/EditorContext';
 import { collectTextBlocks } from '../../editor/blocks';
 import { AiError, chat, fetchAiStatus, warmUpAi, type AiStatus } from '../../ai/aiEditor';
-import { AI_TASKS, TONES, buildMessages, type AiTask, type AiTaskId } from '../../ai/prompts';
+import { TONES, buildMessages, type AiTask, type AiTaskId } from '../../ai/prompts';
 import { SCAN_FIELDS, findDetailsWithAi, type FoundDetail } from '../../ai/characterDetails';
 import { CHARACTER_FIELD_LABELS, charactersIn } from '../../ai/characterContext';
 import { useSettings } from '../../storage/settings';
@@ -11,7 +11,9 @@ import { db } from '../../storage/db';
 import { updateRecord } from '../../storage/repo';
 import { useReferences } from '../data';
 import { reportError, setUi, toast, useUi } from '../store';
+import { useRoute } from '../router';
 import { AiResultCard, type AiResult } from './AiResults';
+import { bestOf, taskById } from '../../ai/markRewrite';
 import { textAt, type TextAnchor } from '../../editor/aiApply';
 
 /**
@@ -35,8 +37,7 @@ interface Result extends AiResult {
 }
 
 const PRIMARY: AiTaskId[] = ['rewrite', 'smoother', 'tighter', 'no-adverb'];
-const MORE: AiTaskId[] = ['clearer', 'grammar', 'show'];
-const taskById = (id: AiTaskId) => AI_TASKS.find((t) => t.id === id)!;
+const MORE: AiTaskId[] = ['clearer', 'grammar', 'show', 'tone-read'];
 
 /** The selection, or the paragraph at the cursor, plus the paragraphs either side as read-only context. */
 function passageFrom(editor: Editor): Passage {
@@ -57,11 +58,19 @@ function passageFrom(editor: Editor): Passage {
   return { text: text.slice(0, 4000), context: context.slice(0, 3000), focus: null, anchor: fits ? { from: a, to: b, text } : null };
 }
 
+/** The tone the author wants for a scene, from a "Tone: …" (or "Mood: …") line in its scene notes. */
+export async function intendedToneOf(sceneId: string | null): Promise<string | undefined> {
+  if (!sceneId) return undefined;
+  const scene = await db.scenes.get(sceneId);
+  return /^\s*(?:intended\s+)?(?:tone|mood)\s*[:\-–]\s*(.+)$/im.exec(scene?.notes ?? '')?.[1]?.trim() || undefined;
+}
+
 export function AiEditorPanel({ projectId }: { projectId: string }) {
   const { editor } = useEditorCtx();
   const settings = useSettings();
   const refs = useReferences(projectId);
   const request = useUi((s) => s.aiRequest);
+  const route = useRoute();
   const characters = useMemo(() => refs.filter((r) => !r.archivedAt && r.type === 'character'), [refs]);
   const [status, setStatus] = useState<AiStatus | null | undefined>(undefined);
   const [passage, setPassage] = useState<Passage>({ text: '', context: '', focus: null, anchor: null });
@@ -107,7 +116,8 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
 
   useEffect(() => () => abort.current?.abort(), []);
 
-  const run = async (task: AiTask, p: Passage = passage) => {
+  /** `requestId`: run for a clicked mark, whose popover shows the best version. */
+  const run = async (task: AiTask, p: Passage = passage, requestId?: number) => {
     if (!p.text) return toast('Select some text, or put the cursor in a paragraph, first.');
     if (task.id === 'ask' && !question.trim()) return toast('Type a question first.');
     abort.current?.abort();
@@ -118,7 +128,8 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
     setResults((rs) => [{ id, task, extra, passage: p, original: p.text, anchor: p.anchor, focus: p.focus, text: '', done: false, error: null }, ...rs].slice(0, 20));
     const patch = (x: Partial<Result>) => setResults((rs) => rs.map((r) => (r.id === id ? { ...r, ...x } : r)));
     try {
-      const text = await chat(buildMessages(task, { text: p.text, context: p.context, tone, question, focus: p.focus }), {
+      const intendedTone = task.id === 'tone-read' ? await intendedToneOf(route.view === 'write' ? route.itemId : null) : undefined;
+      const text = await chat(buildMessages(task, { text: p.text, context: p.context, tone, question, focus: p.focus, intendedTone }), {
         signal: ctrl.signal,
         // A fix for one flagged word should change as little as possible.
         temperature: p.focus ? Math.min(settings.aiTemperature, 0.25) : settings.aiTemperature,
@@ -126,20 +137,22 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
         onText: (t) => patch({ text: t }),
       });
       patch({ text, done: true });
+      if (requestId) setUi({ aiBest: { requestId, text: bestOf(task, text, p.text, p.focus), done: true, error: null } });
     } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') patch({ done: true, error: 'Stopped.' });
-      else patch({ done: true, error: e instanceof AiError ? e.message : 'The AI Editor ran into a problem. Try again.' });
+      const error = e instanceof DOMException && e.name === 'AbortError' ? 'Stopped.' : e instanceof AiError ? e.message : 'The AI Editor ran into a problem. Try again.';
+      patch({ done: true, error });
+      if (requestId) setUi({ aiBest: { requestId, text: null, done: true, error } });
     }
   };
 
   // A clicked mark asked for help: work on its sentence straight away.
   useEffect(() => {
-    if (!request || handled.current === request.id || !status?.installed) return;
+    if (!request?.panel || handled.current === request.id || !status?.installed) return;
     handled.current = request.id;
     const p: Passage = { text: request.text, context: request.context, focus: request.focus, anchor: { from: request.from, to: request.to, text: request.text } };
     setPinned(true);
     setPassage(p);
-    void run(taskById(request.task), p);
+    void run(taskById(request.task), p, request.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request, status?.installed]);
 

@@ -30,6 +30,8 @@ const PATHS: Record<string, string> = {
   filter: 'M4 5h16l-6 8v6l-4-2v-4z',
   star: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
+  series: 'M4 4h4v16H4zM10 4h4v16h-4zM16.5 4.5l3.9-1 3.6 15.5-3.9 1z',
+  map: 'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14',
 };
 
 export type IconName = keyof typeof PATHS;
