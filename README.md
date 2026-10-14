@@ -1,12 +1,27 @@
-# AuthorDesk
+# AuthorDesk: private novel-writing software with a grammar checker and AI editor
 
-**A private, local-first writing studio for novelists.** Write your book, keep track of your characters and world, plan the plot, proofread on your own computer, and export a manuscript ready for Amazon KDP, all in one window and without sending your writing anywhere.
+**AuthorDesk is a free writing app for novelists that runs entirely on your own computer.** Write your book, keep a series bible of characters and places, plan the plot with story structures, check grammar and style as you type, get rewrites from a private AI editor, and export a print-ready KDP paperback PDF or EPUB, all in one window and without sending your writing anywhere.
 
-- **Your writing stays on your computer.** No account, no cloud, no analytics. Nothing leaves your device unless you set up sync or Google Drive yourself.
-- **Works offline.** It's a web app (PWA) that runs from a small local launcher, `AuthorDesk.exe`, on Windows.
-- **You own your data.** Backups are ordinary zip files with plain JSON inside, and you can export to Word, Markdown, text, EPUB and CSV at any time.
+**[⬇ Download the latest version for Windows](https://github.com/toxiicxmonster/AuthorDesk/releases/latest)** · [User guide](docs/user-guide.md) · [What's new](https://github.com/toxiicxmonster/AuthorDesk/releases)
 
-> **Version 0.1.** All planned features are built and covered by automated tests. A few parts still need real-world checks; see [Project status](#project-status).
+- **Your writing stays on your computer.** No account, no cloud, no subscription, no analytics. Nothing leaves your device unless you set up sync or Google Drive yourself.
+- **A grammar checker and AI editor that run offline.** LanguageTool and an open-source AI model (llama.cpp) run on your own PC: no limits, no monthly fee, and your manuscript never trains anyone's model.
+- **Built for fiction.** It knows your characters' names, catches echo words and continuity slips, reviews pacing chapter by chapter, and keeps the details of every book in a series straight.
+- **You own your data.** Automatic backups are ordinary zip files with plain JSON inside; export to Word, Markdown, text, EPUB, PDF and CSV at any time.
+
+## Why AuthorDesk?
+
+Novelists usually piece together a writing app (like Scrivener), a style checker (like ProWritingAid or Grammarly) and a formatting tool (like Vellum or Atticus), with subscriptions and cloud uploads along the way. AuthorDesk does the core of all three in one private app:
+
+| You want to… | AuthorDesk gives you |
+| --- | --- |
+| Draft and organise a novel | Chapters and scenes, a story board, timeline, plot threads, and a character and world bible |
+| Catch mistakes and weak prose | Live grammar, spelling and style underlines, echo words, hard-to-read sentences, adverbs with stronger verbs |
+| Improve a passage | A private AI editor: rewrite, tighten, smooth, clearer, show-don't-tell, tone, and a character's voice, with one-click **Use** |
+| See the whole book | Readability, pacing, overused words, sticky sentences, continuity, characters who drop out, and edit passes |
+| Publish | A KDP paperback interior PDF typeset for you, Kindle EPUB 3, and Word |
+
+> **Version 0.6.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
 
 ---
 
@@ -59,15 +74,19 @@ You don't need Node or any developer tools to use AuthorDesk.
 | **Themes** | Paper, Sepia, Pastel Blue, Sage, Cozy Cottage and Night, plus *Match my device*. Make your own from five colours with a live preview and a readability check, and share themes as files. Quick theme menu (◐) in the top bar. |
 | **Manuscript editor** | Book → (Part) → Chapter → Scene. Bold, italic, underline, headings, block quotes and scene breaks. Autosave with a visible status, undo/redo, word counts (selection, scene, chapter, book), focus mode, find & replace, clean paste from Word and Google Docs, automatic and manual snapshots with restore, split and merge scenes. |
 | **Navigation** | Chapter list with a filter (titles and text), pinned and recent chapters, drag-and-drop or menu-based reordering, moving scenes between chapters, keyboard shortcuts for next and previous scene or chapter, and a collapsible drawer on phones. |
-| **Characters and world** | Characters, locations, factions, species, items, lore, glossary and research entries with templated and custom fields, aliases, tags, favourites, images and relationships. Duplicate warnings, "Mentioned in" backlinks, a quick-reference side panel while you write, linking selected prose to an entry, and detection of unlinked mentions. |
-| **Story board** | Lanes and cards (drag-and-drop or an accessible move menu), filters, structure templates (three-act, fifteen-beat sheet, Hero's Journey, blank or your own), turning cards into scenes or chapters and back, and an outline view with inline summaries. |
+| **Characters and world (series bible)** | Characters, locations, factions, species, items, lore, glossary and research entries with templated and custom fields, aliases, tags, favourites, images and relationships. Duplicate warnings, "Mentioned in" backlinks, a quick-reference side panel while you write, and each character's **arc** across the book (where they appear, and when they drop out). |
+| **Series** | Several books sharing one character and world bible, where each entry appears book by book, continuity checked across books, and bringing an existing project into a series. |
+| **Maps** | A relationship map you can arrange, a family tree drawn from relationships, and pictures of places with pins and the scenes set there. |
+| **Story board and plot structures** | Lanes and cards (drag-and-drop or an accessible move menu), filters, and story structures (three-act, Save the Cat, Hero's Journey, seven-point, blank or your own) whose beats say what they do and where they fall. **Map my draft to the beats** suggests the scene for each beat. Turn cards into scenes or chapters and back; an outline view with inline summaries, and AI scene and chapter summaries. |
 | **Timeline and plot threads** | Timeline in story-world order or chapter order, with gentle continuity hints. A plot-thread grid showing which chapters each thread appears in, with reminders for threads that have gone quiet. |
-| **Proofreading** | **Live underlines as you write**, like Grammarly or Google Docs. On your device: Hunspell spelling (US or UK), grammar and punctuation rules, commonly confused words and idioms, repeated words, dialogue punctuation, name consistency against your character list (catches swapped letters like "Elsei"), and optional style fixes (cut or replace adverbs and filler words). Every underline offers something to change the text to; notes without a concrete fix are never shown. **Deep grammar check** with [LanguageTool](https://languagetool.org): install the private grammar engine (`scripts\install-grammar-engine.ps1`) and AuthorDesk runs it on this PC with English usage data, with no limits and nothing sent anywhere; or opt in to the free online service or your own server. Accept, Ignore, Add to dictionary or turn a check off, with undo and reviewed bulk fixes. **It never changes your text on its own.** |
+| **Proofreading** | **Live underlines as you write**, like Grammarly or Google Docs. On your device: Hunspell spelling (US or UK), grammar and punctuation rules, commonly confused words and idioms, repeated words, dialogue punctuation, name consistency against your character list (catches swapped letters like "Elsei"), and optional style fixes (cut or replace adverbs and filler words). Every underline offers something to change the text to; notes without a concrete fix are never shown. **Deep grammar check** with [LanguageTool](https://languagetool.org): install the private grammar engine (`scripts\install-grammar-engine.ps1`) and AuthorDesk runs it on this PC with English usage data, with no limits and nothing sent anywhere; or opt in to the free online service or your own server. Accept, Ignore, Add to dictionary or turn a check off, with undo and reviewed bulk fixes. **Echo words**, **continuity** (a character described differently in different chapters), **hard-to-read sentences**, stronger verbs for verb + adverb pairs, and character details your notes are missing. **It never changes your text on its own.** |
+| **AI Editor (private)** | Runs an open-source model on your PC with llama.cpp. Rewrite, smoother, tighter, without the adverb, without the echo, clearer, fix grammar, show don't tell, change tone, what's the tone, character voice, and ask. Clicking a flagged word shows its best fix right there. Every version has **Use** (one undoable step); nothing is written into your book otherwise. |
+| **Review the whole book** | Reading ease, sentence variety, dialogue share, pacing per chapter, overused words and phrases, crutch words, sticky sentences, slow stretches and continuity. **Edit passes** turn every suggestion into a checklist to work through, and export as a report for a human editor. |
 | **Search** | Search everything (Ctrl+K): manuscript, references, board, timeline, threads and notes, with filters and snippets. Opening a result highlights the matches. |
 | **Import your existing book** | A folder or zip of chapter files (`.md` or `.txt`) plus spreadsheets for characters, locations, world entries, story board, timeline and plot threads. You see a preview before anything is imported, and entries are linked by name. Exact layout: [**IMPORTING.md**](IMPORTING.md). |
 | **Dedication & About the Author** | Write these once on the **Home** page. Each one can apply to all your books, every book in the project, or specific books, and you choose which to include in every export (Word, text, Markdown, KDP). |
-| **Publish on Amazon KDP** | Kindle eBook as **EPUB 3** (Amazon's recommended format) or **Word**, and a **paperback/hardcover interior** `.docx` at KDP trim sizes. Mirrored margins meet KDP's gutter rules, chapters start on right-hand pages, front and back matter are added, and an optional **table of contents** is included. A pre-publish checklist catches common problems. |
-| **Backup and export** | A complete `.authorproj` archive (manifest, schema version, SHA-256 checksums), and import with a preview: restore, merge, or import as a copy. Also exports to DOCX, TXT, Markdown, JSON and references CSV, plus backup reminders. |
+| **Publish on Amazon KDP** | Kindle eBook as **EPUB 3** (Amazon's recommended format) or **Word**, and a **paperback/hardcover interior**: a print-ready **PDF typeset by AuthorDesk** (two bundled book fonts, running heads, real page numbers in the contents, no stranded lines) or `.docx`, at KDP trim sizes. Mirrored margins meet KDP's gutter rules, chapters start on right-hand pages, front and back matter are added, and an optional **table of contents** is included. A pre-publish checklist catches common problems. |
+| **Backup and export** | **Automatic backups** to a folder you choose (a OneDrive or Google Drive folder works), with sensible retention. A complete `.authorproj` archive (manifest, schema version, SHA-256 checksums), and import with a preview: restore, merge, or import as a copy. Also exports to DOCX, TXT, Markdown, JSON and references CSV. |
 | **Sync (optional)** | A self-hosted sync server you run yourself. Independent edits merge automatically. If both devices change the same prose, both versions are kept and you choose between them side by side. |
 | **Google Drive (optional)** | Back up to and restore from your own Drive using the narrow `drive.file` permission. |
 
@@ -348,6 +367,7 @@ IMPORTING.md        exact import layout
 | Area | Status |
 | --- | --- |
 | Writing, navigation, references, planning, proofreading, search, archives, import, themes | ✅ Done and tested |
+| AI Editor, grammar engine, review and edit passes, series, maps, automatic backups | ✅ Done, tested, and checked in the running app |
 | Amazon KDP export | 🟡 Done and tested; needs a real KDP upload and an EPUBCheck run |
 | Sync | 🟡 Done and tested with simulated devices and a local phone test; needs an HTTPS deployment and a real phone install |
 | Google Drive | 🟡 Built; needs a real account round-trip test |
