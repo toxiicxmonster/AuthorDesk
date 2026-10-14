@@ -19,6 +19,7 @@ import {
 } from '../../importExport/publish';
 import { buildEpub, type EpubCover } from '../../importExport/epub';
 import { buildKdpDocx } from '../../importExport/kdpDocx';
+import { buildPrintPdf, loadFonts } from '../../importExport/printPdf';
 import { saveFile } from '../../importExport/download';
 import { flushAllEdits } from '../../editor/EditorContext';
 import { reportError, toast } from '../store';
@@ -46,11 +47,32 @@ interface SavedChoices {
   font: string;
   fontSize: number;
   chaptersOnRight: boolean;
+  /** Paperback interior file: typeset PDF (default) or Word. */
+  printFile: 'pdf' | 'docx';
+  pdfFont: 'crimson' | 'gentium';
+  sceneBreak: string;
   options: PublishOptions;
 }
 
+const PDF_FONTS: [SavedChoices['pdfFont'], string][] = [
+  ['crimson', 'Crimson Text (classic, compact)'],
+  ['gentium', 'Gentium Book Plus (open, very readable)'],
+];
+// Characters both bundled fonts contain (an ornament a font lacks would print as an empty box).
+const SCENE_BREAKS = ['*   *   *', '•   •   •', '·   ·   ·', '§', '~', '#'];
+
 function loadChoices(): SavedChoices {
-  const d: SavedChoices = { format: 'epub', trim: '6x9', font: 'Garamond', fontSize: 11, chaptersOnRight: true, options: DEFAULT_PUBLISH_OPTIONS };
+  const d: SavedChoices = {
+    format: 'epub',
+    trim: '6x9',
+    font: 'Garamond',
+    fontSize: 11,
+    chaptersOnRight: true,
+    printFile: 'pdf',
+    pdfFont: 'crimson',
+    sceneBreak: '*   *   *',
+    options: DEFAULT_PUBLISH_OPTIONS,
+  };
   try {
     const saved = JSON.parse(localStorage.getItem(OPTIONS_KEY) ?? '{}') as Partial<SavedChoices>;
     // Options added in later versions get their defaults.
@@ -65,6 +87,7 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
   const [cover, setCover] = useState<(EpubCover & { name: string }) | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<Format | null>(null);
+  const [pdf, setPdf] = useState<{ url: string; pages: number } | null>(null);
   const [pageChoice, setPageChoice] = useState<ExtraPagesChoice>({});
   const pageData = useExtraPagesData(projectId);
   const set = (p: Partial<SavedChoices>) => setChoices((c) => ({ ...c, ...p }));
@@ -116,6 +139,13 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
       const name = slug(book.title);
       if (choices.format === 'epub') {
         await saveFile(buildEpub(model, book.id, cover ?? undefined), `${name} - Kindle.epub`, 'application/epub+zip');
+      } else if (choices.format === 'print' && choices.printFile === 'pdf' && layout) {
+        const fonts = await loadFonts(fetch, choices.pdfFont);
+        const r = await buildPrintPdf(model, layout, fonts, { sceneBreak: choices.sceneBreak });
+        const blob = new Blob([r.bytes as BlobPart], { type: 'application/pdf' });
+        await saveFile(blob, `${name} - Paperback ${trim.width}x${trim.height}.pdf`, 'application/pdf');
+        if (pdf) URL.revokeObjectURL(pdf.url);
+        setPdf({ url: URL.createObjectURL(blob), pages: r.pages });
       } else {
         const bytes = await buildKdpDocx(model, { target: choices.format === 'print' ? 'print' : 'ebook', layout: layout ?? undefined, font: choices.font, chaptersOnRight: choices.chaptersOnRight });
         const suffix = choices.format === 'print' ? `Paperback ${trim.width}x${trim.height}` : 'Kindle';
@@ -132,6 +162,14 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
   if (done) {
     return (
       <Modal title="Your manuscript is ready" onClose={onClose} wide>
+        {done === 'print' && pdf && (
+          <section className="pdf-preview">
+            <p className="small">
+              Typeset at <strong>{pdf.pages} pages</strong>. Have a look before uploading: scroll through, check chapter openings and the contents page.
+            </p>
+            <iframe src={pdf.url} title="Paperback interior preview" />
+          </section>
+        )}
         <h3>Next steps on Amazon KDP</h3>
         <ol className="kdp-steps">
           <li>
@@ -188,7 +226,7 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
               [
                 ['epub', 'Kindle eBook', 'EPUB — Amazon’s recommended eBook format. Reflows to any screen size.'],
                 ['ebook-docx', 'Kindle eBook (Word)', 'A .docx KDP converts for Kindle. Handy if you want to edit it in Word first.'],
-                ['print', 'Paperback / hardcover', 'A print-ready .docx interior: exact trim size, KDP margins, page numbers.'],
+                ['print', 'Paperback / hardcover', 'A print-ready interior (PDF or Word): exact trim size, KDP margins, page numbers.'],
               ] as [Format, string, string][]
             ).map(([id, title, desc]) => (
               <label key={id} className={`format-card${choices.format === id ? ' on' : ''}`}>
@@ -202,6 +240,13 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
           {choices.format === 'print' && (
             <div className="two-col">
               <label className="field">
+                <span>File</span>
+                <select value={choices.printFile} onChange={(e) => set({ printFile: e.target.value as SavedChoices['printFile'] })}>
+                  <option value="pdf">PDF, typeset by AuthorDesk (recommended)</option>
+                  <option value="docx">Word (.docx), to adjust in Word</option>
+                </select>
+              </label>
+              <label className="field">
                 <span>Trim size</span>
                 <select value={choices.trim} onChange={(e) => set({ trim: e.target.value })}>
                   {TRIM_SIZES.map((t) => (
@@ -211,14 +256,27 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
                   ))}
                 </select>
               </label>
-              <label className="field">
-                <span>Font</span>
-                <select value={choices.font} onChange={(e) => set({ font: e.target.value })}>
-                  {FONTS.map((f) => (
-                    <option key={f}>{f}</option>
-                  ))}
-                </select>
-              </label>
+              {choices.printFile === 'pdf' ? (
+                <label className="field">
+                  <span>Font (included, free for print)</span>
+                  <select value={choices.pdfFont} onChange={(e) => set({ pdfFont: e.target.value as SavedChoices['pdfFont'] })}>
+                    {PDF_FONTS.map(([id, label]) => (
+                      <option key={id} value={id}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <label className="field">
+                  <span>Font</span>
+                  <select value={choices.font} onChange={(e) => set({ font: e.target.value })}>
+                    {FONTS.map((f) => (
+                      <option key={f}>{f}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label className="field">
                 <span>Text size</span>
                 <select value={choices.fontSize} onChange={(e) => set({ fontSize: Number(e.target.value) })}>
@@ -229,9 +287,22 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
                   ))}
                 </select>
               </label>
-              <label className="check kdp-right">
-                <input type="checkbox" checked={choices.chaptersOnRight} onChange={(e) => set({ chaptersOnRight: e.target.checked })} /> Start chapters on a right-hand page
-              </label>
+              {choices.printFile === 'pdf' ? (
+                <label className="field">
+                  <span>Scene break</span>
+                  <select value={choices.sceneBreak} onChange={(e) => set({ sceneBreak: e.target.value })}>
+                    {SCENE_BREAKS.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <label className="check kdp-right">
+                  <input type="checkbox" checked={choices.chaptersOnRight} onChange={(e) => set({ chaptersOnRight: e.target.checked })} /> Start chapters on a right-hand page
+                </label>
+              )}
             </div>
           )}
           {choices.format === 'epub' && (
@@ -289,7 +360,7 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
             <label className="check">
               <input type="checkbox" checked={choices.options.includeToc} onChange={(e) => setOpt({ includeToc: e.target.checked })} /> Table of contents
             </label>
-            {choices.format === 'print' && choices.options.includeToc && (
+            {choices.format === 'print' && choices.printFile === 'docx' && choices.options.includeToc && (
               <label className="check" title="Microsoft Word fills in the page numbers when you open the file.">
                 <input type="checkbox" checked={choices.options.tocPageNumbers} onChange={(e) => setOpt({ tocPageNumbers: e.target.checked })} /> …with page numbers (needs Word)
               </label>

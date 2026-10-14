@@ -34,7 +34,7 @@ interface UiState {
   rightTab: 'reference' | 'scene' | 'proof' | 'dialogue' | 'ai' | 'history';
   quickRefId: string | null;
   /** Set when a flagged mark asks the AI Editor to work on its sentence; `id` changes for each request. */
-  aiRequest: { id: number; text: string; context: string; task: AiTaskId; focus: string | null } | null;
+  aiRequest: { id: number; text: string; context: string; task: AiTaskId; focus: string | null; from: number; to: number } | null;
   searchOpen: boolean;
   helpOpen: boolean;
 }

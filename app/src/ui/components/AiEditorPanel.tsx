@@ -12,12 +12,13 @@ import { updateRecord } from '../../storage/repo';
 import { useReferences } from '../data';
 import { reportError, setUi, toast, useUi } from '../store';
 import { AiResultCard, type AiResult } from './AiResults';
+import { textAt, type TextAnchor } from '../../editor/aiApply';
 
 /**
- * Side panel → AI Editor. Suggestions only: results appear here with a Copy button and are never written into the
- * book. (Character details found by the scan can be added to a character's entry, never to the manuscript.)
+ * Side panel → AI Editor. Each version has a "Use" button that puts it in place of the passage it was written for
+ * (one undoable step, only if that passage is unchanged); nothing reaches the book without that click.
  * Character notes aren't used here: writing in a character's voice lives in the Dialogue tab.
- * Nothing in this file may call the editor's commands or dispatch transactions; ESLint enforces that.
+ * Replacements go through editor/aiApply.ts; this file may not call the editor's commands itself (ESLint enforces it).
  */
 
 interface Passage {
@@ -25,6 +26,8 @@ interface Passage {
   context: string;
   /** The flagged words this passage was opened for, if it came from clicking a mark. */
   focus: string | null;
+  /** Where the passage is in the scene (for "Use"). */
+  anchor: TextAnchor | null;
 }
 
 interface Result extends AiResult {
@@ -39,12 +42,19 @@ const taskById = (id: AiTaskId) => AI_TASKS.find((t) => t.id === id)!;
 function passageFrom(editor: Editor): Passage {
   const { state } = editor;
   const { from, to, empty, $from } = state.selection;
-  const text = (empty ? $from.parent.textContent : state.doc.textBetween(from, to, '\n\n')).trim();
+  // The selection, or the whole paragraph at the cursor, without surrounding spaces.
+  let a = empty ? $from.start() : from;
+  let b = empty ? $from.end() : to;
+  const raw = textAt(editor, a, b);
+  a += raw.length - raw.trimStart().length;
+  b -= raw.length - raw.trimEnd().length;
+  const text = b > a ? textAt(editor, a, b) : '';
   const blocks = collectTextBlocks(state.doc);
-  let at = blocks.findIndex((b) => b.pos <= from && from <= b.pos + b.text.length);
+  let at = blocks.findIndex((bl) => bl.pos <= from && from <= bl.pos + bl.text.length);
   if (at < 0) at = 0;
   const context = [blocks[at - 1]?.text, blocks[at + 1]?.text].filter(Boolean).join('\n\n');
-  return { text: text.slice(0, 4000), context: context.slice(0, 3000), focus: null };
+  const fits = text.length > 0 && text.length <= 4000;
+  return { text: text.slice(0, 4000), context: context.slice(0, 3000), focus: null, anchor: fits ? { from: a, to: b, text } : null };
 }
 
 export function AiEditorPanel({ projectId }: { projectId: string }) {
@@ -54,7 +64,7 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
   const request = useUi((s) => s.aiRequest);
   const characters = useMemo(() => refs.filter((r) => !r.archivedAt && r.type === 'character'), [refs]);
   const [status, setStatus] = useState<AiStatus | null | undefined>(undefined);
-  const [passage, setPassage] = useState<Passage>({ text: '', context: '', focus: null });
+  const [passage, setPassage] = useState<Passage>({ text: '', context: '', focus: null, anchor: null });
   const [pinned, setPinned] = useState(false);
   const [tone, setTone] = useState<string>(TONES[2]);
   const [question, setQuestion] = useState('');
@@ -105,7 +115,7 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
     abort.current = ctrl;
     const id = nextId.current++;
     const extra = task.id === 'tone' ? tone : task.id === 'ask' ? question.trim() : p.focus ? `“${p.focus}”` : '';
-    setResults((rs) => [{ id, task, extra, passage: p, original: p.text, text: '', done: false, error: null }, ...rs].slice(0, 20));
+    setResults((rs) => [{ id, task, extra, passage: p, original: p.text, anchor: p.anchor, focus: p.focus, text: '', done: false, error: null }, ...rs].slice(0, 20));
     const patch = (x: Partial<Result>) => setResults((rs) => rs.map((r) => (r.id === id ? { ...r, ...x } : r)));
     try {
       const text = await chat(buildMessages(task, { text: p.text, context: p.context, tone, question, focus: p.focus }), {
@@ -126,7 +136,7 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
   useEffect(() => {
     if (!request || handled.current === request.id || !status?.installed) return;
     handled.current = request.id;
-    const p: Passage = { text: request.text, context: request.context, focus: request.focus };
+    const p: Passage = { text: request.text, context: request.context, focus: request.focus, anchor: { from: request.from, to: request.to, text: request.text } };
     setPinned(true);
     setPassage(p);
     void run(taskById(request.task), p);
@@ -249,12 +259,12 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
         </details>
       </section>
 
-      {latest && <AiResultCard r={latest} busy={busy} onStop={() => abort.current?.abort()} onAgain={() => void run(latest.task, latest.passage)} />}
+      {latest && <AiResultCard editor={editor} r={latest} busy={busy} onStop={() => abort.current?.abort()} onAgain={() => void run(latest.task, latest.passage)} />}
       {earlier.length > 0 && (
         <details className="ai-earlier">
           <summary className="small">Earlier suggestions ({earlier.length})</summary>
           {earlier.map((r) => (
-            <AiResultCard key={r.id} r={r} busy={false} onStop={() => undefined} onAgain={() => void run(r.task, r.passage)} />
+            <AiResultCard key={r.id} editor={editor} r={r} busy={false} onStop={() => undefined} onAgain={() => void run(r.task, r.passage)} />
           ))}
         </details>
       )}

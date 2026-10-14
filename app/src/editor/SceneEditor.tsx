@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { navigate } from '../ui/router';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Icon } from '../ui/components/Icon';
@@ -21,6 +22,8 @@ import { applyFact, type Attribute } from '../proofreading/characterFacts';
 import { fetchAiStatus } from '../ai/aiEditor';
 import { aiTaskForMark } from '../ai/markTask';
 import { sentenceAround } from '../ai/adverbJudge';
+import { contextSynonyms } from '../ai/contextSynonyms';
+import { avoidEchoes } from '../proofreading/echo';
 
 const SAVE_DELAY = 700;
 /** Underlines refresh this soon after a pause in typing (on-device checks; unchanged paragraphs come from a cache). */
@@ -131,7 +134,7 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
         return parts.join(' · ');
       };
       try {
-        const r = await runProofread(editor, sceneRef.current.projectId, { sendOnline, onLocal: (l) => onProofread(describe(l, true)) });
+        const r = await runProofread(editor, sceneRef.current.projectId, { sendOnline, sceneId: sceneRef.current.id, onLocal: (l) => onProofread(describe(l, true)) });
         if (r.stale) return;
         onProofread(describe(r));
       } catch (e) {
@@ -315,6 +318,7 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
             y={popover.y}
             above={popover.above}
             projectId={scene.projectId}
+            aiInstalled={aiInstalled.current}
             onClose={() => {
               setPopover(null);
               editor.view.dispatch(editor.state.tr.setMeta(proofreadKey, activeSuggestionMeta(null)));
@@ -434,7 +438,13 @@ function openAiFor(editor: Editor, items: PlacedSuggestion[]) {
     const para = $pos.parent.textBetween(0, $pos.parent.content.size, undefined, '\n');
     const at = it.from - $pos.start();
     const { sentence } = sentenceAround(para, at, at + (it.to - it.from));
-    setUi({ rightOpen: true, rightTab: 'ai', aiRequest: { id: Date.now(), text: sentence || para, context: para, task: pick.task, focus: pick.focus } });
+    // Just the sentence; for an echo, the AI is told to drop the word there (the earlier use stays as it is).
+    const whole = !sentence;
+    const offset = whole ? 0 : Math.max(0, para.lastIndexOf(sentence, at));
+    const text = whole ? para : sentence;
+    // Where the passage is, so "Use" can put the chosen version in its place.
+    const from = $pos.start() + offset;
+    setUi({ rightOpen: true, rightTab: 'ai', aiRequest: { id: Date.now(), text, context: para, task: pick.task, focus: pick.focus, from, to: from + text.length } });
     return;
   }
 }
@@ -446,6 +456,7 @@ function SuggestionPopover({
   y,
   above,
   projectId,
+  aiInstalled,
   onClose,
   onRerun,
 }: {
@@ -456,6 +467,7 @@ function SuggestionPopover({
   y: number;
   above: boolean;
   projectId: string;
+  aiInstalled: boolean;
   onClose: () => void;
   onRerun: () => void;
 }) {
@@ -465,13 +477,27 @@ function SuggestionPopover({
         ✕
       </button>
       {items.map((s) => (
-        <SuggestionItem key={s.key} editor={editor} s={s} projectId={projectId} onClose={onClose} onRerun={onRerun} />
+        <SuggestionItem key={s.key} editor={editor} s={s} projectId={projectId} aiInstalled={aiInstalled} onClose={onClose} onRerun={onRerun} />
       ))}
     </div>
   );
 }
 
-function SuggestionItem({ editor, s, projectId, onClose, onRerun }: { editor: Editor; s: PlacedSuggestion; projectId: string; onClose: () => void; onRerun: () => void }) {
+function SuggestionItem({
+  editor,
+  s,
+  projectId,
+  aiInstalled,
+  onClose,
+  onRerun,
+}: {
+  editor: Editor;
+  s: PlacedSuggestion;
+  projectId: string;
+  aiInstalled: boolean;
+  onClose: () => void;
+  onRerun: () => void;
+}) {
   const accept = (rep: string) => {
     const ok = applyPlaced(editor.state, editor.view.dispatch, s, rep);
     onClose();
@@ -504,6 +530,46 @@ function SuggestionItem({ editor, s, projectId, onClose, onRerun }: { editor: Ed
     toast(`Turned off this check. Re-enable it in Settings → Proofreading.`);
   };
   const wordList = s.category === 'spelling' || s.category === 'consistency';
+  if ((s.ruleId === 'continuity' || s.ruleId === 'continuity-death') && s.data) {
+    const d = s.data;
+    const first = d.characterName.split(/\s+/)[0];
+    return (
+      <div className="pop-item">
+        <div className="pop-head">
+          <span className="sev sev-conflict">Continuity</span>
+          <span className="muted">{d.characterName}</span>
+        </div>
+        <p>{s.message}</p>
+        <div className="pop-reps">
+          {d.otherSceneId && (
+            <button
+              className="primary"
+              onClick={() => {
+                onClose();
+                navigate(projectId, 'write', d.otherSceneId, { find: d.otherFind });
+              }}
+            >
+              Go to {d.otherChapter}
+            </button>
+          )}
+          <button onClick={ignore} title="Don’t flag this difference again">
+            {s.ruleId === 'continuity' ? 'It changed on purpose' : 'This is fine'}
+          </button>
+        </div>
+        <div className="pop-actions">
+          <button
+            onClick={() => {
+              onClose();
+              setUi({ quickRefId: d.characterId, rightOpen: true, rightTab: 'reference' });
+            }}
+          >
+            Open {first}’s entry
+          </button>
+          <button onClick={disableRule}>Turn off this check</button>
+        </div>
+      </div>
+    );
+  }
   if ((s.ruleId === 'character-fact' || s.ruleId === 'character-conflict') && s.data) {
     const d = s.data;
     const isNew = s.ruleId === 'character-fact';
@@ -620,18 +686,55 @@ function SuggestionItem({ editor, s, projectId, onClose, onRerun }: { editor: Ed
         <span className="muted">{CATEGORY_LABELS[s.category]}</span>
       </div>
       <p>{s.message}</p>
-      <div className="pop-reps">
-        {s.replacements.map((r) => (
-          <button key={r} className="primary" onClick={() => accept(r)}>
-            {r === ' ' ? 'Single space' : r === '' ? 'Remove' : r}
-          </button>
-        ))}
-      </div>
+      {s.ruleId === 'echo-word' && aiInstalled ? (
+        <EchoFits editor={editor} s={s} accept={accept} />
+      ) : (
+        <div className="pop-reps">
+          {s.replacements.map((r) => (
+            <button key={r} className="primary" onClick={() => accept(r)}>
+              {r === ' ' ? 'Single space' : r === '' ? 'Remove' : r}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="pop-actions">
         <button onClick={ignore}>Ignore</button>
         {wordList && <button onClick={addToDictionary}>Add to dictionary</button>}
         <button onClick={disableRule}>Turn off this check</button>
       </div>
+    </div>
+  );
+}
+
+/** Echo words: alternatives the AI picks to fit this exact sentence (the general thesaurus list if it can't). */
+function EchoFits({ editor, s, accept }: { editor: Editor; s: PlacedSuggestion; accept: (r: string) => void }) {
+  const [fits, setFits] = useState<string[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const $pos = editor.state.doc.resolve(s.from);
+    const para = $pos.parent.textBetween(0, $pos.parent.content.size, undefined, '\n');
+    const at = s.from - $pos.start();
+    const { sentence } = sentenceAround(para, at, at + s.original.length);
+    // About 100 words either side, wider than the echo window: words used there would only make a new echo.
+    const doc = editor.state.doc;
+    const nearby = doc.textBetween(Math.max(0, s.from - 600), s.from, ' ') + ' ' + doc.textBetween(s.to, Math.min(doc.content.size, s.to + 600), ' ');
+    const fallback = avoidEchoes(s.original, s.replacements, nearby);
+    contextSynonyms(s.original, sentence || para, {}, nearby)
+      .then((list) => alive && setFits(list.length ? list : fallback))
+      .catch(() => alive && setFits(fallback));
+    return () => {
+      alive = false;
+    };
+  }, [editor, s]);
+  if (!fits) return <p className="small muted">Finding words that fit this sentence…</p>;
+  if (!fits.length) return <p className="small muted">No single word fits well here; the AI Editor’s rewrite (side panel) reshapes the sentence instead.</p>;
+  return (
+    <div className="pop-reps">
+      {fits.map((r) => (
+        <button key={r} className="primary" onClick={() => accept(r)}>
+          {r}
+        </button>
+      ))}
     </div>
   );
 }

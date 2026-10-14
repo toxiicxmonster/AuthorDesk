@@ -16,6 +16,10 @@ export interface AddonStatus {
   /** Progress through the current download, 0–100, or -1 when not measurable. */
   percent: number;
   message: string;
+  /** Replacing an older installed version (pinned versions changed in this release). */
+  updating: boolean;
+  /** Installed, older than this release pins, and not being updated (e.g. not enough space at launch). */
+  updateAvailable: boolean;
 }
 
 export interface SetupStatus {

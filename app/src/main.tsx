@@ -7,6 +7,7 @@ import { applyTheme, resolveTheme } from './ui/theme';
 import { runMigrations } from './storage/migrations';
 import { repairUntitledBooks } from './storage/repo';
 import { adoptLocalEngine } from './proofreading/grammarEngine';
+import { startAutoBackup } from './backup/autoBackup';
 import { registerSW } from 'virtual:pwa-register';
 import { detectServer } from './sync/controller';
 
@@ -25,6 +26,7 @@ async function start() {
   registerSW({ immediate: true });
   void detectServer();
   void adoptLocalEngine();
+  startAutoBackup();
 }
 
 start().catch((e) => {

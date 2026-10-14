@@ -9,6 +9,7 @@ export type View =
   | 'threads'
   | 'notes'
   | 'search'
+  | 'review'
   | 'data'
   | 'settings';
 
@@ -20,7 +21,7 @@ export interface Route {
   params: URLSearchParams;
 }
 
-const VIEWS: View[] = ['home', 'write', 'board', 'refs', 'timeline', 'threads', 'notes', 'search', 'data', 'settings'];
+const VIEWS: View[] = ['home', 'write', 'board', 'refs', 'timeline', 'threads', 'notes', 'search', 'review', 'data', 'settings'];
 
 export function parseHash(hash: string): Route {
   const [path, query = ''] = hash.replace(/^#\/?/, '').split('?');

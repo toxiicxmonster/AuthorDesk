@@ -4,6 +4,10 @@ import { getSettings } from '../storage/settings';
 import { checkBlocks, findNewNames, SPELL_PROVIDER_ID } from '../proofreading/providers';
 import { knownNameSpans, protectNames } from '../proofreading/names';
 import { characterDetailSuggestions, type CharacterInfo } from '../proofreading/characterFacts';
+import { avoidEchoes, findEchoes } from '../proofreading/echo';
+import { findContradictions, findDeathIssues } from '../proofreading/continuity';
+import { bookScenesFor, placeFactsCached } from '../proofreading/continuityData';
+import { synonymsFor } from '../proofreading/synonyms';
 import { fetchAiStatus } from '../ai/aiEditor';
 import { AI_JUDGED_RULES, cachedVerdict, judgeAdverbs, judgedWord, sentenceAround, type AdverbItem } from '../ai/adverbJudge';
 
@@ -57,7 +61,13 @@ export interface ProofreadOutcome {
 export async function runProofread(
   editor: Editor,
   projectId: string,
-  opts: { onLocal?: (o: ProofreadOutcome) => void; /** false = don't send anything; reuse online results for unchanged paragraphs. */ sendOnline?: boolean } = {},
+  opts: {
+    onLocal?: (o: ProofreadOutcome) => void;
+    /** false = don't send anything; reuse online results for unchanged paragraphs. */
+    sendOnline?: boolean;
+    /** The open scene, so continuity can compare it with the rest of its book. */
+    sceneId?: string;
+  } = {},
 ): Promise<ProofreadOutcome> {
   const { onLocal, sendOnline = true } = opts;
   const docAtStart = editor.state.doc;
@@ -74,7 +84,8 @@ export async function runProofread(
     .filter((r) => !r.archivedAt && r.type === 'character')
     .map((r) => ({ id: r.id, name: r.name, aliases: r.aliases, appearance: r.fields.appearance ?? '' }));
   // With the AI Editor installed, it reads each flagged adverb's sentence first; only the weak ones stay underlined.
-  const aiJudging = settings.aiJudgeAdverbs && Date.now() - aiJudgeFailedAt > 120_000 && !!(await fetchAiStatus())?.installed;
+  const aiInstalled = !!(await fetchAiStatus())?.installed;
+  const aiJudging = settings.aiJudgeAdverbs && Date.now() - aiJudgeFailedAt > 120_000 && aiInstalled;
   const pendingAi: AdverbItem[] = [];
   const judged = (s: Suggestion, bi: number): Suggestion | null => {
     if (!aiJudging || !AI_JUDGED_RULES.has(s.ruleId)) return s;
@@ -87,6 +98,74 @@ export async function runProofread(
     if (v.keep) return null;
     return v.reason ? { ...s, message: `${s.message} AI Editor: ${v.reason}` } : s;
   };
+  // Echo words (teal): the same noticeable word again within a few lines. Offered with synonyms; without any,
+  // only when the AI Editor can suggest a rewrite instead.
+  const echoes = texts.map((): Suggestion[] => []);
+  if (!ctx.disabledRules.has('echo-word') && !ctx.disabledCategories.has('repetition')) {
+    for (const e of findEchoes(texts, ctx.knownNames)) {
+      // Leave out synonyms already used in the paragraphs around it: they'd only make another echo.
+      const replacements = avoidEchoes(e.word, synonymsFor(e.word), texts.slice(Math.max(0, e.block - 1), e.block + 2).join(' '));
+      if (!replacements.length && !aiInstalled) continue;
+      echoes[e.block].push({
+        start: e.start,
+        end: e.end,
+        original: e.word,
+        replacements,
+        category: 'repetition',
+        severity: 'echo',
+        ruleId: 'echo-word',
+        providerId: 'local-echo',
+        message: `“${e.word}” was also used ${e.distance} words earlier. A different word${replacements.length ? '' : ' or a small rephrase'} avoids the echo.`,
+      });
+    }
+  }
+  // Continuity (purple): this scene describes a character differently from elsewhere in the book, or a character
+  // speaks after their entry says they died.
+  const continuity = texts.map((): Suggestion[] => []);
+  if (opts.sceneId && !ctx.disabledRules.has('continuity') && !ctx.disabledCategories.has('consistency')) {
+    const book = await bookScenesFor(opts.sceneId);
+    if (book) {
+      const here = book.find((s) => s.sceneId === opts.sceneId);
+      if (here) here.paragraphs = texts; // the live text, block for block with the editor
+      const dismissed = new Set([...ignored].filter((k) => k.startsWith('continuity|')));
+      for (const c of findContradictions(placeFactsCached(book, charInfo), dismissed)) {
+        for (const [mine, theirs, when] of [
+          [c.other, c.first, 'earlier'],
+          [c.first, c.other, 'later'],
+        ] as const) {
+          if (mine.sceneId !== opts.sceneId) continue;
+          const what = c.label === 'Build' ? 'build' : c.label.toLowerCase();
+          continuity[mine.block]?.push({
+            start: mine.start,
+            end: mine.end,
+            original: mine.original,
+            replacements: [],
+            category: 'consistency',
+            severity: 'conflict',
+            ruleId: 'continuity',
+            providerId: 'local-continuity',
+            message: `${c.characterName}’s ${what} ${what === 'eyes' ? 'are' : 'is'} “${mine.value}” here, but “${theirs.value}” ${when} ${theirs.sceneId === mine.sceneId ? 'in this scene' : `in “${theirs.chapterTitle}”`}.${c.note ? ' ' + c.note : ''}`,
+            data: { ignoreKey: c.key, characterId: c.characterId, characterName: c.characterName, otherSceneId: theirs.sceneId, otherFind: theirs.original, otherChapter: theirs.chapterTitle },
+          });
+        }
+      }
+      const statuses = new Map(characters.map((r) => [r.id, r.status]));
+      for (const d of findDeathIssues(book.filter((s) => s.sceneId === opts.sceneId), charInfo.map((c) => ({ ...c, status: statuses.get(c.id) ?? '' })), ctx.knownNames, dismissed)) {
+        continuity[d.block]?.push({
+          start: d.start,
+          end: d.end,
+          original: d.text,
+          replacements: [],
+          category: 'consistency',
+          severity: 'conflict',
+          ruleId: 'continuity-death',
+          providerId: 'local-continuity',
+          message: `${d.characterName}’s entry says they died in chapter ${d.diedIn + 1}, but they speak here.`,
+          data: { ignoreKey: d.key, characterId: d.characterId, characterName: d.characterName },
+        });
+      }
+    }
+  }
   // Details about listed characters their entries don't have yet (green) or contradict (purple).
   const details = ctx.disabledCategories.has('consistency') ? texts.map((): Suggestion[] => []) : characterDetailSuggestions(texts, charInfo, ctx.disabledRules);
   /**
@@ -102,7 +181,13 @@ export async function runProofread(
       .filter((s) => s.replacements.length > 0)
       .map((s) => judged(s, bi))
       .filter((s): s is Suggestion => s !== null);
-    return [...actionable, ...prompts, ...(details[bi] ?? [])].sort((a, b) => a.start - b.start);
+    const echo = (echoes[bi] ?? []).filter((e) => !actionable.some((s) => s.start < e.end && e.start < s.end && s.severity !== 'style'));
+    const overlaps = (a: Suggestion, b: Suggestion) => a.start < b.end && b.start < a.end;
+    // A contradiction with the character's entry already says enough on the same words; otherwise a contradiction
+    // across chapters comes before "add this to the entry" (settle which is right first).
+    const cont = (continuity[bi] ?? []).filter((c) => !(details[bi] ?? []).some((d) => d.ruleId === 'character-conflict' && overlaps(c, d)));
+    const mine = (details[bi] ?? []).filter((d) => !(d.ruleId === 'character-fact' && cont.some((c) => overlaps(c, d))));
+    return [...actionable, ...prompts, ...mine, ...cont, ...echo].sort((a, b) => a.start - b.start);
   };
 
   let lastLists: Suggestion[][] = results;

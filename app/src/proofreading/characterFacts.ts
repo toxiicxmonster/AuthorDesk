@@ -125,16 +125,16 @@ function stored(appearance: string, attribute: Attribute, label: string): { valu
   return f && f[0].test(appearance) ? { value: label.toLowerCase(), start: -1, end: -1 } : null;
 }
 
-const sameValue = (a: string, b: string) => {
+/** Whether two descriptions of the same detail agree ("grey" / "gray", "blond" / "blonde", "dark brown" / "brown"). */
+export const sameValue = (a: string, b: string) => {
   const norm = (s: string) => s.toLowerCase().replace(/gray/g, 'grey').replace(/blond\b/g, 'blonde');
   return norm(a).includes(norm(b)) || norm(b).includes(norm(a));
 };
 
-/**
- * Details about listed characters in one paragraph. `previous` is the paragraph before (for pronoun attribution).
- * Only details that are new to the entry (existing = null) or contradict it (existing = old value) are returned.
- */
-export function findCharacterFacts(text: string, chars: readonly CharacterInfo[], previous = ''): FactHit[] {
+/** Every detail written about a listed character in one paragraph (one per character and detail), entry aside. */
+export type FoundFact = Omit<FactHit, 'existing'>;
+
+export function extractCharacterFacts(text: string, chars: readonly CharacterInfo[], previous = ''): FoundFact[] {
   if (!chars.length) return [];
   const ms = mentions(text, chars);
   const prevMs = previous ? mentions(previous, chars) : [];
@@ -175,12 +175,24 @@ export function findCharacterFacts(text: string, chars: readonly CharacterInfo[]
     if (ya) add(mention.start - (before.length - ya.index), mention.start - 1, 'age', 'Age', ya[1].toLowerCase(), mention.character);
   }
 
-  const out: FactHit[] = [];
   const seen = new Set<string>();
-  for (const f of found.sort((x, y) => x.start - y.start)) {
-    const key = `${f.characterId}|${f.label}`;
-    if (seen.has(key)) continue; // one prompt per character and detail per paragraph
-    seen.add(key);
+  return found
+    .sort((x, y) => x.start - y.start)
+    .filter((f) => {
+      const key = `${f.characterId}|${f.label}`;
+      if (seen.has(key)) return false; // one per character and detail per paragraph
+      seen.add(key);
+      return true;
+    });
+}
+
+/**
+ * Details about listed characters in one paragraph. `previous` is the paragraph before (for pronoun attribution).
+ * Only details that are new to the entry (existing = null) or contradict it (existing = old value) are returned.
+ */
+export function findCharacterFacts(text: string, chars: readonly CharacterInfo[], previous = ''): FactHit[] {
+  const out: FactHit[] = [];
+  for (const f of extractCharacterFacts(text, chars, previous)) {
     const who = chars.find((c) => c.id === f.characterId)!;
     const have = stored(who.appearance, f.attribute, f.label);
     if (!have) out.push({ ...f, existing: null });

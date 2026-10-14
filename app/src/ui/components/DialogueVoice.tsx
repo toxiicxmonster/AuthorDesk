@@ -6,16 +6,18 @@ import type { DialogueLine } from '../../proofreading/dialogue';
 import type { ReferenceEntry } from '../../domain/schema';
 import { useSettings } from '../../storage/settings';
 import { AiResultCard, type AiResult } from './AiResults';
+import type { TextAnchor } from '../../editor/aiApply';
+import { useEditorCtx } from '../../editor/EditorContext';
 
 const VOICE = AI_TASKS.find((t) => t.id === 'voice')!;
 
 /**
  * Dialogue tab → "In a character's voice": rewrites the chosen line so it sounds like a character, using their
- * reference notes (personality, voice, backstory…) as background. Suggestions only, to copy; never written into
- * the book.
+ * reference notes (personality, voice, backstory…) as background. "Use" puts the chosen version in place of the line.
  */
-export function DialogueVoice({ line, paragraph, characters }: { line: DialogueLine | null; paragraph: string; characters: ReferenceEntry[] }) {
+export function DialogueVoice({ line, paragraph, characters, anchor }: { line: DialogueLine | null; paragraph: string; characters: ReferenceEntry[]; anchor: TextAnchor | null }) {
   const settings = useSettings();
+  const { editor } = useEditorCtx();
   const [status, setStatus] = useState<AiStatus | null | undefined>(undefined);
   const [who, setWho] = useState('');
   const [results, setResults] = useState<AiResult[]>([]);
@@ -51,7 +53,7 @@ export function DialogueVoice({ line, paragraph, characters }: { line: DialogueL
     const ctrl = new AbortController();
     abort.current = ctrl;
     const id = nextId.current++;
-    setResults((rs) => [{ id, task: VOICE, extra: character.name, original: line.text, text: '', done: false, error: null }, ...rs].slice(0, 10));
+    setResults((rs) => [{ id, task: VOICE, extra: character.name, original: line.text, anchor, text: '', done: false, error: null }, ...rs].slice(0, 10));
     const patch = (x: Partial<AiResult>) => setResults((rs) => rs.map((r) => (r.id === id ? { ...r, ...x } : r)));
     try {
       const text = await chat(buildMessages(VOICE, { text: line.text, context: paragraph, characters: [toCharacterContext(character)], character: character.name }), {
@@ -91,12 +93,12 @@ export function DialogueVoice({ line, paragraph, characters }: { line: DialogueL
           {Object.values(character.fields).some((v) => v?.trim()) ? '' : ' (none yet; add personality and voice notes to their entry for better results)'}
         </p>
       )}
-      {latest && <AiResultCard r={latest} busy={busy} onStop={() => abort.current?.abort()} onAgain={() => void run()} />}
+      {latest && <AiResultCard editor={editor} r={latest} busy={busy} onStop={() => abort.current?.abort()} onAgain={() => void run()} />}
       {earlier.length > 0 && (
         <details className="ai-earlier">
           <summary className="small">Earlier suggestions ({earlier.length})</summary>
           {earlier.map((r) => (
-            <AiResultCard key={r.id} r={r} busy={false} onStop={() => undefined} onAgain={() => void run()} />
+            <AiResultCard key={r.id} editor={editor} r={r} busy={false} onStop={() => undefined} onAgain={() => void run()} />
           ))}
         </details>
       )}

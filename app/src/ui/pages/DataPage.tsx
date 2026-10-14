@@ -14,6 +14,7 @@ import { flushAllEdits } from '../../editor/EditorContext';
 import { reportError, toast, useUi } from '../store';
 import { relativeTime } from '../components/common';
 import { SyncPanel } from '../components/SyncPanel';
+import { AutoBackupCard } from '../components/AutoBackupCard';
 
 export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }: { projectId: string; autoImportHelp?: boolean; autoKdp?: boolean }) {
   const project = useProject(projectId);
@@ -57,6 +58,7 @@ export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }:
   return (
     <div className="page narrow data-page">
       <h1>Backup, export & sync</h1>
+      <AutoBackupCard projectId={projectId} />
       <section className="card">
         <h2>Back up this book</h2>
         <p>

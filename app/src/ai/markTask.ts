@@ -8,6 +8,7 @@ import { AI_JUDGED_RULES, judgedWord } from './adverbJudge';
  */
 export function aiTaskForMark(s: Pick<Suggestion, 'ruleId' | 'category' | 'original'>): { task: AiTaskId; focus: string | null } | null {
   if (AI_JUDGED_RULES.has(s.ruleId)) return { task: 'no-adverb', focus: judgedWord(s) };
+  if (s.ruleId === 'echo-word') return { task: 'no-repeat', focus: s.original };
   if (s.ruleId === 'dialogue-redundant-tag') return { task: 'no-adverb', focus: s.original.split(/\s+/).pop() ?? null };
   if (s.ruleId.startsWith('character-') || s.ruleId === 'new-name' || s.ruleId === 'name-consistency') return null;
   switch (s.category) {

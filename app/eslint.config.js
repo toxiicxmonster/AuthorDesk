@@ -15,14 +15,15 @@ export default tseslint.config(
     },
   },
   {
-    // The AI Editor only suggests: it must never write into the manuscript.
+    // AI code never edits the manuscript itself; a chosen version goes in only through editor/aiApply.ts
+    // (the author's "Use" click: one undoable step, and only if the passage is unchanged).
     files: ['src/ai/**', 'src/ui/components/AiEditorPanel.tsx'],
     rules: {
       'no-restricted-syntax': [
         'error',
         {
           selector: "MemberExpression[property.name=/^(commands|chain|dispatch|insertContent|setContent)$/]",
-          message: 'The AI Editor must never change the manuscript. Show results in the panel for the author to copy.',
+          message: 'AI code must not edit the manuscript directly. Offer the result with a Use button (editor/aiApply.ts).',
         },
       ],
     },

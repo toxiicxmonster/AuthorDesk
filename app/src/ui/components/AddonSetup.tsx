@@ -140,7 +140,10 @@ export function AddonSetup() {
             return (
               <div key={id} className="setup-item">
                 <div className="small">
-                  <strong>{ADDONS[id].label}</strong>
+                  <strong>
+                    {p.updating ? 'Updating ' : ''}
+                    {ADDONS[id].label}
+                  </strong>
                   <span className="muted">
                     {' '}
                     · {p.state === 'queued' ? 'waiting its turn' : p.step || 'starting…'}
@@ -169,7 +172,13 @@ function announce(before: SetupStatus | null, now: SetupStatus) {
     const was = before.parts[id]?.state;
     const is = now.parts[id]?.state;
     if (was === is || (was !== 'installing' && was !== 'queued')) continue;
-    if (is === 'done') {
+    const wasUpdate = before.parts[id]?.updating;
+    if (is === 'done' && wasUpdate) {
+      if (id === 'grammar') void adoptLocalEngine();
+      toast(`${ADDONS[id].label} updated to the latest version.`);
+    } else if (is === 'failed' && wasUpdate) {
+      toast(`${ADDONS[id].label} couldn’t update: ${now.parts[id].message} The current version keeps working, and it will try again next time.`);
+    } else if (is === 'done') {
       if (id === 'grammar') {
         void adoptLocalEngine();
         toast('The grammar engine is ready. Deeper grammar checks are on, all on this PC.');

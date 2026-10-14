@@ -1,4 +1,5 @@
 import { db, table } from './db';
+import { noteChange } from '../backup/lastChange';
 import { newId, nowIso } from '../domain/ids';
 import type {
   BoardCard,
@@ -22,6 +23,7 @@ async function logChange(name: TableName, recordId: string, projectId: string, r
   // Keep one pending entry per record so the log stays bounded between syncs.
   await db.changes.where('recordId').equals(recordId).delete();
   await db.changes.add({ table: name, recordId, projectId, rev, op, at: nowIso(), deviceId: getDeviceId() });
+  noteChange(projectId);
 }
 
 /** Create a record with stable id and timestamps. */

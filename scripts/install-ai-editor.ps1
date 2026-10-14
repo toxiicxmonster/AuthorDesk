@@ -5,6 +5,7 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\install-ai-editor.ps1 -Model qwen7b   # smaller, faster model
 #   powershell -ExecutionPolicy Bypass -File scripts\install-ai-editor.ps1 -Backend cpu    # force a build (cuda, vulkan, cpu)
 # Safe to re-run: finished steps are skipped, interrupted downloads resume, every file is checked against its SHA-256.
+# AuthorDesk runs this automatically when a release pins a newer llama.cpp build or model.
 param([ValidateSet('auto', 'nemo', 'qwen7b')][string]$Model = 'auto', [ValidateSet('auto', 'cuda', 'vulkan', 'cpu')][string]$Backend = 'auto')
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -25,6 +26,10 @@ function RemoteSize([string]$url) {
   } catch { }
   return 0
 }
+
+# What this script installs. The launcher compares it with the installed version to offer updates; change it
+# whenever a pin below changes.
+$AddonVersion = 'llama-b11606+nemo12b-q4km|qwen7b-q5km'
 
 # Pinned llama.cpp build and model files (SHA-256 from their publishers).
 $LlamaBuild = 'b11606'
@@ -103,6 +108,8 @@ if (-not (Test-Path $modelPath)) {
   $file = Fetch $m.url $m.file $m.sha "the model ($($m.name))"
   Move-Item $file $modelPath
 }
+# A newer pinned model replaces the old one: don't leave gigabytes of it behind.
+Get-ChildItem $modelDir -Filter '*.gguf' | Where-Object { $_.Name -ne $m.file } | Remove-Item -Force
 Write-Host 'Model ready.'
 
 # 4. Settings read by the launcher.
@@ -117,6 +124,7 @@ $config = [ordered]@{
 $config | ConvertTo-Json | Set-Content -Encoding ascii (Join-Path $dest 'ai-editor.json')
 
 Remove-Item -Recurse -Force $dl -ErrorAction SilentlyContinue
+Set-Content -Encoding ascii (Join-Path $dest 'installed-version.txt') $AddonVersion
 Write-Host ''
 Progress 'Done'
 Write-Host "AI Editor installed in $dest ($($m.name), $Backend)."

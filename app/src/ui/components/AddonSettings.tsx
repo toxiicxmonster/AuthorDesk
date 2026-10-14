@@ -54,13 +54,18 @@ export function AddonSettings() {
               <div className="row gap">
                 <strong>{ADDONS[id].label}</strong>
                 <span className="grow" />
-                {p.installed && p.state !== 'installing' ? (
-                  <span className="small ok-text">Installed ✓</span>
-                ) : p.state === 'installing' || p.state === 'queued' ? (
+                {p.state === 'installing' || p.state === 'queued' ? (
                   <span className="small muted">
+                    {p.updating ? 'Updating: ' : ''}
                     {p.state === 'queued' ? 'Waiting…' : p.step || 'Starting…'}
                     {p.percent >= 0 ? ` ${p.percent}%` : ''}
                   </span>
+                ) : p.installed && p.updateAvailable && p.available ? (
+                  <button className="small" onClick={() => void install(id)}>
+                    Update
+                  </button>
+                ) : p.installed ? (
+                  <span className="small ok-text">Installed ✓ · up to date</span>
                 ) : p.available ? (
                   <button className="small" onClick={() => void install(id)}>
                     {p.state === 'failed' ? 'Try again' : `Install (${ADDONS[id].download} GB)`}

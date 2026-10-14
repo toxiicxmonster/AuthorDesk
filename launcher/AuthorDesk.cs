@@ -18,14 +18,14 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("AuthorDesk")]
 [assembly: AssemblyProduct("AuthorDesk")]
 [assembly: AssemblyDescription("Private writing studio for novelists")]
-[assembly: AssemblyVersion("0.4.0.0")]
+[assembly: AssemblyVersion("0.5.0.0")]
 
 namespace AuthorDesk
 {
     static class Program
     {
         // Release version; bump with each GitHub release (tag "v" + Version). scripts\package-release.ps1 reads it.
-        const string Version = "0.4";
+        const string Version = "0.5";
         const string UpdateRepo = "toxiicxmonster/AuthorDesk";
 
         // Fixed port: the browser stores your work per origin, so the address must never change.
@@ -44,6 +44,7 @@ namespace AuthorDesk
         const int GrammarPort = 47821;
         static string grammarDir;
         static Process grammar;
+        static readonly object grammarLock = new object();
 
         // Optional AI Editor (llama.cpp + an open-weight model), installed by scripts\install-ai-editor.ps1.
         // Loaded on first use and unloaded when idle, since it holds several GB of graphics memory.
@@ -97,6 +98,7 @@ namespace AuthorDesk
                 return 1;
             }
 
+            CheckAddonUpdates();
             StartGrammarEngine();
 
             var serverThread = new Thread(ServeLoop) { IsBackground = true, Name = "AuthorDesk server" };
@@ -298,6 +300,11 @@ namespace AuthorDesk
                     Write(res, "authordesk", "text/plain");
                     return;
                 }
+                if (path.StartsWith("/backup/"))
+                {
+                    HandleBackup(ctx, path);
+                    return;
+                }
                 if (path == "/setup/status")
                 {
                     Write(res, SetupStatusJson(), "application/json");
@@ -305,7 +312,8 @@ namespace AuthorDesk
                 }
                 if (path == "/setup/install" && ctx.Request.HttpMethod == "POST")
                 {
-                    QueueSetup((ctx.Request.QueryString["parts"] ?? "").Split(','));
+                    // Installs what's missing and updates what's out of date.
+                    QueueSetup((ctx.Request.QueryString["parts"] ?? "").Split(','), true);
                     Write(res, SetupStatusJson(), "application/json");
                     return;
                 }
@@ -658,6 +666,253 @@ namespace AuthorDesk
             try { if (f != null) { f.Close(); f.Dispose(); } } catch { }
         }
 
+        // ---------- Automatic backups ----------
+
+        // The app sends a fresh archive of a book after the author has been writing; the launcher keeps a rolling set on
+        // disk, outside the browser profile: <folder>\<Title> (<id>)\<Title> yyyy-MM-dd HHmm.authorproj.
+        // Settings live in %LOCALAPPDATA%\AuthorDesk\backup.json.
+
+        static readonly object backupLock = new object();
+        const long MaxBackupBytes = 1024L * 1024 * 1024;
+
+        static string BackupConfigPath { get { return Path.Combine(dataDir, "backup.json"); } }
+
+        static string DefaultBackupFolder
+        {
+            get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "AuthorDesk Backups"); }
+        }
+
+        static void ReadBackupConfig(out string folder, out bool enabled)
+        {
+            folder = DefaultBackupFolder;
+            enabled = true;
+            try
+            {
+                if (!File.Exists(BackupConfigPath)) return;
+                var j = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(BackupConfigPath));
+                string f = j.ContainsKey("folder") ? j["folder"] as string : null;
+                if (!string.IsNullOrEmpty(f) && Path.IsPathRooted(f)) folder = f;
+                if (j.ContainsKey("enabled") && j["enabled"] is bool) enabled = (bool)j["enabled"];
+            }
+            catch { }
+        }
+
+        static void WriteBackupConfig(string folder, bool enabled)
+        {
+            File.WriteAllText(BackupConfigPath, "{\"folder\":" + JsonString(folder) + ",\"enabled\":" + (enabled ? "true" : "false") + "}");
+        }
+
+        static string SafeFileName(string s, int max)
+        {
+            var sb = new StringBuilder();
+            foreach (char c in (s ?? "").Trim())
+            {
+                if (Array.IndexOf(Path.GetInvalidFileNameChars(), c) >= 0 || c < 32) continue;
+                sb.Append(c);
+            }
+            string r = sb.ToString().Trim().TrimEnd('.');
+            if (r.Length > max) r = r.Substring(0, max).Trim();
+            return r.Length > 0 ? r : "Untitled";
+        }
+
+        static string ShortId(string projectId)
+        {
+            string id = SafeFileName(projectId ?? "", 64).Replace(" ", "");
+            return id.Length > 8 ? id.Substring(0, 8) : id;
+        }
+
+        /// The book's folder, found by its id (and renamed to follow the book's current title), or created.
+        static string BookBackupDir(string root, string projectId, string title, bool create)
+        {
+            string id = ShortId(projectId);
+            string want = Path.Combine(root, SafeFileName(title, 80) + " (" + id + ")");
+            if (Directory.Exists(root))
+            {
+                foreach (string d in Directory.GetDirectories(root))
+                {
+                    if (!Path.GetFileName(d).EndsWith("(" + id + ")", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (title != null && !string.Equals(d, want, StringComparison.OrdinalIgnoreCase))
+                    {
+                        try { Directory.Move(d, want); return want; } catch { }
+                    }
+                    return d;
+                }
+            }
+            if (create) Directory.CreateDirectory(want);
+            return want;
+        }
+
+        static readonly System.Text.RegularExpressions.Regex BackupName =
+            new System.Text.RegularExpressions.Regex(@" (\d{4}-\d{2}-\d{2} \d{4})\.authorproj$");
+
+        /// Backups in a book's folder, newest first (only files AuthorDesk named; anything else is left alone).
+        static List<KeyValuePair<DateTime, string>> ListBackups(string dir)
+        {
+            var list = new List<KeyValuePair<DateTime, string>>();
+            if (!Directory.Exists(dir)) return list;
+            foreach (string f in Directory.GetFiles(dir, "*.authorproj"))
+            {
+                var m = BackupName.Match(Path.GetFileName(f));
+                DateTime t;
+                if (m.Success && DateTime.TryParseExact(m.Groups[1].Value, "yyyy-MM-dd HHmm", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out t))
+                    list.Add(new KeyValuePair<DateTime, string>(t, f));
+            }
+            list.Sort((a, b) => b.Key.CompareTo(a.Key));
+            return list;
+        }
+
+        /// Keeps every backup from the last day, one a day for 30 days, one a week after that, and always the newest 5.
+        static void PruneBackups(string dir, DateTime now)
+        {
+            var list = ListBackups(dir);
+            var keepDays = new HashSet<string>();
+            var keepWeeks = new HashSet<string>();
+            var cal = System.Globalization.CultureInfo.InvariantCulture.Calendar;
+            for (int i = 0; i < list.Count; i++)
+            {
+                DateTime t = list[i].Key;
+                TimeSpan age = now - t;
+                bool keep = i < 5 || age < TimeSpan.FromDays(1);
+                if (!keep && age < TimeSpan.FromDays(30)) keep = keepDays.Add(t.ToString("yyyy-MM-dd"));
+                else if (!keep)
+                    keep = keepWeeks.Add(t.Year + "-" + cal.GetWeekOfYear(t, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday));
+                if (!keep)
+                {
+                    try { File.Delete(list[i].Value); } catch { }
+                }
+            }
+        }
+
+        static string BackupStatusJson()
+        {
+            string folder;
+            bool enabled;
+            ReadBackupConfig(out folder, out enabled);
+            var sb = new StringBuilder("{\"enabled\":" + (enabled ? "true" : "false") + ",\"folder\":" + JsonString(folder) + ",\"books\":{");
+            bool first = true;
+            try
+            {
+                if (Directory.Exists(folder))
+                {
+                    foreach (string d in Directory.GetDirectories(folder))
+                    {
+                        var m = System.Text.RegularExpressions.Regex.Match(Path.GetFileName(d), @"\(([^()]{1,64})\)$");
+                        if (!m.Success) continue;
+                        var list = ListBackups(d);
+                        if (list.Count == 0) continue;
+                        long bytes = 0;
+                        foreach (var f in list) { try { bytes += new FileInfo(f.Value).Length; } catch { } }
+                        sb.Append(first ? "" : ",").Append(JsonString(m.Groups[1].Value)).Append(":{\"last\":")
+                            .Append(JsonString(list[0].Key.ToString("yyyy-MM-ddTHH:mm:00"))).Append(",\"count\":").Append(list.Count)
+                            .Append(",\"bytes\":").Append(bytes).Append("}");
+                        first = false;
+                    }
+                }
+            }
+            catch { }
+            return sb.Append("}}").ToString();
+        }
+
+        static void HandleBackup(HttpListenerContext ctx, string path)
+        {
+            var req = ctx.Request;
+            var res = ctx.Response;
+            res.Headers["Cache-Control"] = "no-store";
+            string folder;
+            bool enabled;
+            ReadBackupConfig(out folder, out enabled);
+            try
+            {
+                if (path == "/backup/status")
+                {
+                    Write(res, BackupStatusJson(), "application/json");
+                    return;
+                }
+                if (req.HttpMethod != "POST") { res.StatusCode = 405; return; }
+                if (path == "/backup/save")
+                {
+                    if (!enabled) { res.StatusCode = 409; Write(res, "{\"error\":\"Automatic backups are off.\"}", "application/json"); return; }
+                    string project = req.QueryString["project"];
+                    string title = req.QueryString["title"] ?? "Untitled";
+                    if (string.IsNullOrEmpty(project) || req.ContentLength64 <= 0 || req.ContentLength64 > MaxBackupBytes) { res.StatusCode = 400; return; }
+                    byte[] body;
+                    using (var ms = new MemoryStream()) { req.InputStream.CopyTo(ms); body = ms.ToArray(); }
+                    // An .authorproj is a zip: refuse anything else.
+                    if (body.Length < 4 || body[0] != 'P' || body[1] != 'K') { res.StatusCode = 400; return; }
+                    lock (backupLock)
+                    {
+                        long free = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(folder))).AvailableFreeSpace;
+                        if (free < body.Length * 3L + 200L * 1024 * 1024)
+                        {
+                            res.StatusCode = 507;
+                            Write(res, "{\"error\":\"Not enough free space for backups.\"}", "application/json");
+                            return;
+                        }
+                        Directory.CreateDirectory(folder);
+                        string dir = BookBackupDir(folder, project, title, true);
+                        DateTime now = DateTime.Now;
+                        string file = Path.Combine(dir, SafeFileName(title, 80) + " " + now.ToString("yyyy-MM-dd HHmm") + ".authorproj");
+                        string part = file + ".part";
+                        File.WriteAllBytes(part, body);
+                        if (File.Exists(file)) File.Delete(file);
+                        File.Move(part, file);
+                        PruneBackups(dir, now);
+                    }
+                    Write(res, BackupStatusJson(), "application/json");
+                    return;
+                }
+                if (path == "/backup/settings")
+                {
+                    string on = req.QueryString["enabled"];
+                    if (on != null) enabled = on == "1" || on == "true";
+                    WriteBackupConfig(folder, enabled);
+                    Write(res, BackupStatusJson(), "application/json");
+                    return;
+                }
+                if (path == "/backup/choose")
+                {
+                    // The folder picker needs its own UI thread.
+                    string chosen = null;
+                    var t = new Thread(() =>
+                    {
+                        using (var dlg = new FolderBrowserDialog { Description = "Choose where AuthorDesk keeps automatic backups", SelectedPath = folder, ShowNewFolderButton = true })
+                        using (var owner = new Form { TopMost = true, ShowInTaskbar = false, WindowState = FormWindowState.Minimized })
+                        {
+                            owner.Show();
+                            if (dlg.ShowDialog(owner) == DialogResult.OK) chosen = dlg.SelectedPath;
+                        }
+                    });
+                    t.SetApartmentState(ApartmentState.STA);
+                    t.Start();
+                    t.Join();
+                    if (!string.IsNullOrEmpty(chosen) && Path.IsPathRooted(chosen)) WriteBackupConfig(chosen, enabled);
+                    Write(res, BackupStatusJson(), "application/json");
+                    return;
+                }
+                if (path == "/backup/open")
+                {
+                    string project = req.QueryString["project"];
+                    Directory.CreateDirectory(folder);
+                    string target = string.IsNullOrEmpty(project) ? folder : BookBackupDir(folder, project, null, false);
+                    if (!Directory.Exists(target)) target = folder;
+                    Process.Start("explorer.exe", "\"" + target + "\"");
+                    Write(res, "{}", "application/json");
+                    return;
+                }
+                res.StatusCode = 404;
+            }
+            catch (Exception ex)
+            {
+                Log("Backup failed: " + ex.Message);
+                try
+                {
+                    res.StatusCode = 500;
+                    Write(res, "{\"error\":" + JsonString("The backup couldn't be saved: " + ex.Message) + "}", "application/json");
+                }
+                catch { }
+            }
+        }
+
         // ---------- Add-on setup (grammar engine, AI Editor) ----------
 
         /// The optional add-ons, installed in the background by their scripts while the author writes.
@@ -666,6 +921,8 @@ namespace AuthorDesk
             public string Id, Script, Dir;
             public string State = "idle"; // idle, queued, installing, done, failed
             public string Message = "";
+            public bool Updating; // replacing an older installed version
+            public long NeedGb; // free space to require before starting
         }
 
         static readonly object setupLock = new object();
@@ -679,8 +936,8 @@ namespace AuthorDesk
             {
                 if (setupParts.Count == 0)
                 {
-                    setupParts["ai"] = new SetupPart { Id = "ai", Script = "install-ai-editor.ps1", Dir = AiDir };
-                    setupParts["grammar"] = new SetupPart { Id = "grammar", Script = "install-grammar-engine.ps1", Dir = Path.Combine(dataDir, "grammar-engine") };
+                    setupParts["ai"] = new SetupPart { Id = "ai", Script = "install-ai-editor.ps1", Dir = AiDir, NeedGb = 10 };
+                    setupParts["grammar"] = new SetupPart { Id = "grammar", Script = "install-grammar-engine.ps1", Dir = Path.Combine(dataDir, "grammar-engine"), NeedGb = 26 };
                 }
                 return setupParts;
             }
@@ -696,6 +953,12 @@ namespace AuthorDesk
             return null;
         }
 
+        static bool SetupBusy(string id)
+        {
+            var parts = SetupParts();
+            lock (setupLock) return parts[id].State == "queued" || parts[id].State == "installing";
+        }
+
         static bool PartInstalled(string id)
         {
             if (id == "ai") return AiConfig() != null;
@@ -703,7 +966,67 @@ namespace AuthorDesk
             return GrammarInstalled && Directory.Exists(Path.Combine(grammarDir, "ngrams", "en"));
         }
 
+        /// The version an install script pins (its $AddonVersion line), or null if the script isn't here.
+        static string ExpectedVersion(SetupPart part)
+        {
+            try
+            {
+                string script = ScriptPath(part);
+                if (script == null) return null;
+                var m = System.Text.RegularExpressions.Regex.Match(File.ReadAllText(script), @"^\$AddonVersion\s*=\s*'([^']+)'", System.Text.RegularExpressions.RegexOptions.Multiline);
+                return m.Success ? m.Groups[1].Value : null;
+            }
+            catch { return null; }
+        }
+
+        /// What the installer recorded last time ("" for installs from before versions were recorded).
+        static string InstalledVersion(SetupPart part)
+        {
+            try
+            {
+                string f = Path.Combine(part.Dir, "installed-version.txt");
+                return File.Exists(f) ? File.ReadAllText(f).Trim().Replace("-no-ngrams", "") : "";
+            }
+            catch { return ""; }
+        }
+
+        /// Installed, but older than what this release's install script pins.
+        static bool UpdateNeeded(SetupPart part)
+        {
+            if (!PartInstalled(part.Id)) return false;
+            string expected = ExpectedVersion(part);
+            return expected != null && InstalledVersion(part) != expected;
+        }
+
+        /// At launch: bring installed add-ons up to the versions this release pins, in the background. The author agreed
+        /// to them when installing; updates replace only what changed (e.g. a new model) and resume if interrupted.
+        static void CheckAddonUpdates()
+        {
+            long freeGb = -1;
+            try { freeGb = new DriveInfo(Path.GetPathRoot(dataDir)).AvailableFreeSpace / (1024L * 1024 * 1024); } catch { }
+            var ids = new List<string>();
+            foreach (var part in SetupParts().Values)
+            {
+                if (!UpdateNeeded(part)) continue;
+                if (freeGb >= 0 && freeGb < part.NeedGb)
+                {
+                    lock (setupLock) { part.State = "failed"; part.Message = "An update needs about " + part.NeedGb + " GB free; this PC has " + freeGb + " GB. The current version keeps working."; }
+                    Log("Add-on update for " + part.Id + " skipped: not enough space");
+                    continue;
+                }
+                part.Updating = true;
+                ids.Add(part.Id);
+                Log("Add-on update for " + part.Id + ": " + (InstalledVersion(part) == "" ? "(unrecorded)" : InstalledVersion(part)) + " -> " + ExpectedVersion(part));
+            }
+            if (ids.Count > 0) QueueSetup(ids.ToArray(), true);
+        }
+
         static void QueueSetup(string[] ids)
+        {
+            QueueSetup(ids, false);
+        }
+
+        static void QueueSetup(string[] ids, bool updating)
         {
             var parts = SetupParts();
             lock (setupLock)
@@ -711,10 +1034,13 @@ namespace AuthorDesk
                 foreach (string raw in ids)
                 {
                     SetupPart part;
-                    if (!parts.TryGetValue(raw.Trim(), out part) || PartInstalled(part.Id)) continue;
+                    if (!parts.TryGetValue(raw.Trim(), out part)) continue;
+                    bool update = PartInstalled(part.Id);
+                    if (update && !(updating && UpdateNeeded(part))) continue;
                     if (part.State == "queued" || part.State == "installing" || ScriptPath(part) == null) continue;
                     part.State = "queued";
                     part.Message = "";
+                    part.Updating = update;
                     setupQueue.Enqueue(part);
                 }
                 if (setupRunning || setupQueue.Count == 0) return;
@@ -738,6 +1064,9 @@ namespace AuthorDesk
                 }
                 try
                 {
+                    // Its files are about to be replaced: stop it (the app shows it as updating meanwhile).
+                    if (part.Id == "grammar") { try { if (grammar != null && !grammar.HasExited) grammar.Kill(); } catch { } grammar = null; }
+                    if (part.Id == "ai") lock (aiLock) StopAi();
                     Directory.CreateDirectory(part.Dir);
                     string log = Path.Combine(dataDir, "setup-" + part.Id + ".log");
                     var psi = new ProcessStartInfo("powershell.exe",
@@ -764,10 +1093,11 @@ namespace AuthorDesk
                         proc.BeginOutputReadLine();
                         proc.BeginErrorReadLine();
                         proc.WaitForExit();
-                        bool ok = proc.ExitCode == 0 && PartInstalled(part.Id);
+                        bool ok = proc.ExitCode == 0 && PartInstalled(part.Id) && !UpdateNeeded(part);
                         lock (setupLock)
                         {
                             part.State = ok ? "done" : "failed";
+                            if (ok) part.Updating = false;
                             part.Message = ok ? "" : (lastError ?? "The installer stopped (exit code " + proc.ExitCode + "). It will pick up where it left off next time.");
                         }
                         Log("Setup " + part.Id + ": " + part.State + (ok ? "" : " (" + part.Message + ")"));
@@ -831,7 +1161,9 @@ namespace AuthorDesk
                         .Append(",\"state\":").Append(JsonString(state))
                         .Append(",\"step\":").Append(JsonString(part.State == "installing" ? step : ""))
                         .Append(",\"percent\":").Append(part.State == "installing" ? percent : -1)
-                        .Append(",\"message\":").Append(JsonString(part.Message)).Append("}");
+                        .Append(",\"message\":").Append(JsonString(part.Message))
+                        .Append(",\"updating\":").Append(part.Updating ? "true" : "false")
+                        .Append(",\"updateAvailable\":").Append(installed && part.State != "installing" && part.State != "queued" && UpdateNeeded(part) ? "true" : "false").Append("}");
                     first = false;
                 }
             }
@@ -884,7 +1216,7 @@ namespace AuthorDesk
         static bool EnsureAi()
         {
             var cfg = AiConfig();
-            if (cfg == null) return false;
+            if (cfg == null || SetupBusy("ai")) return false;
             lock (aiLock)
             {
                 aiLastUsed = DateTime.UtcNow;
@@ -952,7 +1284,8 @@ namespace AuthorDesk
             if (!EnsureAi())
             {
                 res.StatusCode = 503;
-                Write(res, AiConfig() == null ? "{\"error\":\"The AI Editor is not installed.\"}" : "{\"error\":\"The AI Editor could not start.\"}", "application/json");
+                Write(res, SetupBusy("ai") ? "{\"error\":\"The AI Editor is being updated. It will be back in a few minutes.\"}"
+                    : AiConfig() == null ? "{\"error\":\"The AI Editor is not installed.\"}" : "{\"error\":\"The AI Editor could not start.\"}", "application/json");
                 return;
             }
             var req = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + AiPort + "/v1/chat/completions");
@@ -1005,7 +1338,11 @@ namespace AuthorDesk
         static void StartGrammarEngine()
         {
             grammarDir = Path.Combine(dataDir, "grammar-engine");
+            lock (grammarLock)
+            {
             if (!GrammarInstalled || GrammarReady()) return; // not installed, or one is already serving
+            if (SetupBusy("grammar")) return; // being updated; started again when that finishes
+            try { if (grammar != null && !grammar.HasExited) return; } catch { } // already starting
             try
             {
                 string props = Path.Combine(grammarDir, "server.properties");
@@ -1024,6 +1361,7 @@ namespace AuthorDesk
             catch (Exception ex)
             {
                 Log("Could not start grammar engine: " + ex.Message);
+            }
             }
         }
 

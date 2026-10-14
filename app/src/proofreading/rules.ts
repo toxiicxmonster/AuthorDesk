@@ -202,7 +202,7 @@ function dialectMap(dialect: 'en-US' | 'en-GB'): Map<string, string> {
 const SAID_VERBS =
   'said|asked|whispered|replied|shouted|muttered|called|answered|cried|murmured|yelled|snapped|added|continued|explained|admitted|insisted|agreed|lied|sighed|laughed';
 
-const ADVERB_EXCEPTIONS = new Set([
+export const ADVERB_EXCEPTIONS = new Set([
   'only', 'family', 'early', 'reply', 'ally', 'fly', 'holy', 'ugly', 'lovely', 'friendly', 'belly', 'jelly', 'italy',
   'supply', 'apply', 'rely', 'july', 'lily', 'bully', 'silly', 'daily', 'likely', 'lonely', 'elderly', 'deadly',
   'costly', 'curly', 'hilly', 'oily', 'smelly', 'chilly', 'jolly', 'molly', 'polly', 'sally', 'kelly', 'emily',
@@ -558,6 +558,9 @@ const RULE_LABELS: Record<string, string> = {
   spelling: 'Spelling (dictionary)',
   'new-name': 'Names not yet in your characters & world list',
   'character-fact': 'Character details missing from their entry (green)',
+  'echo-word': 'Echo words (the same word again a few lines later)',
+  continuity: 'Continuity: a character described differently elsewhere in the book',
+  'continuity-death': 'Continuity: a character speaking after their death',
   'character-conflict': 'Details that contradict a character’s entry (purple)',
   ...Object.fromEntries(CONFUSED.map(([id, , , , label]) => [id, label])),
 };

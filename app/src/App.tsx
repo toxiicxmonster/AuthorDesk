@@ -14,6 +14,7 @@ const TimelinePage = lazy(() => import('./ui/pages/TimelinePage').then((m) => ({
 const ThreadsPage = lazy(() => import('./ui/pages/ThreadsPage').then((m) => ({ default: m.ThreadsPage })));
 const NotesPage = lazy(() => import('./ui/pages/NotesPage').then((m) => ({ default: m.NotesPage })));
 const SearchPage = lazy(() => import('./ui/pages/SearchPage').then((m) => ({ default: m.SearchPage })));
+const ReviewPage = lazy(() => import('./ui/pages/ReviewPage').then((m) => ({ default: m.ReviewPage })));
 const DataPage = lazy(() => import('./ui/pages/DataPage').then((m) => ({ default: m.DataPage })));
 const SettingsPage = lazy(() => import('./ui/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 import { useSettings, updateSettings } from './storage/settings';
@@ -33,6 +34,7 @@ const NAV: [View, string, IconName, string][] = [
   ['timeline', 'Timeline', 'timeline', 'When things happen in your story'],
   ['threads', 'Threads', 'threads', 'Plot threads across chapters'],
   ['notes', 'Notes', 'notes', 'Research & notes'],
+  ['review', 'Review', 'review', 'The whole book at once: overused words, pacing, readability'],
   ['data', 'Backup', 'backup', 'Backup, export & sync'],
 ];
 
@@ -143,6 +145,9 @@ export function App() {
         break;
       case 'notes':
         page = <NotesPage projectId={pid} selectedId={route.itemId} />;
+        break;
+      case 'review':
+        page = <ReviewPage projectId={pid} />;
         break;
       case 'search':
         page = <SearchPage projectId={pid} initialQuery={route.params.get('q') ?? ''} />;

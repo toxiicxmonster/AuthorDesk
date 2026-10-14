@@ -18,6 +18,7 @@
   --warn-line: #c58b00;
   --style-line: #4a7fb5;
   --note-line: #2e8b57;
+  --echo-line: #12898f;
   --conflict-line: #8e44ad;
   --page: #fffdf8;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.06);
@@ -47,8 +48,10 @@
     --warn-line: #e0b04c;
     --style-line: #7fb0ea;
   --note-line: #6fcf8f;
+  --echo-line: #4fd1d1;
   --conflict-line: #c39bd3;
     --note-line: #6fcf8f;
+    --echo-line: #4fd1d1;
     --conflict-line: #c39bd3;
     --page: #22211f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.3);
@@ -869,10 +872,16 @@ details.banner {
   cursor: pointer;
 }
 /* Each kind of mark has its own colour and line: red wavy = likely error, purple double = contradicts a character's
-   entry, amber solid = check, blue dotted = style, green dashed = a detail a character's entry could gain. */
+   entry, amber solid = check, teal dotted (thick) = echo word, blue dotted = style, green dashed = a detail a character's
+   entry could gain. */
 .pr-note {
   text-decoration-color: var(--note-line);
   text-decoration-style: dashed;
+}
+.pr-echo {
+  text-decoration-color: var(--echo-line);
+  text-decoration-style: dotted;
+  text-decoration-thickness: 3px;
 }
 .pr-style {
   text-decoration-color: var(--style-line);
@@ -982,6 +991,9 @@ details.banner {
 }
 .sev-note {
   color: var(--note-line);
+}
+.sev-echo {
+  color: var(--echo-line);
 }
 .sev-conflict {
   color: var(--conflict-line);
@@ -2958,4 +2970,149 @@ input[type='checkbox'] {
     width: 100% !important;
     opacity: 0.5;
   }
+}
+
+code.path {
+  word-break: break-all;
+}
+
+/* Review page */
+.review-head h1 {
+  margin: 0;
+}
+.review-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+.review-overview .stat {
+  display: flex;
+  flex-direction: column;
+}
+.review-overview .stat strong {
+  font-size: 1.4rem;
+}
+.review-overview .stat span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.review-overview .stat.high strong,
+.review-table td.high {
+  color: var(--warn);
+}
+.review-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.review-table th,
+.review-table td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.review-table td:first-child {
+  white-space: normal;
+}
+.review-table tr.clickable {
+  cursor: pointer;
+}
+.review-table tr.clickable:hover td {
+  background: var(--accent-soft);
+}
+.review-table td:last-child {
+  width: 30%;
+  min-width: 120px;
+}
+.pace-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--line);
+}
+.pace-bar i,
+.pace-legend i {
+  display: block;
+  min-width: 2px;
+}
+.pace-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-2);
+}
+.pace-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.pace-legend i {
+  width: 12px;
+  height: 10px;
+  border-radius: 3px;
+}
+.pace-dialogue {
+  background: var(--style-line);
+}
+.pace-fast {
+  background: var(--note-line);
+}
+.pace-medium {
+  background: color-mix(in srgb, var(--text) 25%, transparent);
+}
+.pace-slow {
+  background: var(--warn-line);
+}
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.review-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.review-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.review-list .link-btn {
+  font-size: 0.92rem;
+}
+.spark {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 14px;
+  margin-left: auto;
+}
+.spark i {
+  display: block;
+  width: 3px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+@media (max-width: 700px) {
+  .review-table th:nth-child(3),
+  .review-table td:nth-child(3),
+  .review-table th:nth-child(4),
+  .review-table td:nth-child(4) {
+    display: none;
+  }
+}
+
+.pdf-preview iframe {
+  width: 100%;
+  height: 420px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
 }

@@ -73,7 +73,12 @@ export function DialoguePanel({ projectId }: { projectId: string }) {
 
       <section>
         <h3>In a character’s voice</h3>
-        <DialogueVoice line={current} paragraph={current ? blocks[current.block].text : ''} characters={characters} />
+        <DialogueVoice
+          line={current}
+          paragraph={current ? blocks[current.block].text : ''}
+          characters={characters}
+          anchor={current ? { from: blocks[current.block].pos + current.start, to: blocks[current.block].pos + current.end, text: current.text } : null}
+        />
       </section>
 
       {report.issues.length > 0 && (

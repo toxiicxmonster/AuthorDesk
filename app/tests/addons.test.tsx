@@ -5,7 +5,17 @@ import { resetDbForTests } from '../src/storage/db';
 import { getSettings } from '../src/storage/settings';
 
 const status = (over: Partial<Record<'ai' | 'grammar', Partial<SetupStatus['parts']['ai']>>> = {}, freeGb = 600): SetupStatus => {
-  const part = (x: Partial<SetupStatus['parts']['ai']> = {}) => ({ installed: false, available: true, state: 'idle' as const, step: '', percent: -1, message: '', ...x });
+  const part = (x: Partial<SetupStatus['parts']['ai']> = {}) => ({
+    installed: false,
+    available: true,
+    state: 'idle' as const,
+    step: '',
+    percent: -1,
+    message: '',
+    updating: false,
+    updateAvailable: false,
+    ...x,
+  });
   return { freeGb, parts: { ai: part(over.ai), grammar: part(over.grammar) } };
 };
 
@@ -78,5 +88,23 @@ describe('first-launch setup', () => {
     await screen.findByText(/Set up AuthorDesk’s private add-ons/);
     fireEvent.click(screen.getByRole('button', { name: /Don’t ask again/ }));
     await waitFor(async () => expect((await getSettings()).addonPrompt).toBe('never'));
+  });
+
+  it('shows add-on updates started at launch, and says when they finish', async () => {
+    const installed = { installed: true, state: 'done' as const };
+    let i = 0;
+    const states = [
+      status({ grammar: installed, ai: { installed: true, state: 'installing', updating: true, step: 'Downloading the model', percent: 12 } }),
+      status({ grammar: installed, ai: { installed: true, state: 'done', updating: false } }),
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify(states[Math.min(i++, states.length - 1)]), { headers: { 'Content-Type': 'application/json' } })),
+    );
+    render(<AddonSetup />);
+    expect(await screen.findByText(/Updating/)).toBeTruthy();
+    expect(screen.getByText(/Downloading the model 12%/)).toBeTruthy();
+    expect(screen.queryByText(/Set up AuthorDesk’s private add-ons/)).toBeNull(); // nothing to offer: both are installed
+    await waitFor(() => expect(screen.queryByText(/Downloading the model/)).toBeNull(), { timeout: 4000 });
   });
 });

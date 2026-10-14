@@ -27,18 +27,20 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 
 /**
  * error = very likely wrong; warning = probably wrong; style = optional craft suggestion;
- * conflict = contradicts a character's reference entry; note = a detail the reference entry could gain.
+ * conflict = contradicts a character's reference entry; note = a detail the reference entry could gain;
+ * echo = the same noticeable word used again a few lines later.
  * Each has its own underline colour.
  */
-export type Severity = 'error' | 'warning' | 'style' | 'conflict' | 'note';
+export type Severity = 'error' | 'warning' | 'echo' | 'style' | 'conflict' | 'note';
 
 /** Most important first; also decides which colour shows when marks overlap. */
-export const SEVERITY_RANK: Record<Severity, number> = { error: 0, conflict: 1, warning: 2, style: 3, note: 4 };
+export const SEVERITY_RANK: Record<Severity, number> = { error: 0, conflict: 1, warning: 2, echo: 3, style: 4, note: 5 };
 
 export const SEVERITY_LABEL: Record<Severity, string> = {
   error: 'Likely error',
   conflict: 'Doesn’t match the character',
   warning: 'Check',
+  echo: 'Echo',
   style: 'Style',
   note: 'Character detail',
 };
