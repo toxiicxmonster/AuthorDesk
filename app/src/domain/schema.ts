@@ -35,6 +35,8 @@ export const bookSchema = z.looseObject({
   title: z.string(),
   subtitle: z.string().default(''),
   order: z.number(),
+  /** Optional word-count goal for the whole book (Home dashboard). */
+  targetWords: z.number().int().nonnegative().optional(),
   /** Publishing details (used by the KDP / eBook exports). Optional on older records. */
   publishing: z
     .object({
@@ -66,6 +68,8 @@ export const chapterSchema = z.looseObject({
   summary: z.string().default(''),
   status: writingStatus.default('drafting'),
   pinned: z.boolean().default(false),
+  /** Optional word-count goal for the chapter. */
+  targetWords: z.number().int().nonnegative().optional(),
 });
 
 /** ProseMirror/TipTap JSON document. Validated structurally by the editor schema at load time. */
@@ -347,6 +351,8 @@ export interface UserSettings {
   /** Offer to install missing add-ons (grammar engine, AI Editor) when AuthorDesk starts. */
   addonPrompt: 'ask' | 'never';
   pageWidth: 'narrow' | 'medium' | 'wide';
+  /** The pacing strip beside the page (sentence lengths, dialogue and narration). */
+  pacingStrip: boolean;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -369,4 +375,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   aiTemperature: 0.4,
   addonPrompt: 'ask',
   pageWidth: 'medium',
+  pacingStrip: true,
 };

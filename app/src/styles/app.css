@@ -3429,3 +3429,126 @@ code.path {
   border-radius: 4px;
   padding: 0.4rem;
 }
+
+/* ---------- Targets & length (Home) ---------- */
+.book-progress .progress-head {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.chapter-targets {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8rem 0;
+  font-size: 0.9rem;
+}
+.chapter-targets th,
+.chapter-targets td {
+  text-align: left;
+  padding: 0.25rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.chapter-targets .num {
+  text-align: right;
+  white-space: nowrap;
+}
+.chapter-targets .target-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.chapter-targets .target-cell .progress {
+  flex: 1;
+  min-width: 40px;
+  margin: 0;
+}
+.chapter-targets .target-input input {
+  width: 6.5em;
+  padding: 0.15rem 0.35rem;
+}
+.streak-cal {
+  display: flex;
+  gap: 3px;
+  margin: 0.4rem 0;
+  overflow-x: auto;
+}
+.streak-week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.streak-day {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--surface-2);
+}
+.streak-day.on {
+  background: var(--accent);
+}
+.streak-day.future {
+  visibility: hidden;
+}
+@media (min-width: 900px) {
+  .book-progress {
+    grid-column: span 2;
+  }
+}
+
+/* ---------- Pacing strip (beside the page) ---------- */
+.page-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.page-row .page {
+  min-width: 0;
+}
+.pacing-strip {
+  width: 22px;
+  flex-shrink: 0;
+  padding: 0.75rem 2px;
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  position: relative;
+}
+.pacing-strip svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.pacing-strip .pt-narration {
+  fill: var(--muted);
+  opacity: 0.55;
+}
+.pacing-strip .pt-dialogue {
+  fill: var(--accent);
+}
+.pacing-strip .pt-long {
+  fill: #d9822b;
+}
+.pacing-strip .pt-longpara {
+  fill: #d9822b;
+  opacity: 0.6;
+}
+.pacing-strip .pt-view {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+@media (max-width: 700px) {
+  .pacing-strip {
+    display: none;
+  }
+}
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

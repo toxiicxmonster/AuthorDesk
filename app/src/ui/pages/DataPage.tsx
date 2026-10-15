@@ -6,7 +6,7 @@ import { saveFile, stamp, fileSafe } from '../../importExport/download';
 import { BundleImportCard } from '../components/BundleImport';
 import { KdpExportDialog } from '../components/KdpExport';
 import { ExtraPagesPicker, useExtraPagesData, type ExtraPagesChoice } from '../components/BookPages';
-import { resolveExtraPages } from '../../domain/bookPages';
+import { NO_EXTRA_PAGES, resolveExtraPages } from '../../domain/bookPages';
 import * as drive from '../../importExport/googleDrive';
 import { useArchiveImport } from '../components/ImportPanel';
 import { updateSettings, useSettings } from '../../storage/settings';
@@ -30,7 +30,7 @@ export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }:
   const pageData = useExtraPagesData(projectId);
   /** Dedication / About the Author for a book: the chosen pages for the selected book, automatic for the others. */
   const pagesFor = (id: string) =>
-    pageData ? resolveExtraPages(id, projectId, pageData.projects, pageData.books, id === book?.id ? pageChoice : {}) : { dedication: '', aboutAuthor: '' };
+    pageData ? resolveExtraPages(id, projectId, pageData.projects, pageData.books, id === book?.id ? pageChoice : {}) : NO_EXTRA_PAGES;
   const name = fileSafe(project?.name ?? 'project');
 
   const run = async (label: string, fn: () => Promise<void>) => {

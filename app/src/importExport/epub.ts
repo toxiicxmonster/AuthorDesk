@@ -4,7 +4,7 @@
  */
 import { strToU8, zipSync, type Zippable } from 'fflate';
 import type { PmNode } from '../domain/text';
-import { tocEntry, type PublishModel } from './publish';
+import { backPages, epigraphLines, tocEntry, type PublishModel } from './publish';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -26,7 +26,7 @@ function inlineXhtml(nodes: PmNode[] | undefined): string {
 }
 
 /** Convert manuscript blocks to XHTML. The first paragraph after a heading or scene break isn't indented. */
-export function blocksToXhtml(blocks: PmNode[]): string {
+export function blocksToXhtml(blocks: PmNode[], sceneBreak = '* * *'): string {
   let first = true;
   const out: string[] = [];
   const block = (b: PmNode): string => {
@@ -43,7 +43,7 @@ export function blocksToXhtml(blocks: PmNode[]): string {
         return `<h3>${inlineXhtml(b.content)}</h3>`;
       case 'horizontalRule':
         first = true;
-        return '<p class="scene-break">* * *</p>';
+        return `<p class="scene-break">${esc(sceneBreak.replace(/\s+/g, ' ').trim()) || '&#160;'}</p>`;
       case 'blockquote': {
         const inner = (b.content ?? []).map(block).join('\n');
         first = true;
@@ -65,6 +65,46 @@ export function blocksToXhtml(blocks: PmNode[]): string {
   return out.join('\n');
 }
 
+/** The eBook's look. Kindle lets readers pick their own font and size; these set headings, openings and spacing. */
+export const EBOOK_STYLES = ['classic', 'modern', 'minimal'] as const;
+export type EbookStyle = (typeof EBOOK_STYLES)[number];
+
+export const EBOOK_STYLE_LABELS: Record<EbookStyle, string> = {
+  classic: 'Classic: centred headings, the opening line in small caps',
+  modern: 'Modern: bold left-aligned headings, a large first letter',
+  minimal: 'Minimal: quiet headings, no ornaments',
+};
+
+export interface EbookLook {
+  style: EbookStyle;
+  /** The scene-break line (the same choice as the paperback). */
+  sceneBreak: string;
+}
+
+export const DEFAULT_EBOOK_LOOK: EbookLook = { style: 'classic', sceneBreak: '* * *' };
+
+const STYLE_CSS: Record<EbookStyle, string> = {
+  classic: `h1 { font-variant: small-caps; letter-spacing: 0.05em; }
+section > p.first::first-line { font-variant: small-caps; letter-spacing: 0.03em; }
+`,
+  modern: `h1 { font-family: sans-serif; font-weight: bold; text-align: left; font-size: 1.6em; margin: 2em 0 1.2em; }
+.chapter-label { font-family: sans-serif; font-size: 0.55em; letter-spacing: 0.2em; color: #666; }
+h3 { font-family: sans-serif; font-style: normal; font-weight: bold; text-align: left; }
+p { text-align: left; }
+section > p.first::first-letter { float: left; font-size: 3.2em; line-height: 0.85; margin: 0.05em 0.08em 0 0; font-weight: bold; }
+.titlepage h1, nav h1, .about h1 { text-align: center; }
+`,
+  minimal: `h1 { font-size: 1.25em; margin: 2.5em 0 1.5em; }
+.chapter-label { letter-spacing: 0.1em; }
+p.scene-break { margin: 1.5em 0; color: #888; }
+`,
+};
+
+/** The stylesheet for a style: the shared base, then the style's own rules. */
+export function ebookCss(style: EbookStyle = 'classic'): string {
+  return CSS + STYLE_CSS[style];
+}
+
 const CSS = `body { font-family: serif; line-height: 1.4; margin: 0; }
 p { margin: 0; text-indent: 1.5em; text-align: justify; }
 p.first, p.scene-break + p, h1 + p, h3 + p { text-indent: 0; }
@@ -82,6 +122,9 @@ blockquote p { text-indent: 0; }
 .copyright { font-size: 0.8em; margin-top: 40%; }
 .copyright p, .dedication p, .about p { text-indent: 0; margin-bottom: 0.8em; }
 .dedication { text-align: center; font-style: italic; margin-top: 30%; }
+.epigraph { text-align: center; font-style: italic; margin: 30% 2em 0; }
+.epigraph p { text-indent: 0; text-align: center; margin-bottom: 0.4em; }
+.epigraph p.attribution { font-style: normal; margin-top: 0.8em; }
 nav ol { list-style: none; padding: 0; margin: 0 1.5em; }
 nav li { margin: 0.4em 0; }
 `;
@@ -115,7 +158,7 @@ export interface EpubCover {
 }
 
 /** Build the .epub file. `bookId` gives a stable identifier when there's no ISBN. */
-export function buildEpub(model: PublishModel, bookId: string, cover?: EpubCover, now = new Date()): Uint8Array {
+export function buildEpub(model: PublishModel, bookId: string, cover?: EpubCover, look: EbookLook = DEFAULT_EBOOK_LOOK, now = new Date()): Uint8Array {
   const { info, options } = model;
   const lang = info.language || 'en';
   const files: Record<string, string | Uint8Array> = {};
@@ -152,20 +195,28 @@ export function buildEpub(model: PublishModel, bookId: string, cover?: EpubCover
   if (options.includeDedication && info.dedication.trim()) {
     add('dedication', 'dedication.xhtml', page('Dedication', `<div class="dedication">${paras(info.dedication)}</div>`, lang), 'Dedication');
   }
+  if (info.epigraph.trim()) {
+    const body = epigraphLines(info.epigraph)
+      .map((l) => `<p${l.attribution ? ' class="attribution"' : ''}>${esc(l.text)}</p>`)
+      .join('\n');
+    add('epigraph', 'epigraph.xhtml', page('Epigraph', `<div class="epigraph" epub:type="epigraph">${body}</div>`, lang), 'Epigraph');
+  }
   const tocIndex = items.length;
   const chapterIds: string[] = [];
   model.chapters.forEach((c, i) => {
     const id = `chapter-${i + 1}`;
     chapterIds.push(id);
     const heading = `<h1 id="${id}">${c.label ? `<span class="chapter-label">${esc(c.label)}</span>` : ''}${esc(c.title)}</h1>`;
-    add(id, `${id}.xhtml`, page(tocEntry(c), `<section epub:type="chapter">\n${heading}\n${blocksToXhtml(c.blocks)}\n</section>`, lang), tocEntry(c));
+    add(id, `${id}.xhtml`, page(tocEntry(c), `<section epub:type="chapter">\n${heading}\n${blocksToXhtml(c.blocks, look.sceneBreak)}\n</section>`, lang), tocEntry(c));
   });
-  if (options.includeAboutAuthor && info.aboutAuthor.trim()) {
-    add('about', 'about.xhtml', page('About the Author', `<section class="about" epub:type="appendix"><h1>About the Author</h1>${paras(info.aboutAuthor)}</section>`, lang), 'About the Author');
+  for (const p of backPages(model)) {
+    const type = p.id === 'acknowledgements' ? 'acknowledgments' : 'appendix';
+    const text = p.id === 'alsoBy' ? p.text.replace(/\n+/g, '\n\n') : p.text;
+    add(p.id, `${p.id}.xhtml`, page(p.title, `<section class="about" epub:type="${type}"><h1>${esc(p.title)}</h1>${paras(text)}</section>`, lang), p.title);
   }
 
   // Navigation (EPUB 3) — also a visible "Contents" page placed before the first chapter.
-  const tocEntries = items.filter((it) => it.label && it.id !== 'titlepage' && it.id !== 'copyright' && it.id !== 'dedication');
+  const tocEntries = items.filter((it) => it.label && it.id !== 'titlepage' && it.id !== 'copyright' && it.id !== 'dedication' && it.id !== 'epigraph');
   const navHtml = page(
     'Contents',
     `<nav epub:type="toc" id="toc"><h1>Contents</h1><ol>${tocEntries.map((it) => `<li><a href="${it.href}">${esc(it.label!)}</a></li>`).join('')}</ol></nav>
@@ -191,7 +242,7 @@ ${tocEntries.map((it, i) => `<navPoint id="np${i + 1}" playOrder="${i + 1}"><nav
 </ncx>
 `;
   files['OEBPS/toc.ncx'] = ncx;
-  files['OEBPS/style.css'] = CSS;
+  files['OEBPS/style.css'] = ebookCss(look.style);
 
   const modified = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
   const coverItem = cover ? `<item id="cover-image" href="cover.${cover.mediaType === 'image/png' ? 'png' : 'jpg'}" media-type="${cover.mediaType}" properties="cover-image"/>` : '';

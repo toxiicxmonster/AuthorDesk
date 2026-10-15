@@ -14,6 +14,7 @@ export interface ContinuityScene {
   paragraphs: string[];
   /** In a series, which book (0-based); chapterIndex counts within that book. */
   bookIndex?: number;
+  chapterId?: string;
 }
 
 export interface PlacedFact extends FoundFact {
@@ -83,7 +84,12 @@ export const contradictionKey = (characterId: string, label: string, a: string, 
  * Pairs of places that describe the same character's detail differently, earliest first, minus those the author
  * marked as changed on purpose. Distinctive features (freckles, scars) are presence-only, so they never conflict.
  */
-export function findContradictions(facts: readonly PlacedFact[], dismissed: ReadonlySet<string> = new Set()): Contradiction[] {
+export function findContradictions(
+  facts: readonly PlacedFact[],
+  dismissed: ReadonlySet<string> = new Set(),
+  /** Scenes with a date on the timeline: ages between two of them are checked against the dates instead (ages.ts). */
+  datedScenes: ReadonlySet<string> = new Set(),
+): Contradiction[] {
   const groups = new Map<string, PlacedFact[]>();
   for (const f of facts) {
     if (f.attribute === 'feature') continue;
@@ -98,6 +104,7 @@ export function findContradictions(facts: readonly PlacedFact[], dismissed: Read
     for (const f of ordered.slice(1)) {
       if (seenValues.some((v) => !differ(f.label, v, f.value))) continue;
       seenValues.push(f.value);
+      if (f.attribute === 'age' && datedScenes.has(first.sceneId) && datedScenes.has(f.sceneId)) continue;
       const key = contradictionKey(f.characterId, f.label, first.value, f.value);
       if (dismissed.has(key)) continue;
       out.push({

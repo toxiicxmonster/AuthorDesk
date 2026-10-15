@@ -9,6 +9,7 @@ import { countChars, countWords } from '../domain/text';
 import { saveSceneContent, createSnapshot, createRecord, updateRecord } from '../storage/repo';
 import { db } from '../storage/db';
 import { getSettings, updateSettings, useSettings } from '../storage/settings';
+import { PacingStrip } from './PacingStrip';
 import { confirmDialog, getUi, setUi, toast, useUi, reportError } from '../ui/store';
 import { cleanPastedHtml, editorExtensions } from './extensions';
 import { registerFlusher } from './EditorContext';
@@ -69,6 +70,7 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
     });
   }, []);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
   const proofOn = settings.proofreadEnabled;
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -298,7 +300,8 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
           </button>
         </div>
       )}
-      <div className="page" onClick={onEditorClick}>
+      <div className="page-row">
+      <div className="page" onClick={onEditorClick} ref={pageRef}>
         <EditorContent editor={editor} />
         <BubbleMenu
           editor={editor}
@@ -334,6 +337,8 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
             onRerun={() => void proofread()}
           />
         )}
+      </div>
+      {settings.pacingStrip && !focusMode && <PacingStrip editor={editor} pageRef={pageRef} />}
       </div>
       <footer className="editor-footer" aria-live="polite">
         <span title="Words in selection">{selWords ? `${selWords.toLocaleString()} selected · ` : ''}</span>
@@ -538,7 +543,7 @@ function SuggestionItem({
     toast(`Turned off this check. Re-enable it in Settings → Proofreading.`);
   };
   const wordList = s.category === 'spelling' || s.category === 'consistency';
-  if ((s.ruleId === 'continuity' || s.ruleId === 'continuity-death') && s.data) {
+  if ((s.ruleId === 'continuity' || s.ruleId === 'continuity-death' || s.ruleId === 'continuity-age') && s.data) {
     const d = s.data;
     const first = d.characterName.split(/\s+/)[0];
     return (

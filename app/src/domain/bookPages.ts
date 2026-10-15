@@ -2,19 +2,27 @@ import { z } from 'zod';
 import type { Book, Project } from './schema';
 
 /**
- * Extra book pages written once and reused across books: dedications and "About the Author".
+ * Extra book pages written once and reused across books: dedications, epigraphs, acknowledgements,
+ * "About the Author" and "Also by".
  * Stored on the project record (so they are included in backups and sync). A page applies to:
  * - 'everywhere': every book in every project (typical for an author bio),
  * - 'project':    every book in its project,
  * - 'books':      only the listed books.
  */
-export const BOOK_PAGE_KINDS = ['dedication', 'about'] as const;
+export const BOOK_PAGE_KINDS = ['dedication', 'epigraph', 'acknowledgements', 'about', 'alsoBy'] as const;
 export type BookPageKind = (typeof BOOK_PAGE_KINDS)[number];
 
 export const BOOK_PAGE_LABELS: Record<BookPageKind, string> = {
   dedication: 'Dedication',
+  epigraph: 'Epigraph',
+  acknowledgements: 'Acknowledgements',
   about: 'About the Author',
+  alsoBy: 'Also by',
 };
+
+/** Where each page goes: dedication and epigraph before the contents; the rest after the last chapter. */
+export const FRONT_PAGES: BookPageKind[] = ['dedication', 'epigraph'];
+export const BACK_PAGES: BookPageKind[] = ['acknowledgements', 'about', 'alsoBy'];
 
 export const bookPageSchema = z.looseObject({
   id: z.string().min(1).max(64),
@@ -97,18 +105,26 @@ export function defaultPage(choices: PageChoice[]): BookPage | null {
   return choices.find((c) => c.applies)?.page ?? null;
 }
 
-/** Text of the chosen pages for an export. `undefined` choice = the default; `null` = none. */
+/** Text of the chosen pages for an export (empty = leave the page out). */
 export interface ExtraPagesText {
   dedication: string;
+  epigraph: string;
+  acknowledgements: string;
   aboutAuthor: string;
+  alsoBy: string;
 }
+
+export const NO_EXTRA_PAGES: ExtraPagesText = { dedication: '', epigraph: '', acknowledgements: '', aboutAuthor: '', alsoBy: '' };
+
+/** The author's choice per export and kind: `undefined` = the default (the page that applies), `null` = none, or a page id. */
+export type ExtraPagesChoice = Partial<Record<BookPageKind, string | null>>;
 
 export function resolveExtraPages(
   bookId: string,
   projectId: string,
   projects: Parameters<typeof pageChoices>[3],
   books: Pick<Book, 'id' | 'title'>[],
-  chosen: { dedication?: string | null; about?: string | null } = {},
+  chosen: ExtraPagesChoice = {},
 ): ExtraPagesText {
   const pick = (kind: BookPageKind, choice: string | null | undefined) => {
     const choices = pageChoices(kind, bookId, projectId, projects, books);
@@ -116,5 +132,11 @@ export function resolveExtraPages(
     const page = choice === undefined ? defaultPage(choices) : (choices.find((c) => c.page.id === choice)?.page ?? null);
     return page?.text.trim() ?? '';
   };
-  return { dedication: pick('dedication', chosen.dedication), aboutAuthor: pick('about', chosen.about) };
+  return {
+    dedication: pick('dedication', chosen.dedication),
+    epigraph: pick('epigraph', chosen.epigraph),
+    acknowledgements: pick('acknowledgements', chosen.acknowledgements),
+    aboutAuthor: pick('about', chosen.about),
+    alsoBy: pick('alsoBy', chosen.alsoBy),
+  };
 }

@@ -13,12 +13,14 @@ Click **◐** in the top bar to switch between Paper, Sepia, Pastel Blue, Sage, 
 ## Writing
 
 - **Home** shows your book’s word count, today’s words (set a daily goal), recent scenes, quick-create buttons and backup status. **Continue writing** reopens where you left off.
+- **Targets & length** (on Home): type a **book target** (80000, 80,000 or 80k) to see your progress and, from your last 14 days of writing, the date you’ll reach it. Give any chapter its own target in the table, or *Split the book target evenly*. The table shows each chapter's words and **estimated printed pages**, with a total for the book. Choose the size to estimate for: mass-market paperback, the KDP paperback and hardcover trims (5 × 8 to 6.14 × 9.21 in), or a standard manuscript page (250 words). Print estimates include title, copyright and contents pages and chapters opening on right-hand pages, like the paperback export. Below it, the **writing streak** calendar shows the last 12 weeks.
 - **Write:** the chapter list is on the left (☰ or Ctrl+\\ to toggle), the page in the middle, tools on the right (◧). Each chapter has one or more scenes; with one scene the chapter simply *is* the scene.
 - Everything saves automatically; the badge at the top shows *Saving soon… / Saving… / All changes saved*. If saving ever fails you’ll see a red banner — keep the window open.
 - Toolbar: bold, italic, underline, heading, block quote, scene break (⁂), undo/redo, link to reference (🔗), find (🔍), snapshot (📸), focus mode (◎).
 - Chapter ⋯ menu: rename, move, add scene, insert chapter after, pin, put in a part, Move to Trash (restore it from 🗑 Trash at the bottom of the list). Double-click a chapter to rename it. Drag chapters or scenes to reorder; drop a scene on another chapter to move it.
 - **Scene notes** tab (right panel): chapter/scene titles, summaries, status, POV, location, time marker, plot threads, notes, split at cursor, merge with next, create a board card.
 - **History tab:** snapshots of the scene; preview, copy or restore (your current text is snapshotted first).
+- **Pacing strip:** the thin strip to the right of the page draws the scene's rhythm, one tick per sentence from top to bottom, wider for longer sentences. Dialogue ticks are in the accent colour and narration in grey, long sentences (30+ words) are orange, and an orange edge marks paragraphs of 150+ words. The outlined band is the part on screen; click anywhere on the strip to jump there. Hover it for a summary. Turn it off in Settings → Writing page; it hides in Focus mode.
 
 ## References
 
@@ -41,9 +43,9 @@ Create characters, places and more in **References**. While writing, select a na
 - **Timeline:** events with a date or relative marker and an optional order number. Possible continuity questions appear at the top — they are hints, not errors.
 - **Plot Threads:** a grid of which chapters each thread appears in; long-quiet threads get a gentle reminder.
 
-## Dedication & About the Author
+## Book pages
 
-On your book's **Home** page, the *Dedication & About the Author* card holds these pages. Write each one once and choose where it applies:
+On your book's **Home** page, the *Book pages* card holds the pages around your story: a **Dedication** and an **Epigraph** (before the contents), and **Acknowledgements**, **About the Author** and **Also by** (after the last chapter). For an epigraph, put the attribution on its own line starting with a dash (— Who said it). For *Also by*, list one book per line. Write each one once and choose where it applies:
 
 - **All my books (every project)**: handy for an author bio.
 - **All books in this project**: for a series.
@@ -65,7 +67,14 @@ Suggestions appear as you write, a moment after you pause, like Grammarly or Goo
 
 **Echo words.** The same noticeable word used again within about 50 words ("She glanced… He glanced back") gets a **teal dotted** underline. With the AI Editor installed, clicking it offers words that fit that exact sentence (same tense and sense), and opens the AI Editor with a "Without the echo" rewrite; otherwise you get general synonyms.
 
-**Continuity.** When a character is described differently in different places (green eyes in Chapter 2, grey in Chapter 9), both places get a **purple** underline saying where the other is, with *Go to…* and *It changed on purpose*. If a character's entry says they died (Status: "deceased, Ch. 14"), lines they speak in later chapters are flagged too. All of it is listed under Review → Continuity.
+**Continuity.** When a character is described differently in different places (green eyes in Chapter 2, grey in Chapter 9), both places get a **purple** underline saying where the other is, with *Go to…* and *It changed on purpose*. If a character's entry says they died (Status: "deceased, Ch. 14"), lines they speak in later chapters are flagged too.
+
+**Ages and the timeline.** When a scene's age for a character ("Winnie, nineteen,") doesn't fit the timeline, it's underlined in purple too. It needs dates: link timeline events to scenes or chapters, with a *When* such as "March 2019", "summer 2021", or story time like "Day 12", "Week 3" or "Year 2" (story time and calendar dates are never compared with each other). Ages are checked against:
+- the **Age** on the character's entry (a field named Age, or an "Age: 21" line), taken as their age at the start of the story;
+- a birth date on the entry ("Born: 3 May 2002", "b. 1998");
+- the age given in an earlier dated scene ("17 in March 2019, so 19 two years later").
+
+A birth date or story time given only as a year allows a year either way. *This is fine* stops it being flagged again. All of it is listed under Review → Continuity.
 
 **Hard-to-read sentences.** With the AI Editor installed, a long sentence built from many parts, or a very dense one, gets a thin **orange dashed** underline. Its pop-up offers the AI Editor's clearer version, with **Use**.
 
@@ -90,7 +99,8 @@ Suggestions appear as you write, a moment after you pause, like Grammarly or Goo
 Backup & Sync → **Publish on Amazon KDP…** (or Ctrl+K → *Publish*).
 
 1. Choose **Kindle eBook** (EPUB, recommended), **Kindle eBook (Word)**, or **Paperback / hardcover** (pick the trim size you'll select on KDP, a font and text size).
-2. Choose how chapter headings look and which extra pages to include (title, copyright, **table of contents**). The **Dedication** and **About the Author** menus pick the pages you wrote on Home (automatically, a different one, or none). eBook contents link to each chapter (Kindle's own Go To menu is always included). For print you can list chapters only, or add page numbers — those are filled in by Microsoft Word, so open the file in Word, choose **Yes** when it asks to update fields, and save before uploading. Curly quotes and em dashes are applied to the exported copy only — your manuscript isn't changed.
+2. Choose how chapter headings look and which extra pages to include (title, copyright, **table of contents**). The book-page menus (Dedication, About the Author, and Epigraph, Acknowledgements and Also by once you've written one) pick the pages you wrote on Home (automatically, a different one, or none). eBook contents link to each chapter (Kindle's own Go To menu is always included). For print you can list chapters only, or add page numbers — those are filled in by Microsoft Word, so open the file in Word, choose **Yes** when it asks to update fields, and save before uploading. Curly quotes and em dashes are applied to the exported copy only — your manuscript isn't changed.
+   For the Kindle eBook, pick a **style**: *Classic* (centred headings, the opening line in small caps), *Modern* (bold left-aligned headings, a large first letter) or *Minimal* (quiet headings, no ornaments), and the **scene break** (the same choices as the paperback). Kindle readers still choose their own font and size.
 3. Fill in the book details (author name, copyright year, optional imprint and ISBN). They're saved with the book for next time.
 4. Read the checklist at the bottom (it warns about empty chapters, leftover "TK"/"TODO" notes, and books under 24 or over 828 print pages), then save the file.
 5. On kdp.amazon.com, upload it as the **manuscript** on the Content page. For print, choose the same trim size and **No bleed**, then check every spread in KDP's **Print Previewer**. For eBooks, check it in the **Kindle Previewer**. Covers are uploaded separately.

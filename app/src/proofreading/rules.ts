@@ -561,6 +561,7 @@ const RULE_LABELS: Record<string, string> = {
   'echo-word': 'Echo words (the same word again a few lines later)',
   continuity: 'Continuity: a character described differently elsewhere in the book',
   'continuity-death': 'Continuity: a character speaking after their death',
+  'continuity-age': 'Continuity: ages that don’t fit the timeline',
   'character-conflict': 'Details that contradict a character’s entry (purple)',
   ...Object.fromEntries(CONFUSED.map(([id, , , , label]) => [id, label])),
 };

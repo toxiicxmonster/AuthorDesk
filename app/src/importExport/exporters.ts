@@ -4,6 +4,7 @@ import type { Book, Chapter, DocJson, ReferenceEntry, Scene } from '../domain/sc
 import { REFERENCE_TEMPLATES, REFERENCE_TYPE_LABELS } from '../domain/referenceTemplates';
 import { chronological } from '../domain/continuity';
 import type { PmNode } from '../domain/text';
+import { NO_EXTRA_PAGES, type ExtraPagesText } from '../domain/bookPages';
 
 /** Ordered manuscript for one book: chapters (live, ordered) with their live scenes. */
 export function bookManuscript(data: ProjectData, bookId: string): { book: Book; chapters: { chapter: Chapter; scenes: Scene[] }[] } {
@@ -83,12 +84,18 @@ function referenceMarkdown(r: ReferenceEntry, all: ReferenceEntry[]): string {
   return lines.join('\n') + '\n';
 }
 
-/** Dedication and About the Author text to include in an export (empty string = leave the page out). */
-export interface ExtraPages {
-  dedication: string;
-  aboutAuthor: string;
+/** Book pages to include in an export (empty string = leave the page out). */
+export type ExtraPages = ExtraPagesText;
+const NO_PAGES = NO_EXTRA_PAGES;
+
+/** The book pages in reading order, split into front (before chapter 1) and back (after the last chapter). */
+export function extraPageList(pages: ExtraPages): { front: { title: string; text: string }[]; back: { title: string; text: string }[] } {
+  const item = (title: string, text: string) => (text.trim() ? [{ title, text: text.trim() }] : []);
+  return {
+    front: [...item('Dedication', pages.dedication), ...item('Epigraph', pages.epigraph)],
+    back: [...item('Acknowledgements', pages.acknowledgements), ...item('About the Author', pages.aboutAuthor), ...item('Also by', pages.alsoBy)],
+  };
 }
-const NO_PAGES: ExtraPages = { dedication: '', aboutAuthor: '' };
 
 /**
  * Markdown export: a zip with one folder per book, one file per chapter, plus reference notes.
@@ -102,8 +109,9 @@ export async function exportMarkdownZip(projectId: string, pagesFor: (bookId: st
     const { chapters } = bookManuscript(data, book.id);
     const extra = pagesFor(book.id);
     const folder = `${root}/${safeName(book.title)}`;
-    if (extra.dedication.trim()) files[`${folder}/00 - Dedication.md`] = strToU8(`# Dedication\n\n${extra.dedication.trim()}\n`);
-    if (extra.aboutAuthor.trim()) files[`${folder}/${String(chapters.length + 1).padStart(2, '0')} - About the Author.md`] = strToU8(`# About the Author\n\n${extra.aboutAuthor.trim()}\n`);
+    const { front, back } = extraPageList(extra);
+    front.forEach((p, i) => (files[`${folder}/00${String.fromCharCode(97 + i)} - ${p.title}.md`] = strToU8(`# ${p.title}\n\n${p.text}\n`)));
+    back.forEach((p, i) => (files[`${folder}/${String(chapters.length + 1 + i).padStart(2, '0')} - ${p.title}.md`] = strToU8(`# ${p.title}\n\n${p.text}\n`)));
     chapters.forEach(({ chapter, scenes }, i) => {
       const parts = [`# ${chapter.title}`];
       if (chapter.summary) parts.push(`<!-- Summary: ${chapter.summary.replace(/-->/g, '—>')} -->`);
@@ -138,7 +146,8 @@ export async function exportText(projectId: string, bookId: string, pages: Extra
   const data = await collectProject(projectId);
   const { book, chapters } = bookManuscript(data, bookId);
   const out = [book.title.toUpperCase(), book.subtitle, ''].filter((x, i) => x || i === 2);
-  if (pages.dedication.trim()) out.push('', pages.dedication.trim(), '');
+  const { front, back } = extraPageList(pages);
+  for (const p of front) out.push('', p.text, '');
   for (const { chapter, scenes } of chapters) {
     out.push('', '', chapter.title, '');
     scenes.forEach((s, i) => {
@@ -146,7 +155,7 @@ export async function exportText(projectId: string, bookId: string, pages: Extra
       out.push(s.plainText);
     });
   }
-  if (pages.aboutAuthor.trim()) out.push('', '', 'ABOUT THE AUTHOR', '', pages.aboutAuthor.trim());
+  for (const p of back) out.push('', '', p.title.toUpperCase(), '', p.text);
   return out.join('\n').replace(/\n{4,}/g, '\n\n\n') + '\n';
 }
 
@@ -192,10 +201,11 @@ export async function exportDocx(projectId: string, bookId: string, pages: Extra
       .trim()
       .split(/\n+/)
       .map((line) => new Paragraph({ children: [new TextRun({ text: line, italics })], alignment: center ? AlignmentType.CENTER : undefined, spacing: { line: 480 } }));
-  if (pages.dedication.trim()) {
+  const { front, back } = extraPageList(pages);
+  for (const p of front) {
     paras.push(new Paragraph({ children: [new PageBreak()] }));
     paras.push(new Paragraph({ text: '', spacing: { before: 2400 } }));
-    paras.push(...textParas(pages.dedication, true, true));
+    paras.push(...textParas(p.text, true, true));
   }
   for (const { chapter, scenes } of chapters) {
     paras.push(new Paragraph({ children: [new PageBreak()] }));
@@ -205,10 +215,10 @@ export async function exportDocx(projectId: string, bookId: string, pages: Extra
       ((s.content as PmNode).content ?? []).forEach((n) => blocks(n));
     });
   }
-  if (pages.aboutAuthor.trim()) {
+  for (const p of back) {
     paras.push(new Paragraph({ children: [new PageBreak()] }));
-    paras.push(new Paragraph({ text: 'About the Author', heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { before: 1200, after: 600 } }));
-    paras.push(...textParas(pages.aboutAuthor));
+    paras.push(new Paragraph({ text: p.title, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { before: 1200, after: 600 } }));
+    paras.push(...textParas(p.text));
   }
   const doc = new Document({
     creator: 'AuthorDesk',

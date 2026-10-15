@@ -7,7 +7,8 @@ import { characterDetailSuggestions, type CharacterInfo } from '../proofreading/
 import { avoidEchoes, findEchoes } from '../proofreading/echo';
 import { findHardSentences, hardSentenceMessage } from '../proofreading/hardSentence';
 import { findContradictions, findDeathIssues } from '../proofreading/continuity';
-import { bookScenesFor, placeFactsCached } from '../proofreading/continuityData';
+import { findAgeIssues } from '../proofreading/ages';
+import { bookScenesFor, placeFactsCached, storyDates } from '../proofreading/continuityData';
 import { synonymsFor } from '../proofreading/synonyms';
 import { fetchAiStatus } from '../ai/aiEditor';
 import { AI_JUDGED_RULES, cachedVerdict, judgeAdverbs, judgedWord, sentenceAround, type AdverbItem } from '../ai/adverbJudge';
@@ -148,7 +149,26 @@ export async function runProofread(
       const here = book.find((s) => s.sceneId === opts.sceneId);
       if (here) here.paragraphs = texts; // the live text, block for block with the editor
       const dismissed = new Set([...ignored].filter((k) => k.startsWith('continuity|')));
-      for (const c of findContradictions(placeFactsCached(book, charInfo), dismissed)) {
+      const facts = placeFactsCached(book, charInfo);
+      const { dates, births, startAges } = await storyDates(projectId, book, characters.filter((r) => !r.archivedAt && r.type === 'character'));
+      for (const a of findAgeIssues(facts, dates, births, dismissed, startAges)) {
+        if (a.fact.sceneId !== opts.sceneId) continue;
+        continuity[a.fact.block]?.push({
+          start: a.fact.start,
+          end: a.fact.end,
+          original: a.fact.original,
+          replacements: [],
+          category: 'consistency',
+          severity: 'conflict',
+          ruleId: 'continuity-age',
+          providerId: 'local-continuity',
+          message: a.message,
+          data: a.earlier
+            ? { ignoreKey: a.key, characterId: a.characterId, characterName: a.characterName, otherSceneId: a.earlier.sceneId, otherFind: a.earlier.original, otherChapter: a.earlier.chapterTitle }
+            : { ignoreKey: a.key, characterId: a.characterId, characterName: a.characterName },
+        });
+      }
+      for (const c of findContradictions(facts, dismissed, new Set(dates.keys()))) {
         for (const [mine, theirs, when] of [
           [c.other, c.first, 'earlier'],
           [c.first, c.other, 'later'],

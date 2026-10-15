@@ -7,7 +7,7 @@
  */
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import type { PmNode } from '../domain/text';
-import { tocEntry, type PrintLayout, type PublishModel } from './publish';
+import { backPages, epigraphLines, tocEntry, type MatterPage, type PrintLayout, type PublishModel } from './publish';
 
 export interface KdpDocxOptions {
   target: 'ebook' | 'print';
@@ -70,12 +70,12 @@ export async function buildKdpDocx(model: PublishModel, opts: KdpDocxOptions): P
     new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore: breakBefore && !label, children: [new Bookmark({ id: bookmark, children: [new TextRun(title)] })] }),
   ];
   const bookmarkFor = (i: number) => `chapter_${i + 1}`;
-  const hasAbout = options.includeAboutAuthor && !!info.aboutAuthor.trim();
+  const back = backPages(model);
 
   /** A "Contents" page: linked entries (eBook) or entries with dot leaders and page numbers (print). */
   const contents = (breakBefore: boolean, textWidthTwips?: number) => {
     const entries = model.chapters.map((c, i) => ({ text: tocEntry(c), anchor: bookmarkFor(i) }));
-    if (hasAbout) entries.push({ text: 'About the Author', anchor: 'about_author' });
+    for (const p of back) entries.push({ text: p.title, anchor: `back_${p.id}` });
     const withNumbers = print && options.tocPageNumbers && textWidthTwips;
     return [
       new Paragraph({ style: 'ContentsTitle', pageBreakBefore: breakBefore, children: [new TextRun('Contents')] }),
@@ -114,15 +114,25 @@ export async function buildKdpDocx(model: PublishModel, opts: KdpDocxOptions): P
       .filter((p) => p.trim())
       .forEach((p, i) => front.push(new Paragraph({ style: 'Dedication', pageBreakBefore: i === 0 && front.length > 0, children: [new TextRun(p.trim())] })));
   }
-  const about = hasAbout
-      ? [
-          new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new Bookmark({ id: 'about_author', children: [new TextRun('About the Author')] })] }),
-          ...info.aboutAuthor
-            .split(/\n{2,}/)
-            .filter((p) => p.trim())
-            .map((p, i) => new Paragraph({ style: i === 0 ? 'BodyFirst' : 'Body', children: [new TextRun(p.trim())] })),
-        ]
-      : [];
+  if (info.epigraph.trim()) {
+    epigraphLines(info.epigraph).forEach((l, i) =>
+      front.push(
+        new Paragraph({
+          style: l.attribution ? 'Attribution' : i === 0 ? 'Dedication' : 'Epigraph',
+          pageBreakBefore: i === 0 && front.length > 0,
+          children: [new TextRun(l.text)],
+        }),
+      ),
+    );
+  }
+  /** Each back page: a heading (bookmarked for the contents) and its paragraphs. */
+  const backPage = (p: MatterPage, breakBefore: boolean) => [
+    new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore: breakBefore, children: [new Bookmark({ id: `back_${p.id}`, children: [new TextRun(p.title)] })] }),
+    ...p.text
+      .split(p.id === 'alsoBy' ? /\n+/ : /\n{2,}/)
+      .filter((x) => x.trim())
+      .map((x, i) => new Paragraph({ style: i === 0 || p.id === 'alsoBy' ? 'BodyFirst' : 'Body', children: [new TextRun(x.trim())] })),
+  ];
 
   const bodyFont = { ascii: opts.font, hAnsi: opts.font, cs: opts.font, eastAsia: opts.font };
   const styles = {
@@ -142,6 +152,8 @@ export async function buildKdpDocx(model: PublishModel, opts: KdpDocxOptions): P
       { id: 'ContentsTitle', name: 'Contents Title', basedOn: 'Normal', next: 'ContentsEntry', quickFormat: true, run: { font: bodyFont, size: size + 8 }, paragraph: { alignment: AlignmentType.CENTER, spacing: { before: print ? 1440 : 480, after: 600 } } },
       { id: 'ContentsEntry', name: 'Contents Entry', basedOn: 'Normal', quickFormat: true, run: { font: bodyFont, size }, paragraph: { spacing: { after: 160 } } },
       { id: 'Dedication', name: 'Dedication', basedOn: 'Normal', quickFormat: true, run: { font: bodyFont, size, italics: true }, paragraph: { alignment: AlignmentType.CENTER, spacing: { before: print ? 2880 : 1440 } } },
+      { id: 'Epigraph', name: 'Epigraph', basedOn: 'Dedication', quickFormat: true, paragraph: { spacing: { before: 0 } } },
+      { id: 'Attribution', name: 'Epigraph Attribution', basedOn: 'Normal', quickFormat: true, run: { font: bodyFont, size, italics: false }, paragraph: { alignment: AlignmentType.CENTER, spacing: { before: 240 } } },
     ],
   };
 
@@ -154,7 +166,7 @@ export async function buildKdpDocx(model: PublishModel, opts: KdpDocxOptions): P
       children.push(...chapterOpening(c.label, c.title, children.length > 0, bookmarkFor(i)));
       children.push(...body(c.blocks));
     });
-    children.push(...about);
+    for (const p of back) children.push(...backPage(p, true));
     doc = new Document({ creator: info.author || 'AuthorDesk', title: model.title, styles, sections: [{ children }] });
   } else {
     const L = opts.layout!;
@@ -188,9 +200,7 @@ export async function buildKdpDocx(model: PublishModel, opts: KdpDocxOptions): P
         ],
       });
     });
-    if (about.length) {
-      sections.push({ properties: { page, type: SectionType.ODD_PAGE }, footers: { default: blankFooter() }, children: about.map((p, i) => (i === 0 ? new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new Bookmark({ id: 'about_author', children: [new TextRun('About the Author')] })] }) : p)) });
-    }
+    for (const p of back) sections.push({ properties: { page, type: SectionType.ODD_PAGE }, footers: { default: blankFooter() }, children: backPage(p, false) });
     doc = new Document({ creator: info.author || 'AuthorDesk', title: model.title, styles, sections, features: { updateFields: options.includeToc && options.tocPageNumbers } });
   }
 

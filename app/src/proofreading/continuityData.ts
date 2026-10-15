@@ -1,6 +1,8 @@
 import { db } from '../storage/db';
 import type { CharacterInfo } from './characterFacts';
 import { placeFacts, type ContinuityScene, type PlacedFact } from './continuity';
+import { birthDate, entryAge, sceneDates, type StoryDate } from './ages';
+import type { ReferenceEntry } from '../domain/schema';
 
 const live = <T>(r: T) => !(r as { archivedAt?: string | null }).archivedAt;
 const byOrder = (a: { order: number }, b: { order: number }) => a.order - b.order;
@@ -38,7 +40,7 @@ export async function bookScenes(bookId: string): Promise<ContinuityScene[]> {
     .sort((a, b) => index.get(a.chapterId)! - index.get(b.chapterId)! || a.order - b.order);
   return scenes.map((s) => {
     const i = index.get(s.chapterId)!;
-    return { sceneId: s.id, chapterIndex: i, chapterTitle: chapters[i].title || `Chapter ${i + 1}`, paragraphs: paragraphsOf(s.plainText) };
+    return { sceneId: s.id, chapterId: s.chapterId, chapterIndex: i, chapterTitle: chapters[i].title || `Chapter ${i + 1}`, paragraphs: paragraphsOf(s.plainText) };
   });
 }
 
@@ -58,4 +60,22 @@ export function placeFactsCached(scenes: readonly ContinuityScene[], chars: read
     out.push(...hit.facts);
   }
   return out;
+}
+
+/** The text of a character's entry where a birth date might be written (any field, the summary, the notes). */
+export const entryText = (r: Pick<ReferenceEntry, 'summary' | 'notes' | 'fields' | 'status'>) => [r.summary, r.status, ...Object.values(r.fields), r.notes].join('\n');
+
+/** Scene dates from the project's timeline, and characters' birth dates and ages from their entries, for the age check. */
+export async function storyDates(projectId: string, scenes: readonly ContinuityScene[], characters: readonly ReferenceEntry[]): Promise<{ dates: Map<string, StoryDate>; births: Map<string, StoryDate>; startAges: Map<string, number> }> {
+  const events = (await db.timelineEvents.where('projectId').equals(projectId).toArray()).filter(live);
+  const dates = sceneDates(events, scenes.filter((s) => s.chapterId).map((s) => ({ sceneId: s.sceneId, chapterId: s.chapterId! })));
+  const births = new Map<string, StoryDate>();
+  const startAges = new Map<string, number>();
+  for (const c of characters) {
+    const b = birthDate(entryText(c));
+    if (b) births.set(c.id, b);
+    const age = entryAge(c.fields, c.notes);
+    if (age !== null) startAges.set(c.id, age);
+  }
+  return { dates, births, startAges };
 }

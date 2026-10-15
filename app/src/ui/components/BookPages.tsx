@@ -9,6 +9,7 @@ import {
   saveBookPage,
 } from '../../storage/bookPages';
 import {
+  BOOK_PAGE_KINDS,
   BOOK_PAGE_LABELS,
   displayName,
   pageChoices,
@@ -16,6 +17,7 @@ import {
   scopeLabel,
   type BookPage,
   type BookPageKind,
+  type ExtraPagesChoice,
 } from '../../domain/bookPages';
 import { Modal } from './common';
 import { reportError, toast } from '../store';
@@ -72,13 +74,13 @@ export function BookPagesCard({ projectId }: { projectId: string }) {
 
   return (
     <section className="card book-pages">
-      <h2>Dedication & About the Author</h2>
+      <h2>Book pages</h2>
       <p className="muted small">
-        Write these once and choose them when you export (Word, text, Markdown and Amazon KDP). A page can
-        apply to all your books, this project, or specific books.
+        Dedication, epigraph, acknowledgements, About the Author and Also by: write these once and choose them when you
+        export (Word, text, Markdown and Amazon KDP). A page can apply to all your books, this project, or specific books.
       </p>
       <div className="book-pages-groups">
-        {(['dedication', 'about'] as BookPageKind[]).map((kind) => {
+        {BOOK_PAGE_KINDS.map((kind) => {
           const list = rows.filter((r) => r.page.kind === kind);
           return (
             <div key={kind} className="book-pages-group">
@@ -116,7 +118,7 @@ export function BookPagesCard({ projectId }: { projectId: string }) {
                 <p className="muted small">None yet.</p>
               )}
               <button className="small" onClick={() => setEditing({ page: newBookPage(kind), projectId })}>
-                {kind === 'about' ? '+ New About the Author page' : '+ New dedication'}
+                + New {NEW_LABEL[kind]}
               </button>
             </div>
           );
@@ -148,6 +150,28 @@ export function BookPagesCard({ projectId }: { projectId: string }) {
   );
 }
 
+const NEW_LABEL: Record<BookPageKind, string> = {
+  dedication: 'dedication',
+  epigraph: 'epigraph',
+  acknowledgements: 'acknowledgements page',
+  about: 'About the Author page',
+  alsoBy: '“Also by” page',
+};
+const PLACEHOLDER: Record<BookPageKind, string> = {
+  dedication: 'For…',
+  epigraph: 'A quotation that sets the tone for the book.\n— Who said it',
+  acknowledgements: 'Thank you to…',
+  about: 'A few sentences about you, where readers can find more of your books…',
+  alsoBy: 'Your other books, one per line (a series name on its own line works as a heading).',
+};
+const NAME_EXAMPLE: Record<BookPageKind, string> = {
+  dedication: 'e.g. For my family',
+  epigraph: 'e.g. Rilke quote',
+  acknowledgements: 'e.g. Book 1 thanks',
+  about: 'e.g. Short bio',
+  alsoBy: 'e.g. Full list',
+};
+
 function BookPageEditor({
   page,
   books,
@@ -167,20 +191,16 @@ function BookPageEditor({
   const noBooks = draft.scope === 'books' && !draft.bookIds.length;
   return (
     <Modal
-      title={`${isNew ? 'New' : 'Edit'} ${draft.kind === 'about' ? 'About the Author page' : 'dedication'}`}
+      title={`${isNew ? 'New' : 'Edit'} ${NEW_LABEL[draft.kind]}`}
       onClose={onClose}
     >
       <label className="field">
         <span>{label} text</span>
         <textarea
-          rows={draft.kind === 'about' ? 8 : 4}
+          rows={draft.kind === 'dedication' || draft.kind === 'epigraph' ? 4 : 8}
           value={draft.text}
           autoFocus
-          placeholder={
-            draft.kind === 'about'
-              ? 'A few sentences about you, where readers can find more of your books…'
-              : 'For…'
-          }
+          placeholder={PLACEHOLDER[draft.kind]}
           onChange={(e) => set({ text: e.target.value })}
         />
       </label>
@@ -188,7 +208,7 @@ function BookPageEditor({
         <span>Name (just for you, optional)</span>
         <input
           value={draft.name}
-          placeholder={draft.kind === 'about' ? 'e.g. Short bio' : 'e.g. For my family'}
+          placeholder={NAME_EXAMPLE[draft.kind]}
           onChange={(e) => set({ name: e.target.value })}
         />
       </label>
@@ -259,18 +279,14 @@ function BookPageEditor({
 
 // ------------------------------------------------------------------ export picker
 
-/** The author's choice per export: undefined = automatic (the page that applies to this book), null = none, or a page id. */
-export interface ExtraPagesChoice {
-  dedication?: string | null;
-  about?: string | null;
-}
+export type { ExtraPagesChoice };
 
 export function useExtraPagesData(projectId: string) {
   useAdoptLegacy(projectId);
   return usePageData();
 }
 
-/** Two selects for an export dialog: which Dedication and About the Author page to include for a book. */
+/** Selects for an export dialog: which page of each kind to include for a book. Kinds with no pages anywhere are left out. */
 export function ExtraPagesPicker({
   projectId,
   bookId,
@@ -284,13 +300,15 @@ export function ExtraPagesPicker({
 }) {
   const data = useExtraPagesData(projectId);
   if (!data) return null;
-  const select = (kind: BookPageKind, key: 'dedication' | 'about') => {
+  const select = (kind: BookPageKind) => {
+    const key = kind;
     const choices = pageChoices(kind, bookId, projectId, data.projects, data.books);
+    if (!choices.length && kind !== 'dedication' && kind !== 'about') return null;
     const auto = choices.find((c) => c.applies);
     const current = value[key];
     const v = current === undefined ? 'auto' : current === null ? 'none' : current;
     return (
-      <label className="field">
+      <label className="field" key={kind}>
         <span>{BOOK_PAGE_LABELS[kind]}</span>
         <select
           value={choices.some((c) => c.page.id === v) || v === 'auto' || v === 'none' ? v : 'auto'}
@@ -318,11 +336,10 @@ export function ExtraPagesPicker({
   return (
     <div className="extra-pages">
       <div className="extra-pages-fields">
-        {select('dedication', 'dedication')}
-        {select('about', 'about')}
+        {BOOK_PAGE_KINDS.map(select)}
       </div>
       <span className="muted small">
-        Write and manage these on the <a href={href(projectId, 'home')}>Home</a> page.
+        Write and manage these (and epigraphs, acknowledgements and “Also by” pages) on the <a href={href(projectId, 'home')}>Home</a> page.
       </span>
     </div>
   );

@@ -177,7 +177,7 @@ describe('table of contents', () => {
     const doc = strFromU8(unzipSync(await buildKdpDocx(model({ includeToc: true }), { target: 'ebook', font: 'Georgia', chaptersOnRight: false }))['word/document.xml']);
     expect(doc).toContain('>Contents<');
     expect(doc).toContain('w:anchor="chapter_1"');
-    expect(doc).toContain('w:anchor="about_author"');
+    expect(doc).toContain('w:anchor="back_about"');
     expect(doc).toMatch(/<w:bookmarkStart[^>]*w:name="chapter_2"/);
     expect(doc.indexOf('>Contents<')).toBeLessThan(doc.indexOf('>The Lamp<'));
     const without = strFromU8(unzipSync(await buildKdpDocx(model({ includeToc: false }), { target: 'ebook', font: 'Georgia', chaptersOnRight: false }))['word/document.xml']);

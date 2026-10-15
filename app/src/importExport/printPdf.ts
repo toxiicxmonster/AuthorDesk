@@ -1,7 +1,7 @@
 import { PDFDocument, type PDFFont, type PDFPage } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { PmNode } from '../domain/text';
-import { kdpMinimumInside, tocEntry, type PrintLayout, type PublishModel } from './publish';
+import { backPages, epigraphLines, kdpMinimumInside, tocEntry, type PrintLayout, type PublishModel } from './publish';
 
 /**
  * Print-ready PDF interior for KDP paperbacks, typeset here rather than by a word processor: justified text with
@@ -259,8 +259,8 @@ function layoutBody(model: PublishModel, g: Geometry, size: number, opts: PdfOpt
   };
 
   model.chapters.forEach((c) => section(c.label, c.title, c.blocks));
-  if (model.options.includeAboutAuthor && model.info.aboutAuthor.trim()) {
-    section('', 'About the Author', model.info.aboutAuthor.split(/\n+/).filter((p) => p.trim()).map((p) => ({ type: 'paragraph', content: [{ type: 'text', text: p.trim() }] })));
+  for (const p of backPages(model)) {
+    section('', p.title, p.text.split(/\n+/).filter((x) => x.trim()).map((x) => ({ type: 'paragraph', content: [{ type: 'text', text: x.trim() }] })));
   }
   return { pages, chapterPages };
 }
@@ -311,6 +311,12 @@ function layoutFront(model: PublishModel, g: Geometry, size: number, chapterPage
     let y = g.textH * 0.3;
     for (const para of info.dedication.split(/\n+/).filter((x) => x.trim())) y = wrapCentered(p, para.trim(), 'italic', size, y, 1.5);
   }
+  if (info.epigraph.trim()) {
+    if (pages.length % 2 === 1) blank();
+    const p = page();
+    let y = g.textH * 0.3;
+    for (const l of epigraphLines(info.epigraph)) y = wrapCentered(p, l.text, l.attribution ? 'regular' : 'italic', size, y + (l.attribution ? size * 0.8 : 0), 1.5);
+  }
   if (options.includeToc && model.chapters.length) {
     if (pages.length % 2 === 1) blank();
     let p = page();
@@ -318,7 +324,7 @@ function layoutFront(model: PublishModel, g: Geometry, size: number, chapterPage
     let y = size * 4;
     const lh = size * 1.6;
     const entries = model.chapters.map((c, i) => ({ text: tocEntry(c), page: chapterPages[i] }));
-    if (model.options.includeAboutAuthor && model.info.aboutAuthor.trim()) entries.push({ text: 'About the Author', page: chapterPages[model.chapters.length] });
+    backPages(model).forEach((b, i) => entries.push({ text: b.title, page: chapterPages[model.chapters.length + i] }));
     for (const e of entries) {
       if (y + lh > g.textH) {
         p = page();

@@ -67,6 +67,10 @@ export function SettingsPage({ projectId }: { projectId: string | null }) {
                 <option value="wide">Wide</option>
               </select>
             </label>
+            <label className="check">
+              <input type="checkbox" checked={s.pacingStrip} onChange={(e) => void updateSettings({ pacingStrip: e.target.checked })} /> Pacing strip beside the page
+              (each sentence’s length, dialogue and narration; click it to jump)
+            </label>
           </div>
           <div
             className="page-preview"

@@ -14,7 +14,7 @@ async function editPages(projectId: string, edit: (pages: BookPage[]) => BookPag
 }
 
 export function newBookPage(kind: BookPageKind, over: Partial<BookPage> = {}): BookPage {
-  return { id: newId(), kind, name: '', text: '', scope: kind === 'about' ? 'everywhere' : 'project', bookIds: [], updatedAt: new Date().toISOString(), ...over };
+  return { id: newId(), kind, name: '', text: '', scope: kind === 'about' || kind === 'alsoBy' ? 'everywhere' : 'project', bookIds: [], updatedAt: new Date().toISOString(), ...over };
 }
 
 export async function saveBookPage(projectId: string, page: BookPage): Promise<void> {

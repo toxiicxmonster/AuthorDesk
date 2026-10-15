@@ -1,7 +1,7 @@
 import { resetDbForTests, db } from '../src/storage/db';
 import { createProject, createBook, updateRecord, saveSceneContent } from '../src/storage/repo';
 import { adoptLegacyBookPages, deleteBookPage, newBookPage, restoreBookPage, saveBookPage } from '../src/storage/bookPages';
-import { pageChoices, projectPages, resolveExtraPages, defaultPage } from '../src/domain/bookPages';
+import { pageChoices, projectPages, resolveExtraPages, defaultPage, NO_EXTRA_PAGES } from '../src/domain/bookPages';
 import { exportMarkdownZip, exportText } from '../src/importExport/exporters';
 import { buildPublishModel, DEFAULT_PUBLISH_OPTIONS } from '../src/importExport/publish';
 import { plainTextToDoc } from '../src/domain/text';
@@ -39,7 +39,7 @@ describe('Dedication & About the Author pages', () => {
     // Explicit choices: a specific page, or none.
     const forMum = projectPages(projects.find((p) => p.id === project.id)!).find((p) => p.text === 'For Mum')!;
     expect(resolveExtraPages(one.id, project.id, projects, books, { dedication: forMum.id }).dedication).toBe('For Mum');
-    expect(resolveExtraPages(one.id, project.id, projects, books, { dedication: null, about: null })).toEqual({ dedication: '', aboutAuthor: '' });
+    expect(resolveExtraPages(one.id, project.id, projects, books, { dedication: null, about: null })).toEqual(NO_EXTRA_PAGES);
   });
 
   it('saves pages as tracked project changes, and deletes with undo', async () => {
@@ -76,7 +76,7 @@ describe('Dedication & About the Author pages', () => {
     const { project, book } = await createProject('P', { bookTitle: 'My Book' });
     const scene = (await db.scenes.where('projectId').equals(project.id).toArray())[0];
     await saveSceneContent(scene.id, plainTextToDoc('It began.'));
-    const pages = { dedication: 'For Sam', aboutAuthor: 'I live by the sea.' };
+    const pages = { ...NO_EXTRA_PAGES, dedication: 'For Sam', aboutAuthor: 'I live by the sea.' };
 
     const txt = await exportText(project.id, book.id, pages);
     expect(txt.indexOf('For Sam')).toBeLessThan(txt.indexOf('It began.'));
@@ -85,7 +85,7 @@ describe('Dedication & About the Author pages', () => {
 
     const zip = unzipSync(await exportMarkdownZip(project.id, () => pages));
     const names = Object.keys(zip);
-    expect(names.some((n) => n.endsWith('My Book/00 - Dedication.md'))).toBe(true);
+    expect(names.some((n) => n.endsWith('My Book/00a - Dedication.md'))).toBe(true);
     const about = names.find((n) => n.endsWith('About the Author.md'))!;
     expect(strFromU8(zip[about])).toMatch(/I live by the sea/);
 

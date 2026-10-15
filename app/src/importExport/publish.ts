@@ -5,6 +5,7 @@
 import type { Book, Chapter, DocJson, Scene } from '../domain/schema';
 import type { PmNode } from '../domain/text';
 import { countWords } from '../domain/text';
+import type { ExtraPagesText } from '../domain/bookPages';
 
 export interface PublishingInfo {
   author: string;
@@ -15,6 +16,10 @@ export interface PublishingInfo {
   aboutAuthor: string;
   language: string;
   description: string;
+  /** Book pages chosen for the export (not stored on the book). */
+  epigraph: string;
+  acknowledgements: string;
+  alsoBy: string;
 }
 
 export function publishingInfo(book: Book): PublishingInfo {
@@ -28,6 +33,9 @@ export function publishingInfo(book: Book): PublishingInfo {
     aboutAuthor: p.aboutAuthor ?? '',
     language: p.language || 'en',
     description: p.description ?? '',
+    epigraph: '',
+    acknowledgements: '',
+    alsoBy: '',
   };
 }
 
@@ -165,7 +173,7 @@ export function buildPublishModel(
   chapters: { chapter: Chapter; scenes: Scene[] }[],
   options: PublishOptions = DEFAULT_PUBLISH_OPTIONS,
   /** Dedication / About the Author chosen for this export (from the pages managed on Home). */
-  pages?: { dedication: string; aboutAuthor: string },
+  pages?: Partial<ExtraPagesText>,
 ): PublishModel {
   const info = { ...publishingInfo(book), ...(pages ?? {}) };
   let n = 0;
@@ -226,27 +234,39 @@ export interface PrintLayout {
   margins: { inside: number; outside: number; top: number; bottom: number };
 }
 
+/** Margins the print exports use, apart from the inside (gutter) margin, which depends on the page count. */
+export const PRINT_MARGINS = { outside: 0.6, top: 0.75, bottom: 0.75 };
+
+/**
+ * Words on a full page of body text: ~9 words per square inch of text block at 11pt (≈300 words on a 6×9 page,
+ * typical for trade fiction), scaling with the square of the font size.
+ */
+export function printWordsPerPage(trim: Pick<TrimSize, 'width' | 'height'>, fontSize: number, inside: number): number {
+  const textW = trim.width - inside - PRINT_MARGINS.outside;
+  const textH = trim.height - PRINT_MARGINS.top - PRINT_MARGINS.bottom;
+  return textW * textH * 9 * (11 / fontSize) ** 2;
+}
+
 /**
  * Estimate the page count and pick margins that meet KDP's rules (outside/top/bottom ≥ 0.25 in,
  * inside ≥ the gutter minimum for that page count) with some breathing room.
  */
 export function printLayout(model: PublishModel, trim: TrimSize, fontSize: number): PrintLayout {
-  const outside = 0.6;
-  const top = 0.75;
-  const bottom = 0.75;
+  const { outside, top, bottom } = PRINT_MARGINS;
   const estimate = (inside: number) => {
-    const textW = trim.width - inside - outside;
-    const textH = trim.height - top - bottom;
-    // ~9 words per square inch of text block at 11pt (≈300 words on a 6×9 page, typical for trade fiction); scales with the square of font size.
-    const wordsPerPage = textW * textH * 9 * (11 / fontSize) ** 2;
-    const chapterPages = model.chapters.reduce((n, c) => n + Math.ceil(c.words / wordsPerPage + 0.35), 0);
+    const wordsPerPage = printWordsPerPage(trim, fontSize, inside);
+    const perChapter = model.chapters.map((c) => Math.ceil(c.words / wordsPerPage + 0.35));
+    // Chapters open on right-hand pages: a blank page follows each odd-length chapter but the last.
+    const blanks = perChapter.slice(0, -1).filter((n) => n % 2 === 1).length;
+    const chapterPages = perChapter.reduce((a, b) => a + b, 0) + blanks;
     const front =
       (model.options.includeTitlePage ? 2 : 0) +
       (model.options.includeCopyright ? 1 : 0) +
       (model.options.includeDedication && model.info.dedication ? 2 : 0) +
       (model.options.includeToc ? 2 * Math.ceil(model.chapters.length / 28) : 0);
-    const back = model.options.includeAboutAuthor && model.info.aboutAuthor ? 2 : 0;
-    return front + chapterPages + back;
+    const back = backPages(model).reduce((n, p) => n + 2 * Math.ceil(countWords(p.text) / 250), 0);
+    const extraFront = frontPages(model).length * 2 - (model.options.includeDedication && model.info.dedication ? 2 : 0);
+    return front + extraFront + chapterPages + back;
   };
   let pages = estimate(0.75);
   const inside = kdpMinimumInside(pages) + 0.25;
@@ -297,6 +317,38 @@ export function wordsIn(doc: DocJson): number {
 
 export function slug(s: string): string {
   return s.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'book';
+}
+
+export interface MatterPage {
+  id: 'dedication' | 'epigraph' | 'acknowledgements' | 'about' | 'alsoBy';
+  title: string;
+  text: string;
+}
+
+/** Pages before the contents: the dedication, then the epigraph. */
+export function frontPages(model: PublishModel): MatterPage[] {
+  const out: MatterPage[] = [];
+  if (model.options.includeDedication && model.info.dedication.trim()) out.push({ id: 'dedication', title: 'Dedication', text: model.info.dedication.trim() });
+  if (model.info.epigraph.trim()) out.push({ id: 'epigraph', title: 'Epigraph', text: model.info.epigraph.trim() });
+  return out;
+}
+
+/** Pages after the last chapter, each with its own heading and a line in the contents. */
+export function backPages(model: PublishModel): MatterPage[] {
+  const out: MatterPage[] = [];
+  if (model.info.acknowledgements.trim()) out.push({ id: 'acknowledgements', title: 'Acknowledgements', text: model.info.acknowledgements.trim() });
+  if (model.options.includeAboutAuthor && model.info.aboutAuthor.trim()) out.push({ id: 'about', title: 'About the Author', text: model.info.aboutAuthor.trim() });
+  if (model.info.alsoBy.trim()) out.push({ id: 'alsoBy', title: model.info.author ? `Also by ${model.info.author}` : 'Also by the Author', text: model.info.alsoBy.trim() });
+  return out;
+}
+
+/** An epigraph's lines: the quotation, and an attribution line starting with a dash. */
+export function epigraphLines(text: string): { text: string; attribution: boolean }[] {
+  return text
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => ({ text: l, attribution: /^[—–-]/.test(l) }));
 }
 
 /** The text a contents page shows for a chapter: "Chapter 1: The Lamp", or just the title. */

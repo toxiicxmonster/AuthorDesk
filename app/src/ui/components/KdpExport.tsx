@@ -17,14 +17,14 @@ import {
   type PublishingInfo,
   type PublishOptions,
 } from '../../importExport/publish';
-import { buildEpub, type EpubCover } from '../../importExport/epub';
+import { buildEpub, EBOOK_STYLE_LABELS, EBOOK_STYLES, type EbookStyle, type EpubCover } from '../../importExport/epub';
 import { buildKdpDocx } from '../../importExport/kdpDocx';
 import { buildPrintPdf, loadFonts } from '../../importExport/printPdf';
 import { saveFile } from '../../importExport/download';
 import { flushAllEdits } from '../../editor/EditorContext';
 import { reportError, toast } from '../store';
 import type { Book } from '../../domain/schema';
-import { resolveExtraPages } from '../../domain/bookPages';
+import { NO_EXTRA_PAGES, resolveExtraPages } from '../../domain/bookPages';
 import { ExtraPagesPicker, useExtraPagesData, type ExtraPagesChoice } from './BookPages';
 
 type Format = 'epub' | 'ebook-docx' | 'print';
@@ -51,6 +51,8 @@ interface SavedChoices {
   printFile: 'pdf' | 'docx';
   pdfFont: 'crimson' | 'gentium';
   sceneBreak: string;
+  /** The eBook's look (EPUB). */
+  ebookStyle: EbookStyle;
   options: PublishOptions;
 }
 
@@ -71,6 +73,7 @@ function loadChoices(): SavedChoices {
     printFile: 'pdf',
     pdfFont: 'crimson',
     sceneBreak: '*   *   *',
+    ebookStyle: 'classic',
     options: DEFAULT_PUBLISH_OPTIONS,
   };
   try {
@@ -113,7 +116,7 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
 
   // Dedication / About the Author come from the pages managed on Home (automatic choice, a specific page, or none).
   const pages = useMemo(
-    () => (pageData ? resolveExtraPages(bookId, projectId, pageData.projects, pageData.books, pageChoice) : { dedication: '', aboutAuthor: '' }),
+    () => (pageData ? resolveExtraPages(bookId, projectId, pageData.projects, pageData.books, pageChoice) : NO_EXTRA_PAGES),
     [pageData, bookId, projectId, pageChoice],
   );
   const model = useMemo(
@@ -138,7 +141,7 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
       await flushAllEdits();
       const name = slug(book.title);
       if (choices.format === 'epub') {
-        await saveFile(buildEpub(model, book.id, cover ?? undefined), `${name} - Kindle.epub`, 'application/epub+zip');
+        await saveFile(buildEpub(model, book.id, cover ?? undefined, { style: choices.ebookStyle, sceneBreak: choices.sceneBreak }), `${name} - Kindle.epub`, 'application/epub+zip');
       } else if (choices.format === 'print' && choices.printFile === 'pdf' && layout) {
         const fonts = await loadFonts(fetch, choices.pdfFont);
         const r = await buildPrintPdf(model, layout, fonts, { sceneBreak: choices.sceneBreak });
@@ -306,6 +309,30 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
             </div>
           )}
           {choices.format === 'epub' && (
+            <div className="two-col">
+              <label className="field">
+                <span>Style</span>
+                <select value={choices.ebookStyle} onChange={(e) => set({ ebookStyle: e.target.value as EbookStyle })}>
+                  {EBOOK_STYLES.map((s) => (
+                    <option key={s} value={s}>
+                      {EBOOK_STYLE_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Scene break</span>
+                <select value={choices.sceneBreak} onChange={(e) => set({ sceneBreak: e.target.value })}>
+                  {SCENE_BREAKS.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+          {choices.format === 'epub' && (
             <div className="field">
               <span>Cover image inside the eBook (optional)</span>
               <div className="row gap">
@@ -425,7 +452,7 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
       <div className="dialog-actions">
         <button onClick={onClose}>Cancel</button>
         <button className="primary" disabled={busy || !model.chapters.length} onClick={() => void exportNow()}>
-          {busy ? 'Building…' : problems.length ? `Export anyway (${problems.length} to fix)` : choices.format === 'epub' ? 'Save Kindle eBook (.epub)' : choices.format === 'print' ? 'Save print interior (.docx)' : 'Save Kindle eBook (.docx)'}
+          {busy ? 'Building…' : problems.length ? `Export anyway (${problems.length} to fix)` : choices.format === 'epub' ? 'Save Kindle eBook (.epub)' : choices.format === 'print' ? `Save print interior (.${choices.printFile})` : 'Save Kindle eBook (.docx)'}
         </button>
       </div>
       </div>
