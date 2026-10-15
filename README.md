@@ -1,4 +1,4 @@
-# AuthorDesk: private novel-writing software with a grammar checker and AI editor
+# AuthorDesk: novel-writing software with a grammar checker and AI editor
 
 **AuthorDesk is a free writing app for novelists that runs entirely on your own computer.** Write your book, keep a series bible of characters and places, plan the plot with story structures, check grammar and style as you type, get rewrites from a private AI editor, and export a print-ready KDP paperback PDF or EPUB, all in one window and without sending your writing anywhere.
 
