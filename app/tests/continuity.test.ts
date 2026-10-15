@@ -6,7 +6,7 @@ import { plainTextToDoc } from '../src/domain/text';
 import { editorExtensions } from '../src/editor/extensions';
 import { getSuggestions } from '../src/editor/proofreadExtension';
 import { runProofread } from '../src/editor/proofreadRunner';
-import { deathChapter, findContradictions, findDeathIssues, placeFacts, type ContinuityScene } from '../src/proofreading/continuity';
+import { deathChapter, deathWithoutChapter, findContradictions, findDeathIssues, placeFacts, type ContinuityScene } from '../src/proofreading/continuity';
 
 const winnie = { id: 'w', name: 'Winnie Hartley', aliases: [], appearance: '', status: '' };
 const tom = { id: 't', name: 'Tom Reyes', aliases: [], appearance: '', status: 'deceased, Ch. 2' };
@@ -87,5 +87,14 @@ describe('continuity in the editor', () => {
     await runProofread(ed, project.id, { sceneId: s2.id });
     expect(getSuggestions(ed.state).filter((s) => s.ruleId === 'continuity')).toEqual([]);
     ed.destroy();
+  });
+});
+
+describe('death statuses', () => {
+  it('notices a death with no chapter, which the check can’t use', () => {
+    expect(deathWithoutChapter('dead')).toBe(true);
+    expect(deathWithoutChapter('deceased, Ch. 14')).toBe(false);
+    expect(deathWithoutChapter('alive')).toBe(false);
+    expect(deathWithoutChapter('')).toBe(false);
   });
 });

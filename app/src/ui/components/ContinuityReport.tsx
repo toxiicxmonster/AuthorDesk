@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { db } from '../../storage/db';
 import { navigate } from '../router';
-import { findContradictions, findDeathIssues, type Contradiction, type DeathIssue } from '../../proofreading/continuity';
+import { deathWithoutChapter, findContradictions, findDeathIssues, type Contradiction, type DeathIssue } from '../../proofreading/continuity';
 import { bookScenes, placeFactsCached, seriesScenes, storyDates } from '../../proofreading/continuityData';
 import { findAgeIssues, type AgeIssue } from '../../proofreading/ages';
 import type { ReferenceEntry } from '../../domain/schema';
@@ -39,6 +39,7 @@ export function ContinuityReport({ projectId, bookId, refs, runKey }: { projectI
 
   if (!found) return null;
   const total = found.contradictions.length + found.deaths.length + found.ages.length;
+  const undated = refs.filter((r) => !r.archivedAt && r.type === 'character' && deathWithoutChapter(r.status));
   return (
     <section className="card">
       <h2>
@@ -50,6 +51,15 @@ export function ContinuityReport({ projectId, bookId, refs, runKey }: { projectI
         a character’s Age or “Born: 2002” on their entry is checked too). Purple underlines mark these in the editor too.
       </p>
       {!total && <p className="small">Nothing contradicts itself. Nice.</p>}
+      {undated.map((r) => (
+        <p key={r.id} className="small muted">
+          {r.name}’s status says “{r.status.trim()}” but not when, so lines after their death can’t be checked. Add the chapter, like “deceased, Ch. 14”, in{' '}
+          <button className="link-btn" onClick={() => navigate(projectId, 'refs', r.id)}>
+            {r.name.split(/\s+/)[0]}’s entry
+          </button>
+          .
+        </p>
+      ))}
       <ul className="sugg-list">
         {found.contradictions.map((c) => (
           <li key={c.key} className="sugg sev-conflict">

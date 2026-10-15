@@ -47,6 +47,18 @@ describe('chapter headings', () => {
     expect(chapterHeading('Prologue', 1, 'number-title')).toEqual({ label: '', title: 'Prologue' });
     expect(numberToWords(105)).toBe('One Hundred and Five');
   });
+  it('drops a chapter number typed into the title, so it doesn’t print twice', () => {
+    // Titles as written in a real manuscript.
+    expect(chapterHeading('Chapter 2. Between the cracks', 2, 'number-title')).toEqual({ label: 'Chapter 2', title: 'Between the cracks' });
+    expect(chapterHeading('Chapter 8.)An unwanted guest', 8, 'words-title')).toEqual({ label: 'Chapter Eight', title: 'An unwanted guest' });
+    expect(chapterHeading('Chapter 1: The things we leave behind', 1, 'number-title')).toEqual({ label: 'Chapter 1', title: 'The things we leave behind' });
+    expect(chapterHeading('Chapter 4: "His" girl', 4, 'number-title')).toEqual({ label: 'Chapter 4', title: '"His" girl' });
+    expect(chapterHeading('Chapter Twenty-One – Home', 21, 'number-title')).toEqual({ label: 'Chapter 21', title: 'Home' });
+    expect(chapterHeading('12. The Fall', 12, 'number-title')).toEqual({ label: 'Chapter 12', title: 'The Fall' });
+    expect(chapterHeading('1984 Revisited', 3, 'number-title')).toEqual({ label: 'Chapter 3', title: '1984 Revisited' });
+    expect(chapterHeading('Chapter Three', 3, 'number-title')).toEqual({ label: '', title: 'Chapter 3' });
+    expect(chapterHeading('Chapter 2. Between the cracks', 2, 'as-written')).toEqual({ label: '', title: 'Chapter 2. Between the cracks' });
+  });
   it('does not count prologues when numbering', () => {
     const m = buildPublishModel(book(), [
       { chapter: chapter('Prologue', 0), scenes: [scene('Before.')] },

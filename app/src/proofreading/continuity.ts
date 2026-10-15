@@ -128,6 +128,11 @@ export function deathChapter(status: string): number | null {
   return m ? Math.max(0, parseInt(m[1], 10) - 1) : null;
 }
 
+/** A status that says the character died but not when ("dead", "deceased"), so their later lines can't be checked. */
+export function deathWithoutChapter(status: string): boolean {
+  return /\b(?:dead|deceased|died|killed|murdered|slain)\b/i.test(status) && deathChapter(status) === null;
+}
+
 /** In a series, the book (0-based) a status names ("deceased, Book 2 Ch. 14"); null when it doesn't say. */
 export function deathBook(status: string): number | null {
   const m = /\bbook\s*(\d{1,2})\b/i.exec(status);

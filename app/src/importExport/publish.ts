@@ -101,13 +101,28 @@ export function numberToWords(n: number): string {
 const GENERIC_TITLE = /^\s*(chapter|ch\.?)\s+([0-9]+|[a-z-]+)\s*$/i;
 const UNNUMBERED = /^\s*(prologue|epilogue|interlude|afterword|foreword|preface|introduction|coda)\b/i;
 
+/**
+ * A number typed at the start of a title: "Chapter 2. ", "Ch. 8.)", "Chapter Three: ", or a bare "12. " / "3) "
+ * (a bare number needs punctuation after it, so "1984 Revisited" keeps its year).
+ */
+const NUMBER_PREFIX = new RegExp(
+  `^\\s*(?:(?:chapter|ch\\.?)\\s+(?:\\d+|(?:${[...ONES, ...TENS.filter(Boolean)].join('|')})(?:-\\w+)?)\\s*[.:)\\]–—-]*|\\d+\\s*[.:)\\]–—-]+)\\s*`,
+  'i',
+);
+
+/** The title without a chapter number typed in front of it ("Chapter 2. Between the cracks" → "Between the cracks"). */
+export function withoutChapterNumber(title: string): string {
+  return title.replace(NUMBER_PREFIX, '').trim();
+}
+
 export function chapterHeading(title: string, n: number, style: HeadingStyle): { label: string; title: string } {
   const clean = title.trim() || `Chapter ${n}`;
   if (style === 'as-written' || UNNUMBERED.test(clean)) return { label: '', title: clean };
-  const generic = GENERIC_TITLE.test(clean);
   if (style === 'number-only') return { label: '', title: `Chapter ${n}` };
   const label = style === 'words-title' ? `Chapter ${numberToWords(n)}` : `Chapter ${n}`;
-  return generic ? { label: '', title: label } : { label, title: clean };
+  // The number is added in the chosen style, so one typed into the title would print twice.
+  const rest = GENERIC_TITLE.test(clean) ? '' : withoutChapterNumber(clean);
+  return rest ? { label, title: rest } : { label: '', title: label };
 }
 
 // ---------------------------------------------------------------- smart punctuation
