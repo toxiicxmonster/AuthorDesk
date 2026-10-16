@@ -128,3 +128,17 @@ describe('proofreading rules', () => {
     for (const s of runRules(text, ctx())) expect(text.slice(s.start, s.end)).toBe(s.original);
   });
 });
+
+describe('agreement, past tense and idioms (from a real manuscript)', () => {
+  const ctx = { dialect: 'en-US' as const, disabledRules: new Set<string>(), disabledCategories: new Set<string>(), dictionary: new Set<string>(), knownNames: [] };
+  const fix = (t: string) => runRules(t, ctx).filter((s) => s.category === 'confused').map((s) => `${s.original} -> ${s.replacements[0]}`);
+  it('catches them', () => {
+    expect(fix('There is two things he hates.')).toEqual(['There is two -> There are two']);
+    expect(fix("There's three of them.")).toEqual(["There's three -> There are three"]);
+    expect(fix('A smile sprung on my face.')).toEqual(['sprung -> sprang']);
+    expect(fix('It vanished in thin air.')).toEqual(['vanished in thin air -> vanished into thin air']);
+  });
+  it('leaves correct uses alone', () => {
+    expect(fix('The trap had sprung. It had just begun. The ship was sunk. A sunk cost. There is a lot to do.')).toEqual([]);
+  });
+});

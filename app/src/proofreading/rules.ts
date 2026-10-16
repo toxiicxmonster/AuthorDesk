@@ -123,6 +123,38 @@ const CONFUSED: [string, RegExp, string, string, string][] = [
   ['confused-supposedly', /\bsupposably\b/i, 'supposedly', 'The word is “supposedly”.', '“supposably” → “supposedly”'],
   ['confused-espresso', /\bexpresso\b/i, 'espresso', 'The coffee is “espresso”.', '“expresso” → “espresso”'],
   ['confused-prima-donna', /\bpre[- ]?madonna\b/i, 'prima donna', 'The phrase is “prima donna”.', '“pre-Madonna” → “prima donna”'],
+  ['confused-into-thin-air', /\b(vanish(?:ed|es|ing)?|disappear(?:ed|s|ing)?) in thin air\b/i, '$1 into thin air', 'The idiom is “into thin air”.', '“vanished in thin air” → “into thin air”'],
+  // "There is two things": a plural after "there is/was" needs "are/were".
+  [
+    'agreement-there-are',
+    /\b(there)(?: is|['’]s) (two|three|four|five|six|seven|eight|nine|ten|dozens|hundreds|many|several|so many|too many|\d+)\b/i,
+    '$1 are $2',
+    'With more than one, it’s “there are”.',
+    '“there is two” → “there are two”',
+  ],
+  ['agreement-there-were', /\b(there) was (two|three|four|five|six|seven|eight|nine|ten|dozens|hundreds|many|several|so many|too many|\d+)\b/i, '$1 were $2', 'With more than one, it’s “there were”.', '“there was two” → “there were two”'],
+  // Past participles used as the simple past ("A smile sprung on my face"), but not after have/had/was ("had sprung").
+  ...(
+    [
+      ['sprung', 'sprang'],
+      ['sunk', 'sank'],
+      ['swum', 'swam'],
+      ['shrunk', 'shrank'],
+      ['stunk', 'stank'],
+      ['begun', 'began'],
+    ] as const
+  ).map(
+    ([pp, past]): [string, RegExp, string, string, string] => [
+      `past-tense-${past}`,
+      new RegExp(
+        String.raw`(?<!\b(?:have|has|had|having|been|be|being|was|were|is|are|am|get|gets|got|the|a|an|['’]ve|['’]d)\s(?:(?:just|already|never|not|ever|nearly|almost|finally|\w+ly)\s)?)\b${pp}\b`,
+        'i',
+      ),
+      past,
+      `The past tense is “${past}”; “${pp}” goes after “had” or “has” (“had ${pp}”).`,
+      `“${pp}” → “${past}” as the past tense`,
+    ],
+  ),
   ['confused-home-in', /\bhon(e|ed|es|ing) in on\b/i, 'hom$1 in on', 'To close in on a target is to “home in on” it.', '“hone in on” → “home in on”'],
   ['confused-first-served', /\bfirst come,? first serve\b/i, 'first come, first served', 'The phrase is “first come, first served”.', '“first serve” → “first served”'],
   ['confused-statute', /\bstatue of limitations\b/i, 'statute of limitations', 'A law is a “statute”.', '“statue of limitations”'],
