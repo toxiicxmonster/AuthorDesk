@@ -36,7 +36,7 @@ All taken with the sample book that comes with the app.
 | ![Story board: scene and idea cards in Act I, II and III columns](docs/screenshots/board.jpg) | |
 | **Story board:** plan with cards and story structures | |
 
-> **Version 0.11.1.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
+> **Version 0.12.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
 
 ---
 
