@@ -71,6 +71,20 @@ describe('proofreading rules', () => {
     expect(applySuggestion(text, s, s.replacements[0])).toBe('"I know," she said.');
   });
 
+  it('flags a period before a capitalised speech tag, lowering "The"/"She" but not a name', () => {
+    const fix = (text: string) => {
+      const [s] = find(text, 'dialogue-period-before-capital-tag');
+      return s ? applySuggestion(text, s, s.replacements[0]) : null;
+    };
+    expect(fix('“I’m truly sorry.” The woman responded in a soft voice.')).toBe('“I’m truly sorry,” the woman responded in a soft voice.');
+    expect(fix('"Go home." She sighed.')).toBe('"Go home," she sighed.');
+    expect(fix('"Okay." Jace said.')).toBe('"Okay," Jace said.');
+    // Not a tag: narration that happens to use the verb.
+    expect(fix('"Okay." Jace said nothing for a while.')).toBeNull();
+    expect(fix('"Stop." Then said the rest.')).toBeNull();
+    expect(fix('"Are you serious?" I whispered.')).toBeNull();
+  });
+
   it('respects the dialect setting', () => {
     expect(find('The colour was grey.', 'dialect', ctx({ dialect: 'en-US' })).map((s) => s.replacements[0])).toEqual(['color']);
     expect(find('The color was gray.', 'dialect', ctx({ dialect: 'en-GB' })).map((s) => s.replacements[0])).toEqual(['colour']);

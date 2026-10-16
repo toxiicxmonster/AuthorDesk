@@ -232,7 +232,10 @@ function dialectMap(dialect: 'en-US' | 'en-GB'): Map<string, string> {
 }
 
 const SAID_VERBS =
-  'said|asked|whispered|replied|shouted|muttered|called|answered|cried|murmured|yelled|snapped|added|continued|explained|admitted|insisted|agreed|lied|sighed|laughed';
+  'said|asked|whispered|replied|responded|shouted|muttered|called|answered|cried|murmured|yelled|snapped|added|continued|explained|admitted|insisted|agreed|lied|sighed|laughed|demanded|begged|pleaded|warned|stammered|repeated|exclaimed';
+const PRONOUN_OR_ARTICLE = new Set(['He', 'She', 'They', 'We', 'You', 'It', 'The', 'A', 'An', 'His', 'Her', 'My', 'Their', 'Our', 'Your']);
+// Capitalised words after a quote that start a new sentence rather than name a speaker ("Then said nothing").
+const TAG_NOT_SUBJECT = new Set(['Then', 'Now', 'So', 'But', 'And', 'When', 'After', 'Before', 'Still', 'Instead', 'Finally', 'Nobody', 'No', 'Everyone', 'Someone', 'Nothing', 'This', 'That', 'There']);
 
 export const ADVERB_EXCEPTIONS = new Set([
   'only', 'family', 'early', 'reply', 'ally', 'fly', 'holy', 'ugly', 'lovely', 'friendly', 'belly', 'jelly', 'italy',
@@ -373,6 +376,22 @@ export const RULES: Rule[] = [
     'When dialogue is followed by a speech tag, end it with a comma instead of a period.',
     (m) => [',' + m[1]],
     (m) => [m.index, m.index + 2],
+  ),
+  // ""I'm truly sorry." The woman responded" → ""I'm truly sorry," the woman responded": the tag is part of the
+  // sentence, so the period becomes a comma and "The"/"She" goes lowercase (a name keeps its capital).
+  regexRule(
+    'dialogue-period-before-capital-tag',
+    'dialogue',
+    'warning',
+    new RegExp(`\\.(["”])(\\s+)(He|She|They|We|You|It|(?:The|A|An|His|Her|My|Their|Our|Your)(?= \\p{Ll})|\\p{Lu}\\p{Ll}+)((?: \\p{Ll}+)?(?: \\p{Lu}\\p{Ll}+)?) (${SAID_VERBS})\\b(?! nothing\\b)`, 'u'),
+    'When dialogue is followed by a speech tag, end it with a comma; the tag carries on the sentence.',
+    (m) => {
+      if (TAG_NOT_SUBJECT.has(m[3])) return null;
+      // A name keeps its capital: only the period changes.
+      if (!PRONOUN_OR_ARTICLE.has(m[3])) return [',' + m[1]];
+      return [',' + m[1] + m[2] + m[3].toLowerCase()];
+    },
+    (m) => (PRONOUN_OR_ARTICLE.has(m[3]) ? [m.index, m.index + 2 + m[2].length + m[3].length] : [m.index, m.index + 2]),
   ),
   regexRule(
     'dialogue-tag-capital',
@@ -584,6 +603,7 @@ const RULE_LABELS: Record<string, string> = {
   'stronger-word': 'Stronger word for verb + adverb or “very” + adjective',
   'dialogue-redundant-tag': 'Redundant speech tags (“whispered quietly”)',
   'dialogue-period-before-tag': 'Period before a speech tag',
+  'dialogue-period-before-capital-tag': 'Period before a capitalised speech tag (“…” The woman said)',
   'dialogue-tag-capital': 'Capitalised speech tag',
   'dialogue-missing-comma': 'Missing comma before a speech tag',
   'ellipsis-spacing': 'Ellipsis with too many dots',
