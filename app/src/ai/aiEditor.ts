@@ -1,7 +1,7 @@
 /**
- * Client for the private AI Editor: llama.cpp running an open-weight model on this PC, started by the AuthorDesk
- * launcher on first use and reached through it at /ai/* (same origin, loopback only). Nothing leaves the machine.
- * Installed with scripts\install-ai-editor.ps1.
+ * Client for the private AI Editor: llama.cpp running an open-weight model on this computer, started by the AuthorDesk
+ * desktop app on first use and reached through it at /ai/* (same origin, loopback only). Nothing leaves the machine.
+ * Installed from Settings → Add-ons (desktop/src/installers.cjs).
  *
  * This module only produces text. It never touches the manuscript: results are shown in the AI Editor panel,
  * where the author can copy them.
@@ -32,7 +32,7 @@ export interface ChatOptions {
 
 export class AiError extends Error {}
 
-/** Asks the launcher about the AI Editor. Null when not running under the launcher (e.g. the dev server). */
+/** Asks the desktop app about the AI Editor. Null when not running under the desktop app (e.g. the dev server). */
 export async function fetchAiStatus(fetchImpl: typeof fetch = globalThis.fetch?.bind(globalThis)): Promise<AiStatus | null> {
   try {
     const res = await fetchImpl('/ai/status', { cache: 'no-store' });
@@ -49,7 +49,7 @@ export async function warmUpAi(fetchImpl: typeof fetch = globalThis.fetch?.bind(
   try {
     await fetchImpl('/ai/start', { method: 'POST' });
   } catch {
-    /* not under the launcher */
+    /* not under the desktop app */
   }
 }
 

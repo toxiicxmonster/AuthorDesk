@@ -16,6 +16,7 @@ import { useArchiveImport } from '../components/ImportPanel';
 import { createSampleProject } from '../../storage/sample';
 import { BookPagesCard } from '../components/BookPages';
 import { BookProgress } from '../components/BookProgress';
+import { BackupRecovery } from '../components/BackupRecovery';
 
 export function HomePage({ projectId }: { projectId: string | null }) {
   return projectId ? <Dashboard projectId={projectId} /> : <ProjectList />;
@@ -110,6 +111,7 @@ function ProjectList() {
             {restoreInput}
           </label>
         </div>
+        <BackupRecovery />
         {(syncUi.server === 'signed-out' || syncUi.server === 'signed-in') && <SyncPanel projectId={null} />}
         {importer.modal}
       </div>

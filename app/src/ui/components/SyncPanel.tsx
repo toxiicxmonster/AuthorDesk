@@ -29,7 +29,7 @@ export function SyncPanel({ projectId }: { projectId: string | null }) {
           </p>
           <ol>
             <li>Run the sync server somewhere both devices can reach over HTTPS (see <code>docs/sync-server.md</code>).</li>
-            <li>Open the app from that address on your phone and install it; on the PC, point the launcher at it (one line in <code>sync-server.txt</code>).</li>
+            <li>Open the app from that address on your phone and install it; on the computer, point AuthorDesk at it (one line in <code>sync-server.txt</code>).</li>
             <li>Sign in on both. Existing work here can be moved with a backup or will upload on first sync.</li>
           </ol>
           <p>Until then, move work between devices with backups.</p>

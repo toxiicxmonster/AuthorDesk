@@ -1,0 +1,69 @@
+{
+  "name": "authordesk-desktop",
+  "productName": "AuthorDesk",
+  "version": "0.9.0",
+  "description": "Private writing studio for novelists",
+  "author": {
+    "name": "Bailey McCreary",
+    "email": "toxiicxmonster@users.noreply.github.com"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests/desktop.test.cjs",
+    "dist:win": "electron-builder --win dir --publish never",
+    "dist:linux": "electron-builder --linux AppImage deb --publish never"
+  },
+  "dependencies": {
+    "tar": "^7.5.22",
+    "yauzl": "^3.4.0"
+  },
+  "devDependencies": {
+    "electron": "^44.7.2",
+    "electron-builder": "^26.15.3"
+  },
+  "homepage": "https://github.com/toxiicxmonster/AuthorDesk",
+  "build": {
+    "appId": "io.github.toxiicxmonster.authordesk",
+    "productName": "AuthorDesk",
+    "executableName": "AuthorDesk",
+    "directories": {
+      "output": "../releases/desktop",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "../app/dist",
+        "to": "dist"
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": "dir",
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "icon": "build/icon.png",
+      "executableName": "authordesk",
+      "synopsis": "Private writing studio for novelists",
+      "description": "Write and publish novels with a grammar checker and an AI editor that run on your own computer."
+    },
+    "appImage": {
+      "artifactName": "AuthorDesk-v${version}-linux-x86_64.AppImage"
+    },
+    "deb": {
+      "artifactName": "authordesk_${version}_amd64.deb"
+    }
+  }
+}

@@ -78,7 +78,7 @@ export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }:
           <input type="number" min={1} max={90} value={settings.backupReminderDays} onChange={(e) => void updateSettings({ backupReminderDays: Math.max(1, parseInt(e.target.value, 10) || 7) })} style={{ width: '4em' }} />
           <span>days</span>
         </label>
-        <p className="muted small">Tip: in Chrome/Edge you can save straight into a Google Drive, OneDrive or Dropbox desktop folder.</p>
+        <p className="muted small">Tip: you can save straight into a Google Drive, OneDrive or Dropbox folder on this computer.</p>
       </section>
 
       <section className="card publish-card">

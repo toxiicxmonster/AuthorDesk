@@ -6,9 +6,9 @@ export { isLocalEngine };
 
 /**
  * The private grammar engine: LanguageTool (with English n-gram data) running on this computer, started by the
- * AuthorDesk launcher and reached through it at /grammar/* (same origin, loopback only). Text never leaves the machine,
- * so unlike the public service it needs no consent dialog and has no rate limit.
- * Installed with scripts\install-grammar-engine.ps1.
+ * AuthorDesk desktop app and reached through it at /grammar/* (same origin, loopback only). Text never leaves the
+ * machine, so unlike the public service it needs no consent dialog and has no rate limit.
+ * Installed from Settings → Add-ons (desktop/src/installers.cjs).
  */
 
 export interface EngineStatus {
@@ -23,7 +23,7 @@ export function localEngineEndpoint(origin = globalThis.location?.origin ?? 'htt
   return origin + LOCAL_ENGINE_PATH;
 }
 
-/** Asks the launcher about the engine. Null when not running under the launcher (e.g. the dev server). */
+/** Asks the desktop app about the engine. Null when not running under the desktop app (e.g. the dev server). */
 export async function fetchEngineStatus(fetchImpl: typeof fetch = globalThis.fetch?.bind(globalThis)): Promise<EngineStatus | null> {
   if (!fetchImpl) return null;
   try {
