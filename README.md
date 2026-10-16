@@ -36,7 +36,7 @@ All taken with the sample book that comes with the app.
 | ![Story board: scene and idea cards in Act I, II and III columns](docs/screenshots/board.jpg) | |
 | **Story board:** plan with cards and story structures | |
 
-> **Version 0.11.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
+> **Version 0.11.1.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
 
 ---
 
@@ -363,7 +363,8 @@ IMPORTING.md        exact import layout
 | Amazon KDP export | 🟡 Done and tested; files checked (PDF pages rendered, EPUB structure, Word layout); needs a real KDP upload and an EPUBCheck run |
 | Sync | 🟡 Done and tested with simulated devices and a local phone test; needs an HTTPS deployment and a real phone install |
 | Google Drive | 🟡 Built; needs a real account round-trip test |
-| Formal screen-reader audit, Android PWA install test, deployed-server security review | ⬜ Not yet done |
+| Accessibility | 🟡 Automated audit (axe-core) of every main page in the desktop app: no issues; readable contrast in every theme. A hands-on screen-reader test is not done yet |
+| Android PWA install test, deployed-server security review | ⬜ Not yet done |
 
 Details: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
