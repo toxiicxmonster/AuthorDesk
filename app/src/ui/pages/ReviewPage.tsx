@@ -13,6 +13,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import type { ReferenceEntry } from '../../domain/schema';
 import { bookScenes } from '../../proofreading/continuityData';
 import { ARC_GAP, arcChapters, arcWarnings, characterArcs } from '../../review/arcs';
+import { characterVoices } from '../../review/voices';
+import { db } from '../../storage/db';
 
 /**
  * Review: the whole book at once. Statistics and lists a scene-by-scene check can't show, each item one click from
@@ -89,6 +91,7 @@ export function ReviewPage({ projectId }: { projectId: string }) {
           <ReviewBody report={report} go={go} projectId={projectId} firstScene={(chapterId) => tree?.scenesByChapter.get(chapterId)?.[0]?.id ?? null} />
           {book && tree && <ChapterNotes projectId={projectId} bookId={book.id} chapters={tree.chapters} report={report} />}
           {book && <ContinuityReport projectId={projectId} bookId={book.id} refs={refs} runKey={String(ranAt?.getTime() ?? 0)} />}
+          {book && <Voices projectId={projectId} bookId={book.id} refs={refs} names={names} runKey={String(ranAt?.getTime() ?? 0)} />}
           {book && <ArcGaps projectId={projectId} bookId={book.id} refs={refs} names={names} runKey={String(ranAt?.getTime() ?? 0)} />}
         </>
       )}
@@ -203,6 +206,74 @@ function ChapterNotes({ projectId, bookId, chapters, report }: { projectId: stri
             ))}
           </ul>
         </>
+      )}
+    </section>
+  );
+}
+
+/** Who talks, how much, and the words that make each character sound like themselves. */
+function Voices({ projectId, bookId, refs, names, runKey }: { projectId: string; bookId: string; refs: ReferenceEntry[]; names: string[]; runKey: string }) {
+  const voices = useLiveQuery(async () => {
+    const scenes = await bookScenes(bookId);
+    const rows = await db.scenes.bulkGet(scenes.map((s) => s.sceneId));
+    const pov = new Map(rows.map((r) => [r?.id ?? '', r?.povCharacterId ?? null]));
+    return characterVoices(
+      scenes.map((s) => ({ ...s, povId: pov.get(s.sceneId) ?? null })),
+      refs,
+      names,
+    );
+  }, [bookId, runKey, refs, names]);
+  if (!voices) return null;
+  const most = Math.max(0.01, ...voices.map((v) => v.share));
+  return (
+    <section className="card voices">
+      <h2>Character voices</h2>
+      <p className="muted small">
+        Who talks, and how much. A line counts when a speech tag or action beat names the speaker (“Jace snapped”, “Finn shrugged. “…”). In first-person scenes,
+        “I” is the point-of-view character set in Scene notes. <em>Their words</em> are words a character uses far more than anyone else: the beginnings of a
+        voice.
+      </p>
+      {!voices.length ? (
+        <p className="small">No dialogue with a named speaker yet.</p>
+      ) : (
+        <table className="voices-table">
+          <thead>
+            <tr>
+              <th>Character</th>
+              <th className="num">Lines</th>
+              <th>Share of the talking</th>
+              <th className="num">Words a line</th>
+              <th>Usual tags</th>
+              <th>Their words</th>
+            </tr>
+          </thead>
+          <tbody>
+            {voices.map((v) => (
+              <tr key={v.referenceId}>
+                <td>
+                  <button className="link-btn" onClick={() => navigate(projectId, 'refs', v.referenceId)}>
+                    {v.name}
+                  </button>
+                  {v.sample && (
+                    <button className="block small muted voice-sample link-btn" title="Go to this line" onClick={() => navigate(projectId, 'write', v.sample!.sceneId, { find: v.sample!.text.slice(1, 40) })}>
+                      {v.sample.text}
+                    </button>
+                  )}
+                </td>
+                <td className="num">{v.lines}</td>
+                <td>
+                  <div className="share-bar" title={`${Math.round(v.share * 100)}% of the words spoken`}>
+                    <div style={{ width: `${(v.share / most) * 100}%` }} />
+                  </div>
+                  <span className="small muted">{Math.round(v.share * 100)}%</span>
+                </td>
+                <td className="num">{v.perLine}</td>
+                <td className="small">{v.tags.map(([t, n]) => `${t} (${n})`).join(', ') || '—'}</td>
+                <td className="small">{v.signature.join(', ') || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </section>
   );

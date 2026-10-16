@@ -3625,3 +3625,46 @@ code.path {
   align-items: center;
   margin-top: 0.4rem;
 }
+/* Review → Character voices */
+.voices-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.voices-table th,
+.voices-table td {
+  text-align: left;
+  padding: 0.35rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.voices-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+.voice-sample {
+  display: block;
+  text-align: left;
+  font-style: italic;
+  text-decoration: none;
+  margin-top: 0.15rem;
+  max-width: 28rem;
+}
+.share-bar {
+  height: 0.5rem;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+  min-width: 5rem;
+}
+.share-bar > div {
+  height: 100%;
+  background: var(--accent);
+}
+@media (max-width: 700px) {
+  .voices-table th:nth-child(4),
+  .voices-table td:nth-child(4),
+  .voices-table th:nth-child(5),
+  .voices-table td:nth-child(5) {
+    display: none;
+  }
+}
