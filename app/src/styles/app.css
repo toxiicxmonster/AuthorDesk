@@ -92,6 +92,10 @@ body,
   height: 100%;
   margin: 0;
 }
+html {
+  /* Scrollbars in the theme's colours rather than the browser's white track (inherited everywhere). */
+  scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent;
+}
 body {
   background: var(--bg);
   color: var(--text);
