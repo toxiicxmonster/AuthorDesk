@@ -3765,3 +3765,9 @@ code.path {
 .toolbar.compact .tb-label {
   display: none;
 }
+@media (min-width: 900px) {
+  /* Long text (a synopsis runs to a page): the full width of Home. */
+  .pitch-card {
+    grid-column: 1 / -1;
+  }
+}
