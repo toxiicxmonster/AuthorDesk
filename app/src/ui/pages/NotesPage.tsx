@@ -69,6 +69,7 @@ export function NotesPage({ projectId, selectedId }: { projectId: string; select
         ) : (
           <EmptyState title="Research & notes">
             <p>Keep research, links, citations and loose ideas here. Link notes to characters and places so they show up in backlinks.</p>
+            {notes.some((n) => !n.archivedAt) && <p className="muted">Choose a note on the left to open it.</p>}
           </EmptyState>
         )}
       </section>
