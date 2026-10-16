@@ -29,6 +29,7 @@ import { BookReplace } from './ui/components/BookReplace';
 import { ThemeQuickButton } from './ui/components/ThemeQuickButton';
 import { Icon, type IconName } from './ui/components/Icon';
 import { useFitNav } from './ui/useFitNav';
+import { SprintButton } from './ui/components/SprintButton';
 
 const NAV: [View, string, IconName, string][] = [
   ['home', 'Home', 'home', 'Your book at a glance'],
@@ -260,6 +261,11 @@ export function App() {
         <button className="exit-focus" onClick={() => setUi({ focusMode: false })}>
           Exit focus (Esc)
         </button>
+      )}
+      {focusMode && pid && (
+        <div className="focus-sprint">
+          <SprintButton projectId={pid} statusOnly />
+        </div>
       )}
       {pid && !focusMode && (
         <nav className="bottomnav" aria-label="Sections">

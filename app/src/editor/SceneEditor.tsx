@@ -28,6 +28,9 @@ import { applyVersion } from '../ui/components/AiResults';
 import { sentenceAround } from '../ai/adverbJudge';
 import { contextSynonyms } from '../ai/contextSynonyms';
 import { avoidEchoes } from '../proofreading/echo';
+import { SprintButton } from '../ui/components/SprintButton';
+import { useFitNav } from '../ui/useFitNav';
+import { useSprint } from '../ui/sprint';
 
 const SAVE_DELAY = 700;
 /** Underlines refresh this soon after a pause in typing (on-device checks; unchanged paragraphs come from a cache). */
@@ -272,13 +275,14 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
     <div className={`editor-wrap${focusMode ? ' focus' : ''}`} ref={wrapRef}>
       <Toolbar
         editor={editor}
+        projectId={scene.projectId}
         onFind={() => setFindOpen((v) => !v)}
         onLink={() => setPickerOpen(true)}
         onSnapshot={async () => {
           await save();
           const s = await db.scenes.get(scene.id);
           if (s) await createSnapshot(s, 'manual');
-          toast('Snapshot saved. Find it under History.');
+          toast('Snapshot saved. Find it under Versions.');
         }}
       />
       {findOpen && <FindBar editor={editor} initialQuery={initialFind ?? ''} onClose={() => setFindOpen(false)} />}
@@ -368,7 +372,10 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
   );
 }
 
-function Toolbar({ editor, onFind, onLink, onSnapshot }: { editor: Editor; onFind: () => void; onLink: () => void; onSnapshot: () => void }) {
+function Toolbar({ editor, projectId, onFind, onLink, onSnapshot }: { editor: Editor; projectId: string; onFind: () => void; onLink: () => void; onSnapshot: () => void }) {
+  // Labels shrink, then go (icons only, names as tooltips) when the toolbar is narrow; re-measured when buttons come and go.
+  const sprint = useSprint();
+  const fit = useFitNav<HTMLDivElement>([!!sprint, !!sprint?.done, editor.isActive('refLink')]);
   const [, force] = useState(0);
   useEffect(() => {
     const f = () => force((n) => n + 1);
@@ -398,7 +405,7 @@ function Toolbar({ editor, onFind, onLink, onSnapshot }: { editor: Editor; onFin
   );
   const c = () => editor.chain().focus();
   return (
-    <div className="toolbar" role="toolbar" aria-label="Formatting">
+    <div className={`toolbar${fit.level === 1 ? ' tight' : fit.level === 2 ? ' compact' : ''}`} role="toolbar" aria-label="Formatting" ref={fit.ref}>
       {btn('B', 'Bold', 'Bold (Ctrl+B)', editor.isActive('bold'), () => c().toggleBold().run(), { iconOnly: true, cls: 'b' })}
       {btn('I', 'Italic', 'Italic (Ctrl+I)', editor.isActive('italic'), () => c().toggleItalic().run(), { iconOnly: true, cls: 'i' })}
       {btn('U', 'Underline', 'Underline (Ctrl+U)', editor.isActive('underline'), () => c().toggleUnderline().run(), { iconOnly: true, cls: 'u' })}
@@ -413,9 +420,10 @@ function Toolbar({ editor, onFind, onLink, onSnapshot }: { editor: Editor; onFin
       {btn(<Icon name="link" size={16} />, 'Link', 'Link the selected words to a character, place or other entry', editor.isActive('refLink'), onLink)}
       {editor.isActive('refLink') && btn(<Icon name="unlink" size={16} />, 'Unlink', 'Remove this link (the words stay)', false, () => c().extendMarkRange('refLink').unsetRefLink().run())}
       {btn(<Icon name="search" size={16} />, 'Find', 'Find & replace in this scene (Ctrl+F)', false, onFind)}
-      {btn(<Icon name="camera" size={16} />, 'Snapshot', 'Save a copy of this scene as it is now (see History)', false, onSnapshot)}
+      {btn(<Icon name="camera" size={16} />, 'Snapshot', 'Save a copy of this scene as it is now (see Versions)', false, onSnapshot)}
       {btn(<Icon name="write" size={16} />, 'AI Editor', 'Rewrite, smooth or tighten the selected passage (suggestions only, on this computer)', false, () => setUi({ rightOpen: true, rightTab: 'ai' }))}
       {btn(<Icon name="focus" size={16} />, 'Focus', 'Hide everything except your page (Ctrl+Alt+F, Esc to leave)', false, () => setUi((s) => ({ focusMode: !s.focusMode })))}
+      <SprintButton projectId={projectId} />
     </div>
   );
 }

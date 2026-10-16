@@ -3701,3 +3701,67 @@ code.path {
 .second-backup h3 {
   margin: 0 0 0.3rem;
 }
+/* Writing sprints */
+.sprint-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.sprint-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  padding: 0.4rem;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 11rem;
+}
+.sprint-menu p {
+  margin: 0.1rem 0.3rem 0.2rem;
+}
+.sprint-running,
+.sprint-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.sprint-clock {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.focus-sprint {
+  position: fixed;
+  left: 1rem;
+  top: 0.6rem;
+  z-index: 5;
+  opacity: 0.6;
+}
+.focus-sprint:hover {
+  opacity: 1;
+}
+/* Toolbar: buttons never squeeze into each other; when they don't fit, tighter, then icons only (see useFitNav). */
+.toolbar > * {
+  flex-shrink: 0;
+}
+.tb-label {
+  white-space: nowrap;
+}
+.toolbar.tight .tb {
+  padding: 0 0.25em;
+  gap: 0.2em;
+}
+.toolbar.tight .tb-label {
+  font-size: 0.76rem;
+}
+.toolbar.compact .tb-label {
+  display: none;
+}
