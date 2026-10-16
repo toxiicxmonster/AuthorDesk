@@ -18,6 +18,7 @@ import { BookPagesCard } from '../components/BookPages';
 import { BookProgress } from '../components/BookProgress';
 import { BackupRecovery } from '../components/BackupRecovery';
 import { PitchCard } from '../components/PitchCard';
+import type { SprintRecord } from '../sprint';
 
 export function HomePage({ projectId }: { projectId: string | null }) {
   return projectId ? <Dashboard projectId={projectId} /> : <ProjectList />;
@@ -175,6 +176,10 @@ function Dashboard({ projectId }: { projectId: string }) {
   const sync = useSyncStatus(projectId);
   const wordlog = useLiveQuery(async () => ((await db.settings.get(`wordlog:${projectId}`))?.value as Record<string, number>) ?? {}, [projectId]) ?? {};
   const today = wordlog[localDateKey()] ?? 0;
+  const sprintsToday = useLiveQuery(
+    async () => (((await db.settings.get(`sprints:${projectId}`))?.value as SprintRecord[]) ?? []).filter((r) => localDateKey(new Date(r.at)) === localDateKey()),
+    [projectId],
+  );
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
@@ -255,6 +260,12 @@ function Dashboard({ projectId }: { projectId: string }) {
           <h2>Today</h2>
           <div className="big-num">{today.toLocaleString()}</div>
           <div className="muted">net words written{goal ? ` of ${goal.toLocaleString()} goal` : ''}</div>
+          {!!sprintsToday?.length && (
+            <div className="small muted">
+              {sprintsToday.length} sprint{sprintsToday.length === 1 ? '' : 's'}: {sprintsToday.reduce((n, r) => n + r.words, 0).toLocaleString()} words in{' '}
+              {sprintsToday.reduce((n, r) => n + r.minutes, 0)} min
+            </div>
+          )}
           {goal > 0 && (
             <div className="progress" role="progressbar" aria-valuenow={today} aria-valuemin={0} aria-valuemax={goal}>
               <div style={{ width: `${Math.min(100, Math.max(0, (today / goal) * 100))}%` }} />
