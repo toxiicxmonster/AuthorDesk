@@ -50,6 +50,14 @@ export const bookSchema = z.looseObject({
       description: z.string().default(''),
     })
     .optional(),
+  /** Logline, back-cover blurb and synopsis (Home → Pitch), the author's own text. Optional on older records. */
+  pitch: z
+    .object({
+      logline: z.string().default(''),
+      blurb: z.string().default(''),
+      synopsis: z.string().default(''),
+    })
+    .optional(),
 });
 
 export const partSchema = z.looseObject({

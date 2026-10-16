@@ -17,6 +17,7 @@ import { createSampleProject } from '../../storage/sample';
 import { BookPagesCard } from '../components/BookPages';
 import { BookProgress } from '../components/BookProgress';
 import { BackupRecovery } from '../components/BackupRecovery';
+import { PitchCard } from '../components/PitchCard';
 
 export function HomePage({ projectId }: { projectId: string | null }) {
   return projectId ? <Dashboard projectId={projectId} /> : <ProjectList />;
@@ -324,6 +325,7 @@ function Dashboard({ projectId }: { projectId: string }) {
         </section>
         {book && <BookProgress projectId={projectId} book={book} tree={tree} wordlog={wordlog} />}
         <BookPagesCard projectId={projectId} />
+        {book && tree && <PitchCard projectId={projectId} book={book} tree={tree} />}
       </div>
       <div className="dash-foot">
         <a href="#/">← All books</a>

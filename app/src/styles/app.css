@@ -3668,3 +3668,24 @@ code.path {
     display: none;
   }
 }
+/* Home → Pitch */
+.pitch-card textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.5;
+}
+.pitch-card .seg {
+  margin-bottom: 0.4rem;
+}
+.pitch-actions {
+  align-items: center;
+  margin-top: 0.4rem;
+}
+.pitch-warning {
+  margin: 0.3rem 0 0;
+  padding: 0.3rem 0.5rem;
+  border-left: 3px solid var(--warn, #c08a1e);
+  background: color-mix(in srgb, var(--warn, #c08a1e) 12%, transparent);
+  border-radius: 0 4px 4px 0;
+}
