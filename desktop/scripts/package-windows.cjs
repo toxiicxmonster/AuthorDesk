@@ -39,5 +39,5 @@ fs.copyFileSync(path.join(desktop, '..', 'sync-server.example.txt'), path.join(u
 const zip = path.join(releases, `AuthorDesk-v${short}-windows.zip`);
 fs.rmSync(zip, { force: true });
 // bsdtar (ships with Windows 10+) writes standard zips with forward-slash paths.
-execFileSync('tar.exe', ['-a', '-c', '-f', zip, '-C', unpacked, ...fs.readdirSync(unpacked)], { stdio: 'inherit' });
+execFileSync(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe'), ['-a', '-c', '-f', zip, '-C', unpacked, ...fs.readdirSync(unpacked)], { stdio: 'inherit' });
 console.log(`Packaged ${zip} (${(fs.statSync(zip).size / 1024 ** 2).toFixed(0)} MB)`);

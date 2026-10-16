@@ -43,7 +43,7 @@ export function AutoBackupCard({ projectId }: { projectId: string }) {
       <h2>Automatic backups</h2>
       <label className="check">
         <input type="checkbox" checked={st.enabled} onChange={async (e) => update(await setBackupsEnabled(e.target.checked))} /> Keep automatic backups of my books on
-        this PC
+        this computer
       </label>
       <p className="small">
         A fresh copy is saved a couple of minutes after you stop writing (and at least hourly while you keep going). AuthorDesk keeps every copy from the last day,
@@ -73,7 +73,7 @@ export function AutoBackupCard({ projectId }: { projectId: string }) {
         >
           {busy ? 'Backing up…' : 'Back up now'}
         </button>
-        <button onClick={async () => update(await chooseBackupFolder())} title="A OneDrive, Google Drive or Dropbox folder also keeps a copy off this PC">
+        <button onClick={async () => update(await chooseBackupFolder())} title="A OneDrive, Google Drive or Dropbox folder also keeps a copy off this computer">
           Change folder…
         </button>
         <button onClick={() => void openBackupFolder(projectId)}>Open folder</button>

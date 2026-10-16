@@ -10,7 +10,7 @@
 │        │                                       │
 │ import/export (.authorproj, md, docx, …) ──────┼──► files / Google Drive
 └────────────────────────────────────────────────┘
-PC only: AuthorDesk.exe serves app/dist on localhost:47820 and proxies /api/* to the sync server.
+Desktop app (Electron, Windows and Linux): serves app/dist on localhost:47820 and proxies /api/* to the sync server.
 ```
 
 ## Boundaries

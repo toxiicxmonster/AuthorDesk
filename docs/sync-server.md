@@ -33,7 +33,7 @@ Never expose the server over plain HTTP on the internet. Options, from most priv
 ## Connect your devices
 
 - **Phone:** open the HTTPS address in Chrome, sign in on the project list (or Backup & Sync), then *Add to Home screen* to install the PWA. Your projects download automatically.
-- **PC (launcher):** copy `sync-server.example.txt` to `sync-server.txt` next to `AuthorDesk.exe` (or into `%LOCALAPPDATA%\AuthorDesk\`), put your HTTPS address in it, and restart AuthorDesk. The launcher forwards `/api/*` to the server, so your local data stays where it is and the session cookie stays HttpOnly. Then sign in under Backup & Sync; existing local projects upload on the first sync.
+- **Computer (desktop app):** copy `sync-server.example.txt` to `sync-server.txt` in the AuthorDesk data folder (**File → Open data folder**: `%LOCALAPPDATA%\AuthorDesk\` on Windows, `~/.local/share/AuthorDesk/` on Linux), put your HTTPS address in it, and restart AuthorDesk. It forwards `/api/*` to the server, so your local data stays where it is and the session cookie stays HttpOnly. Then sign in under Backup & Sync; existing local projects upload on the first sync.
 
 ## How sync behaves
 

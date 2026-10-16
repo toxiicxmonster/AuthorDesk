@@ -21,7 +21,7 @@ AuthorDesk can back up projects to, and restore them from, your Google Drive. Yo
    ```
    VITE_GOOGLE_CLIENT_ID=1234567890-abc.apps.googleusercontent.com
    ```
-8. Quit AuthorDesk from the tray icon and rebuild: `powershell -ExecutionPolicy Bypass -File scripts\build.ps1`.
+8. Quit AuthorDesk and rebuild it (see *Building from source* in the README).
 
 New client IDs can take a few minutes (occasionally longer) to start working; an “invalid_client” or “origin not allowed” error right after creating one usually goes away on its own.
 

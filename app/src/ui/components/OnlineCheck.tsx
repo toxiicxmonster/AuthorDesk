@@ -45,7 +45,7 @@ export function OnlineCheckSettings() {
   };
   const pickEngine = async () => {
     await switchToLocalEngine();
-    toast('Using the grammar engine on this computer. Nothing leaves this PC.');
+    toast('Using the grammar engine on this computer. Nothing leaves it.');
   };
 
   return (
@@ -112,7 +112,7 @@ export function OnlineCheckSettings() {
               <input value={endpoint === LT_PUBLIC_ENDPOINT ? '' : endpoint} placeholder="http://localhost:8081/v2/check" onChange={(e) => setEndpoint(e.target.value)} />
               {problem && endpoint !== LT_PUBLIC_ENDPOINT && <span className="danger-text small">{problem}</span>}
               <span className="muted small">
-                For example, LanguageTool running on this PC with Docker: <code>docker run -p 8081:8010 erikvl87/languagetool</code>
+                For example, LanguageTool running on this computer with Docker: <code>docker run -p 8081:8010 erikvl87/languagetool</code>
               </span>
             </label>
           )}

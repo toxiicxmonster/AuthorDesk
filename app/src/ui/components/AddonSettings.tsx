@@ -38,7 +38,7 @@ export function AddonSettings() {
   if (st === null) return <p className="small muted">Add-ons can be installed in the AuthorDesk desktop app (not in a web browser).</p>;
 
   const install = async (id: AddonId) => {
-    if (st.freeGb >= 0 && st.freeGb < spaceNeeded([id])) return toast(`${ADDONS[id].label} needs about ${spaceNeeded([id])} GB free; this PC has ${st.freeGb} GB.`);
+    if (st.freeGb >= 0 && st.freeGb < spaceNeeded([id])) return toast(`${ADDONS[id].label} needs about ${spaceNeeded([id])} GB free; this computer has ${st.freeGb} GB.`);
     const next = await installAddons([id]);
     if (!next) return toast('Couldn’t start the installer.');
     setSt(next);
@@ -66,7 +66,7 @@ export function AddonSettings() {
 
   return (
     <div className="addon-settings">
-      <p className="small">Optional, open-source and private: both run on this PC, with no account or subscription.</p>
+      <p className="small">Optional, open-source and private: both run on this computer, with no account or subscription.</p>
       <ul className="addon-list">
         {ADDON_ORDER.map((id) => {
           const p = st.parts[id];

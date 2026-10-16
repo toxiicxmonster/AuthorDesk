@@ -316,7 +316,7 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
 export function AiStatusLine({ status }: { status: AiStatus }) {
   return (
     <p className="ai-status small muted">
-      <span className={`ai-dot${status.ready ? ' on' : ''}`} aria-hidden /> {status.ready ? status.model : `Loading ${status.model || 'the model'}…`} · on this PC ·
+      <span className={`ai-dot${status.ready ? ' on' : ''}`} aria-hidden /> {status.ready ? status.model : `Loading ${status.model || 'the model'}…`} · on this computer ·
       suggestions only
     </p>
   );
@@ -327,7 +327,7 @@ export function AiNotInstalled() {
     <div className="ai-panel">
       <p>
         <strong>The AI Editor isn’t installed yet.</strong> It suggests rewrites, smoother and tighter wording, stronger verbs and lines in a character’s voice, and
-        reads flagged adverbs in context, all on this PC with open-source software. No account, no subscription, nothing sent anywhere.
+        reads flagged adverbs in context, all on this computer with open-source software. No account, no subscription, nothing sent anywhere.
       </p>
       <p className="small">
         To install it (about 8 GB), open <a href="#/settings">Settings → Add-ons</a> and choose Install. It downloads in the background while you write.

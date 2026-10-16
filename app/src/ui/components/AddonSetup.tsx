@@ -81,7 +81,7 @@ export function AddonSetup() {
       {offer && (
         <Modal title="Set up AuthorDesk’s private add-ons?" onClose={() => setOffer(false)}>
           <p>
-            {missing(st).length > 1 ? 'AuthorDesk can install two add-ons that run' : 'AuthorDesk can install an add-on that runs'} entirely on this PC: open-source, no
+            {missing(st).length > 1 ? 'AuthorDesk can install two add-ons that run' : 'AuthorDesk can install an add-on that runs'} entirely on this computer: open-source, no
             account or subscription, and nothing you write is sent anywhere. {missing(st).length > 1 ? 'They download' : 'It downloads'} in the background while you
             write and {missing(st).length > 1 ? 'switch on as soon as each is ready' : 'switches on as soon as it’s ready'}.
           </p>
@@ -107,7 +107,7 @@ export function AddonSetup() {
             {chosen.length
               ? `Needs about ${need} GB of free space while installing (${chosen.reduce((n, id) => n + ADDONS[id].disk, 0)} GB once installed). `
               : ''}
-            {st.freeGb >= 0 && `This PC has ${st.freeGb} GB free.`}
+            {st.freeGb >= 0 && `This computer has ${st.freeGb} GB free.`}
             {tooFull && ' Free up some space, or untick an add-on.'}
           </p>
           <div className="dialog-actions">
@@ -181,7 +181,7 @@ function announce(before: SetupStatus | null, now: SetupStatus) {
     } else if (is === 'done') {
       if (id === 'grammar') {
         void adoptLocalEngine();
-        toast('The grammar engine is ready. Deeper grammar checks are on, all on this PC.');
+        toast('The grammar engine is ready. Deeper grammar checks are on, all on this computer.');
       } else toast('The AI Editor is ready. Open it from the side panel, or click a flagged adverb.');
     } else if (is === 'failed') {
       toast(`${ADDONS[id].label} couldn’t finish installing: ${now.parts[id].message} It will be offered again next time, or install it from Settings → Add-ons.`);

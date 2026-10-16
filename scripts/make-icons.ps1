@@ -1,4 +1,4 @@
-# Generates PNG app icons and the launcher .ico from simple vector shapes (matches app/public/icon.svg).
+# Generates PNG app icons and the desktop app's .ico from simple vector shapes (matches app/public/icon.svg).
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $root = Split-Path -Parent $PSScriptRoot
@@ -83,5 +83,7 @@ for ($i = 0; $i -lt $sizes.Count; $i++) {
 }
 foreach ($data in $images) { $w.Write($data) }
 $w.Flush()
-[System.IO.File]::WriteAllBytes((Join-Path $root 'launcher\AuthorDesk.ico'), $out.ToArray())
+[System.IO.File]::WriteAllBytes((Join-Path $root 'desktop\build\icon.ico'), $out.ToArray())
+Copy-Item (Join-Path $root 'app\public\icon-512.png') (Join-Path $root 'desktop\build\icon.png') -Force
+Copy-Item (Join-Path $root 'app\public\icon-512.png') (Join-Path $root 'desktop\src\icon.png') -Force
 Write-Host 'Icons written.'

@@ -12,7 +12,7 @@ export { LT_PUBLIC_ENDPOINT, type OnlineCheckSettings };
  * - Only the paragraphs of the scene being checked are sent; never titles, notes, references or other scenes.
  * - Each paragraph is sent once: results are cached in memory by exact text, so only edited paragraphs are re-sent.
  * - Never runs offline. No API key: the free public service needs none, and keys must never live in the client.
- * - A self-hosted LanguageTool server (e.g. on this PC) can be used instead, so text never leaves the machine.
+ * - A self-hosted LanguageTool server (e.g. on this computer) can be used instead, so text never leaves the machine.
  */
 
 export const LT_PROVIDER_ID = 'languagetool';

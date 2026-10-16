@@ -57,7 +57,8 @@
       "icon": "build/icon.png",
       "executableName": "authordesk",
       "synopsis": "Private writing studio for novelists",
-      "description": "Write and publish novels with a grammar checker and an AI editor that run on your own computer."
+      "description": "Write and publish novels with a grammar checker and an AI editor that run on your own computer.",
+      "syncDesktopName": true
     },
     "appImage": {
       "artifactName": "AuthorDesk-v${version}-linux-x86_64.AppImage"
@@ -65,5 +66,6 @@
     "deb": {
       "artifactName": "authordesk_${version}_amd64.deb"
     }
-  }
+  },
+  "desktopName": "authordesk.desktop"
 }

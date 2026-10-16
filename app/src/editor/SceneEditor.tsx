@@ -414,7 +414,7 @@ function Toolbar({ editor, onFind, onLink, onSnapshot }: { editor: Editor; onFin
       {editor.isActive('refLink') && btn(<Icon name="unlink" size={16} />, 'Unlink', 'Remove this link (the words stay)', false, () => c().extendMarkRange('refLink').unsetRefLink().run())}
       {btn(<Icon name="search" size={16} />, 'Find', 'Find & replace in this scene (Ctrl+F)', false, onFind)}
       {btn(<Icon name="camera" size={16} />, 'Snapshot', 'Save a copy of this scene as it is now (see History)', false, onSnapshot)}
-      {btn(<Icon name="write" size={16} />, 'AI Editor', 'Rewrite, smooth or tighten the selected passage (suggestions only, on this PC)', false, () => setUi({ rightOpen: true, rightTab: 'ai' }))}
+      {btn(<Icon name="write" size={16} />, 'AI Editor', 'Rewrite, smooth or tighten the selected passage (suggestions only, on this computer)', false, () => setUi({ rightOpen: true, rightTab: 'ai' }))}
       {btn(<Icon name="focus" size={16} />, 'Focus', 'Hide everything except your page (Ctrl+Alt+F, Esc to leave)', false, () => setUi((s) => ({ focusMode: !s.focusMode })))}
     </div>
   );

@@ -75,7 +75,7 @@ describe('first-launch setup', () => {
     fakeLauncher([status({}, 20)]);
     render(<AddonSetup />);
     await screen.findByText(/Set up AuthorDesk’s private add-ons/);
-    expect(screen.getByText(/This PC has 20 GB free/)).toBeTruthy();
+    expect(screen.getByText(/This computer has 20 GB free/)).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Install' }) as HTMLButtonElement).disabled).toBe(true);
     // Unticking the big one makes the AI Editor alone fit.
     fireEvent.click(screen.getByRole('checkbox', { name: /Grammar engine/ }));

@@ -203,7 +203,7 @@ function setMenu() {
   };
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
-      { label: 'File', submenu: [{ label: 'Open data folder', click: open(dataDir()) }, { type: 'separator' }, { role: 'quit' }] },
+      { label: 'File', submenu: [{ label: 'Open data folder', click: open(dataDir()) }, ...shortcutItems(), { type: 'separator' }, { role: 'quit' }] },
       { role: 'editMenu' },
       {
         label: 'View',
@@ -220,6 +220,55 @@ function setMenu() {
       },
     ]),
   );
+}
+
+/** Ways to start AuthorDesk without finding its folder: shortcuts on Windows, an applications-menu entry for the AppImage. */
+function shortcutItems() {
+  if (!app.isPackaged) return [];
+  const done = (what) => void dialog.showMessageBox(win, { type: 'info', title: 'AuthorDesk', message: `${what} added.` });
+  const failed = (e) => dialog.showErrorBox('AuthorDesk', `That didn’t work: ${e.message ?? e}`);
+  if (process.platform === 'win32') {
+    const link = (dir) => {
+      try {
+        const ok = shell.writeShortcutLink(path.join(dir, 'AuthorDesk.lnk'), { target: app.getPath('exe'), cwd: execDir, description: 'AuthorDesk' });
+        if (!ok) throw new Error('Windows refused to create the shortcut.');
+        return true;
+      } catch (e) {
+        failed(e);
+        return false;
+      }
+    };
+    return [
+      { type: 'separator' },
+      { label: 'Add a desktop shortcut', click: () => link(app.getPath('desktop')) && done('A desktop shortcut was') },
+      { label: 'Add to the Start menu', click: () => link(path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs')) && done('AuthorDesk was') },
+    ];
+  }
+  if (process.env.APPIMAGE) {
+    return [
+      { type: 'separator' },
+      {
+        label: 'Add to the applications menu',
+        click: () => {
+          try {
+            const share = process.env.XDG_DATA_HOME || path.join(app.getPath('home'), '.local', 'share');
+            const icon = path.join(share, 'icons', 'hicolor', '512x512', 'apps', 'authordesk.png');
+            fs.mkdirSync(path.dirname(icon), { recursive: true });
+            fs.copyFileSync(path.join(__dirname, 'icon.png'), icon);
+            fs.mkdirSync(path.join(share, 'applications'), { recursive: true });
+            fs.writeFileSync(
+              path.join(share, 'applications', 'authordesk.desktop'),
+              ['[Desktop Entry]', 'Type=Application', 'Name=AuthorDesk', 'Comment=Private writing studio for novelists', `Exec="${process.env.APPIMAGE}" %U`, 'Icon=authordesk', 'Categories=Office;WordProcessor;', 'Terminal=false', 'StartupWMClass=AuthorDesk', ''].join('\n'),
+            );
+            done('AuthorDesk was');
+          } catch (e) {
+            failed(e);
+          }
+        },
+      },
+    ];
+  }
+  return [];
 }
 
 async function checkForUpdate() {

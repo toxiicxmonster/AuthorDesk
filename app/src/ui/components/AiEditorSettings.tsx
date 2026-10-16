@@ -18,7 +18,7 @@ export function AiEditorSettings() {
     <fieldset className="field">
       <legend>AI Editor</legend>
       <p className="small">
-        An open-source model running on this PC: rewrites, smooths and tightens passages in the side panel (suggestions you copy; it never writes into your book),
+        An open-source model running on this computer: rewrites, smooths and tightens passages in the side panel (suggestions you copy; it never writes into your book),
         and can read each flagged adverb in context. No account, subscription or internet needed.
       </p>
       <p className="small">

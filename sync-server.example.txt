@@ -1,4 +1,4 @@
-# Copy to sync-server.txt (next to AuthorDesk.exe, or in %LOCALAPPDATA%\AuthorDesk\) to sync this PC.
+# Copy to sync-server.txt in the AuthorDesk data folder (File -> Open data folder) to sync this computer.
 # One line: the HTTPS address of your AuthorDesk sync server. Plain http is only accepted for localhost.
-# The launcher forwards /api/* there, so your work keeps living at the same local address.
+# AuthorDesk forwards /api/* there, so your work keeps living at the same local address.
 https://authordesk.your-tailnet.ts.net

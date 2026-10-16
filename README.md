@@ -1,13 +1,13 @@
 # AuthorDesk: novel-writing software with a grammar checker and AI editor
 
-**AuthorDesk is a free writing app for novelists that runs entirely on your own computer.** Write your book, keep a series bible of characters and places, plan the plot with story structures, check grammar and style as you type, get rewrites from a private AI editor, and export a print-ready KDP paperback PDF or EPUB, all in one window and without sending your writing anywhere.
+**AuthorDesk is a free writing app for novelists that runs entirely on your own computer, on Windows and Linux.** Write your book, keep a series bible of characters and places, plan the plot with story structures, check grammar and style as you type, get rewrites from a private AI editor, and export a print-ready KDP paperback PDF or EPUB, all in one window and without sending your writing anywhere.
 
-**[⬇ Download the latest version for Windows](https://github.com/toxiicxmonster/AuthorDesk/releases/latest)** · [User guide](docs/user-guide.md) · [What's new](https://github.com/toxiicxmonster/AuthorDesk/releases)
+**[⬇ Download the latest version for Windows or Linux](https://github.com/toxiicxmonster/AuthorDesk/releases/latest)** · [User guide](docs/user-guide.md) · [What's new](https://github.com/toxiicxmonster/AuthorDesk/releases)
 
 ![The AuthorDesk editor: a tense slip underlined, with the AI Editor's fix in the popover and side panel](docs/screenshots/editor.jpg)
 
 - **Your writing stays on your computer.** No account, no cloud, no subscription, no analytics. Nothing leaves your device unless you set up sync or Google Drive yourself.
-- **A grammar checker and AI editor that run offline.** LanguageTool and an open-source AI model (llama.cpp) run on your own PC: no limits, no monthly fee, and your manuscript never trains anyone's model.
+- **A grammar checker and AI editor that run offline.** LanguageTool and an open-source AI model (llama.cpp) run on your own computer: no limits, no monthly fee, and your manuscript never trains anyone's model.
 - **Built for fiction.** It knows your characters' names, catches echo words and continuity slips, reviews pacing chapter by chapter, and keeps the details of every book in a series straight.
 - **You own your data.** Automatic backups are ordinary zip files with plain JSON inside; export to Word, Markdown, text, EPUB, PDF and CSV at any time.
 
@@ -36,7 +36,7 @@ All taken with the sample book that comes with the app.
 | ![Story board: scene and idea cards in Act I, II and III columns](docs/screenshots/board.jpg) | |
 | **Story board:** plan with cards and story structures | |
 
-> **Version 0.8.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
+> **Version 0.9.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
 
 ---
 
@@ -44,12 +44,12 @@ All taken with the sample book that comes with the app.
 
 - [Install (download a release)](#install-download-a-release)
 - [What it does](#what-it-does)
-- [Building from source and generating AuthorDesk.exe](#building-from-source-and-generating-authordeskexe)
-- [How the launcher works](#how-the-launcher-works)
+- [Building from source](#building-from-source)
+- [How the desktop app works](#how-the-desktop-app-works)
 - [Where your data lives and backups](#where-your-data-lives-and-backups)
 - [Bringing in an existing book](#bringing-in-an-existing-book)
 - [Publishing on Amazon KDP](#publishing-on-amazon-kdp)
-- [Optional: sync between PC and phone](#optional-sync-between-pc-and-phone)
+- [Optional: sync between computer and phone](#optional-sync-between-computer-and-phone)
 - [Optional: Google Drive backups](#optional-google-drive-backups)
 - [Development](#development)
 - [Project layout](#project-layout)
@@ -62,22 +62,27 @@ All taken with the sample book that comes with the app.
 
 ## Install (download a release)
 
-You don't need Node or any developer tools to use AuthorDesk.
+AuthorDesk is a desktop app for **Windows and Linux**. It has its own built-in browser engine, so it doesn't need Edge, Chrome or anything else installed, and you don't need Node or any developer tools to use it. Get the latest version from the [**Releases**](../../releases) page.
 
-1. Open the [**Releases**](../../releases) page and download the latest `AuthorDesk-v<version>-windows.zip`.
-2. Unzip it somewhere permanent, such as `C:\Users\<you>\AuthorDesk`. Keep `AuthorDesk.exe` and the `dist` folder together; the exe serves the app from that folder.
-3. Double-click **AuthorDesk.exe**. To add a desktop shortcut, right-click it and choose **Send to → Desktop (create shortcut)**.
-4. Windows may show "Windows protected your PC" because the exe isn't code-signed. Click **More info → Run anyway**. If you'd rather not, [build it yourself](#building-from-source-and-generating-authordeskexe) from the source code.
+**Windows 10 or 11**
 
-**Requirements:** Windows 10 or 11 with Microsoft Edge (installed by default) or Google Chrome. The .NET Framework 4 it needs is part of Windows.
+1. Download `AuthorDesk-v<version>-windows.zip` and unzip it somewhere permanent, such as `C:\Users\<you>\AuthorDesk`. Keep the files together.
+2. Double-click **AuthorDesk.exe**. **File → Add a desktop shortcut** (or **Add to the Start menu**) makes it easy to find next time.
+3. Windows may show "Windows protected your PC" because the app isn't code-signed. Click **More info → Run anyway**, or [build it yourself](#building-from-source).
 
-**Updating:** automatic. Each time AuthorDesk starts, it checks this repository's latest release; if it's newer, it downloads it, swaps in the new files (keeping a backup until the update has worked) and restarts, which takes a few seconds. If you're offline or anything goes wrong, it just starts the version you have. Your books are not stored in that folder (see [Where your data lives](#where-your-data-lives-and-backups)), so updates never touch them. To turn updates off, put an empty file named `no-auto-update.txt` next to `AuthorDesk.exe`. A source checkout (with an `app` folder next to the exe) never updates itself; use `git pull` there.
+**Linux (64-bit)**
 
-**Add-ons:** on first launch AuthorDesk offers to install the private grammar engine and AI Editor in the background, and keeps them updated when a release pins newer versions (about 17 GB, with a free-space check; *Not now* and *Don't ask again* are there too, and **Settings → Add-ons** installs them later). Or install them by hand:
+- **AppImage** (any distribution): download `AuthorDesk-v<version>-linux-x86_64.AppImage`, make it executable (`chmod +x AuthorDesk-*.AppImage`, or *Properties → Allow executing*) and run it. **File → Add to the applications menu** adds it to your launcher. Some distributions need `libfuse2` for AppImages.
+- **Debian, Ubuntu and derivatives:** download `authordesk_<version>_amd64.deb` and install it with `sudo apt install ./authordesk_<version>_amd64.deb`. It appears in your applications menu.
 
-**Private AI Editor (optional):** run `powershell -ExecutionPolicy Bypass -File scripts\install-ai-editor.ps1` (about 8 GB). It rewrites, tightens and smooths passages in a side panel, judges adverbs in context and keeps character notes up to date, using llama.cpp and an open-source model on your PC. Nothing goes into your book until you click **Use** on a version you like.
+**Coming from an earlier version (0.8 or older)?** The earlier Windows version kept your books inside a private Edge or Chrome profile. The first time the new AuthorDesk starts, it copies them into its own storage and leaves the original untouched. If that copy can't be read, the welcome screen offers to restore each book from your automatic backups instead. An earlier copy that updates itself lands on the new app automatically.
 
-**Private grammar engine (recommended):** run `powershell -ExecutionPolicy Bypass -File scripts\install-grammar-engine.ps1` from the AuthorDesk folder once (about 9 GB). AuthorDesk then checks grammar on this PC with no limits and nothing sent anywhere.
+**Updating:** automatic for the Windows folder and the AppImage. AuthorDesk checks for a new release in the background, downloads it, and asks whether to restart now or install it when you close AuthorDesk. The `.deb` tells you when a new version is out. Your books are not stored with the app (see [Where your data lives](#where-your-data-lives-and-backups)), so updates never touch them. To turn updates off, put an empty file named `no-auto-update.txt` next to the app or in the data folder.
+
+**Add-ons:** on first launch AuthorDesk offers to install the private grammar engine and AI Editor in the background, and keeps them updated when a release pins newer versions (about 17 GB, with a free-space check; *Not now* and *Don't ask again* are there too, and **Settings → Add-ons** installs them later).
+
+- **Private AI Editor (optional):** rewrites, tightens and smooths passages in a side panel, judges adverbs in context and keeps character notes up to date, using llama.cpp and an open-source model on your computer (NVIDIA, AMD and Intel graphics, or the processor). Nothing goes into your book until you click **Use** on a version you like.
+- **Private grammar engine (recommended):** LanguageTool with English usage data, on your computer, with no limits and nothing sent anywhere.
 
 ---
 
@@ -95,8 +100,8 @@ You don't need Node or any developer tools to use AuthorDesk.
 | **Maps** | A relationship map you can arrange, a family tree drawn from relationships, and pictures of places with pins and the scenes set there. |
 | **Story board and plot structures** | Lanes and cards (drag-and-drop or an accessible move menu), filters, and story structures (three-act, Save the Cat, Hero's Journey, seven-point, blank or your own) whose beats say what they do and where they fall. **Map my draft to the beats** suggests the scene for each beat. Turn cards into scenes or chapters and back; an outline view with inline summaries, and AI scene and chapter summaries. |
 | **Timeline and plot threads** | Timeline in story-world order or chapter order, with gentle continuity hints. A plot-thread grid showing which chapters each thread appears in, with reminders for threads that have gone quiet. |
-| **Proofreading** | **Live underlines as you write**, like Grammarly or Google Docs. On your device: Hunspell spelling (US or UK), grammar and punctuation rules, commonly confused words and idioms, repeated words, dialogue punctuation, name consistency against your character list (catches swapped letters like "Elsei"), and optional style fixes (cut or replace adverbs and filler words). Every underline offers something to change the text to; notes without a concrete fix are never shown. **Deep grammar check** with [LanguageTool](https://languagetool.org): install the private grammar engine (`scripts\install-grammar-engine.ps1`) and AuthorDesk runs it on this PC with English usage data, with no limits and nothing sent anywhere; or opt in to the free online service or your own server. Accept, Ignore, Add to dictionary or turn a check off, with undo and reviewed bulk fixes. **Tense slips** (narration drifting between past and present), **echo words**, **continuity** (a character described differently in different chapters, or an age that doesn't fit the timeline), **hard-to-read sentences**, stronger verbs for verb + adverb pairs, and character details your notes are missing. **It never changes your text on its own.** |
-| **AI Editor (private)** | Runs an open-source model on your PC with llama.cpp. Rewrite, smoother, tighter, without the adverb, without the echo, clearer, fix grammar, show don't tell, change tone, what's the tone, character voice, and ask. Clicking a flagged word shows its best fix right there. It can also tell you whether a changed detail looks like a continuity mistake or a deliberate change, and explain a chapter's main patterns like an editor's note. Every version has **Use** (one undoable step); nothing is written into your book otherwise. |
+| **Proofreading** | **Live underlines as you write**, like Grammarly or Google Docs. On your device: Hunspell spelling (US or UK), grammar and punctuation rules, commonly confused words and idioms, repeated words, dialogue punctuation, name consistency against your character list (catches swapped letters like "Elsei"), and optional style fixes (cut or replace adverbs and filler words). Every underline offers something to change the text to; notes without a concrete fix are never shown. **Deep grammar check** with [LanguageTool](https://languagetool.org): install the private grammar engine (**Settings → Add-ons**) and AuthorDesk runs it on your computer with English usage data, with no limits and nothing sent anywhere; or opt in to the free online service or your own server. Accept, Ignore, Add to dictionary or turn a check off, with undo and reviewed bulk fixes. **Tense slips** (narration drifting between past and present), **echo words**, **continuity** (a character described differently in different chapters, or an age that doesn't fit the timeline), **hard-to-read sentences**, stronger verbs for verb + adverb pairs, and character details your notes are missing. **It never changes your text on its own.** |
+| **AI Editor (private)** | Runs an open-source model on your computer with llama.cpp. Rewrite, smoother, tighter, without the adverb, without the echo, clearer, fix grammar, show don't tell, change tone, what's the tone, character voice, and ask. Clicking a flagged word shows its best fix right there. It can also tell you whether a changed detail looks like a continuity mistake or a deliberate change, and explain a chapter's main patterns like an editor's note. Every version has **Use** (one undoable step); nothing is written into your book otherwise. |
 | **Review the whole book** | Reading ease, sentence variety, dialogue share, pacing per chapter, overused words and phrases, crutch words, sticky sentences, slow stretches and continuity. **Edit passes** turn every suggestion into a checklist to work through, and export as a report for a human editor. |
 | **Search** | Search everything (Ctrl+K): manuscript, references, board, timeline, threads and notes, with filters and snippets. Opening a result highlights the matches. |
 | **Import your existing book** | A folder or zip of chapter files (`.md` or `.txt`) plus spreadsheets for characters, locations, world entries, story board, timeline and plot threads. You see a preview before anything is imported, and entries are linked by name. Exact layout: [**IMPORTING.md**](IMPORTING.md). |
@@ -123,100 +128,64 @@ A full walk-through is in the [**user guide**](docs/user-guide.md).
 
 ---
 
-## Building from source and generating AuthorDesk.exe
+## Building from source
 
 ### What you need
 
 | Tool | Why | Get it |
 | --- | --- | --- |
-| **Windows 10/11** | The launcher is a Windows program. | n/a |
-| **Node.js 22.5 or newer** | Builds the web app and runs the tests and the sync server. | [nodejs.org](https://nodejs.org/) (LTS) |
+| **Windows 10/11 or Linux** | Each builds its own version (the Linux packages are also built on GitHub Actions). | n/a |
+| **Node.js 22.5 or newer** | Builds the web app and desktop app, and runs the tests and the sync server. | [nodejs.org](https://nodejs.org/) (LTS) |
 | **Git** | Cloning the repository. | [git-scm.com](https://git-scm.com/) |
-| **C# compiler** | Compiles the launcher. | Nothing to install: `csc.exe` ships with Windows as part of .NET Framework 4 (`C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe`). |
 
-### One-command build
+### Build and run
 
-```powershell
+```bash
 git clone https://github.com/toxiicxmonster/AuthorDesk.git
-cd AuthorDesk
-powershell -ExecutionPolicy Bypass -File scripts\build.ps1
+cd AuthorDesk/app
+npm install
+npm test
+npm run build            # the web app, into app/dist
+cd ../desktop
+npm install
+npm test
+npm start                # runs the desktop app from the source folder
 ```
 
-`scripts\build.ps1` does four things in order and stops at the first failure:
+### Packaging
 
-1. **Installs dependencies:** `npm install` in `app\`, the first time only.
-2. **Runs the test suite:** `npm test` (vitest). The build refuses to continue if any test fails.
-3. **Builds the web app:** `npm run build` writes the production PWA to `app\dist\`.
-4. **Compiles the launcher:** it runs `csc.exe` on `launcher\AuthorDesk.cs` with the icon `launcher\AuthorDesk.ico`, producing **`AuthorDesk.exe` in the repository root**.
-
-Options:
-
-```powershell
-scripts\build.ps1 -SkipTests   # build without running the tests
-scripts\build.ps1 -SkipApp     # recompile only the launcher (app\dist must already exist)
+```bash
+cd desktop
+npm run dist:win && node scripts/package-windows.cjs   # Windows: releases/AuthorDesk-v<version>-windows.zip
+npm run dist:linux                                      # Linux: releases/desktop/*.AppImage and *.deb
 ```
 
-If AuthorDesk is running, the build stops with a message. Quit it from the tray icon first, because Windows can't overwrite a running exe.
+The [Desktop (Linux)](.github/workflows/desktop.yml) workflow builds the AppImage and `.deb` on Ubuntu, starts both, installs the `.deb`, and checks the add-on installers on Linux. It runs for every release tag.
 
-### Desktop shortcut
+To publish: bump `version` in `desktop/package.json` and `app/package.json`, package, then create a GitHub release tagged `v<version>` with the Windows zip, the AppImage and the `.deb` attached. Installed copies pick it up in the background; each updates from the asset whose name ends in `-windows.zip` or `-linux-x86_64.AppImage`.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\create-shortcut.ps1
-```
-
-This puts an **AuthorDesk** shortcut on your desktop that points at the `AuthorDesk.exe` you just built.
-
-### Compiling the launcher by hand
-
-If you'd rather not use the script, this is all it runs for the exe:
-
-```powershell
-& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /optimize+ /platform:anycpu `
-  /out:AuthorDesk.exe /win32icon:launcher\AuthorDesk.ico `
-  /reference:System.Windows.Forms.dll /reference:System.Drawing.dll `
-  launcher\AuthorDesk.cs
-```
-
-`launcher\AuthorDesk.ico` is committed. To regenerate it (and the PWA icons in `app\public`), run `scripts\make-icons.ps1`.
-
-### Packaging a release zip
-
-Run `scripts\package-release.ps1`. It runs the tests, builds the app and exe, and writes `releases\AuthorDesk-v<version>-windows.zip`, taking the version from `const string Version` in `launcher\AuthorDesk.cs`:
-
-```
-AuthorDesk-v0.2-windows.zip
-├── AuthorDesk.exe
-├── dist\                  ← contents of app\dist
-├── scripts\install-grammar-engine.ps1
-├── sync-server.example.txt
-└── README.txt
-```
-
-To publish: bump `Version` (and `AssemblyVersion`, plus `app\package.json`), package, then create a GitHub release tagged `v<version>` with the zip attached. Installed copies pick it up on their next launch; the updater takes the release asset whose name ends in `-windows.zip`.
-
-The launcher looks for the app in `.\app\dist`, then `.\dist`, then `..\app\dist`, relative to the exe, so both the repository layout and this flat release layout work.
+Icons: `desktop/build/icon.ico` and `icon.png` are committed. To regenerate them and the PWA icons in `app/public`, run `scripts/make-icons.ps1` on Windows.
 
 ---
 
-## How the launcher works
+## How the desktop app works
 
-`AuthorDesk.exe` is a small C# program (`launcher/AuthorDesk.cs`) with no dependencies beyond Windows.
+The desktop app (`desktop/`) is an [Electron](https://www.electronjs.org/) shell around the same web app.
 
 - It serves the built app on **`http://localhost:47820`** and answers requests from this computer only (loopback). Nothing on your network can reach it.
-- It opens the app in its own window using **Edge** (or Chrome) in app mode, with a dedicated browser profile in `%LOCALAPPDATA%\AuthorDesk\BrowserProfile`. It doesn't touch your everyday browser profile.
-- A **tray icon** offers *Open*, *Open data folder* and *Quit*. Closing the AuthorDesk window stops the server.
-- Launching it a second time just brings up the existing window.
-- If a `sync-server.txt` file is present, it forwards `/api/*` requests to that sync server. Only HTTPS addresses (or loopback) are accepted. See [sync](#optional-sync-between-pc-and-phone).
-- If neither Edge nor Chrome is found, it opens your default browser instead (without closing automatically).
+- It shows the app in its own window with Electron's built-in Chromium engine, with its own storage under the AuthorDesk data folder (`%LOCALAPPDATA%\AuthorDesk` on Windows, `~/.local/share/AuthorDesk` on Linux). It never touches your everyday browser.
+- Starting it a second time brings up the existing window. Closing the window quits it and stops the add-ons.
+- It starts the add-ons when they're needed: the grammar engine at launch, the AI Editor on first use (unloaded after 15 minutes idle, since it holds several GB of graphics memory). Their installers (`desktop/src/installers.cjs`) check each download against a published SHA-256.
+- If a `sync-server.txt` file is present, it forwards `/api/*` requests to that sync server. Only HTTPS addresses (or loopback) are accepted. See [sync](#optional-sync-between-computer-and-phone).
+- Links to websites open in your normal browser.
 
 ---
 
 ## Where your data lives and backups
 
-Your books are stored in the browser database (IndexedDB) of the launcher's private profile, `%LOCALAPPDATA%\AuthorDesk\BrowserProfile`, tied to the address `localhost:47820`.
+Your books are stored in the app's own database (IndexedDB), in the AuthorDesk data folder: `%LOCALAPPDATA%\AuthorDesk\App` on Windows, `~/.local/share/AuthorDesk/App` on Linux. **File → Open data folder** opens it.
 
-- **Don't change the port.** A different address means a separate, empty workspace.
-- Opening `localhost:47820` in your everyday browser also shows a separate, empty workspace.
+- **Automatic backups** go to `Documents/AuthorDesk Backups` (or a folder you choose in **Backup & Sync**), one folder per book, outside the app's storage.
 - **Back up regularly:** go to **Backup & Sync → Save backup** for a complete `.authorproj` archive, and keep copies off this computer (a USB drive or a cloud folder). AuthorDesk reminds you when a backup is overdue.
 - **To restore:** go to **Backup & Sync → Import**, choose the archive, review the preview, then choose **Restore**, **Merge** or **Import as a copy**.
 - Archives are zip files with plain JSON inside (`data/*.json`), so your work is never locked in.
@@ -273,13 +242,13 @@ Upload the file as the **manuscript** on KDP's Content page. Check print interio
 
 ---
 
-## Optional: sync between PC and phone
+## Optional: sync between computer and phone
 
 Sync is off unless you set it up, and it uses **your own** server; there is no AuthorDesk cloud.
 
-1. Run the sync server (`server/`, Node 22.5+, no npm dependencies, SQLite built in) somewhere both devices can reach **over HTTPS**. [Tailscale](https://tailscale.com/) on your own PC is the simplest private option.
+1. Run the sync server (`server/`, Node 22.5+, no npm dependencies, SQLite built in) somewhere both devices can reach **over HTTPS**. [Tailscale](https://tailscale.com/) on your own computer is the simplest private option.
 2. Create an account, open the server's address on your phone and install the app (*Add to Home screen*).
-3. On the PC, copy `sync-server.example.txt` to `sync-server.txt` next to `AuthorDesk.exe` and put the server's HTTPS address in it. The launcher forwards sync requests there.
+3. On the computer, copy `sync-server.example.txt` to `sync-server.txt` in the AuthorDesk data folder (**File → Open data folder**) and put the server's HTTPS address in it, then restart AuthorDesk. It forwards sync requests there.
 
 Full instructions: [`docs/sync-server.md`](docs/sync-server.md).
 
@@ -297,7 +266,7 @@ Release builds **don't include a Google client ID**, so the Drive buttons say Dr
 
 1. Create an OAuth client ID ("Web application") in Google Cloud by following [`docs/google-drive-setup.md`](docs/google-drive-setup.md).
 2. Copy `app/.env.example` to `app/.env.local` and set `VITE_GOOGLE_CLIENT_ID`. A client ID is a public identifier, not a secret, and AuthorDesk has no client secret.
-3. Rebuild with `scripts\build.ps1`.
+3. Rebuild (see [Building from source](#building-from-source)).
 
 AuthorDesk asks only for the `drive.file` permission, so it can see only the files it creates. The access token is kept in memory and never stored.
 
@@ -310,7 +279,7 @@ Until you've set that up, you can **Save backup** straight into a Google Drive f
 ```bash
 cd app
 npm install
-npm run dev          # http://localhost:5173 (a separate data origin from the launcher)
+npm run dev          # http://localhost:5173 (a separate data origin from the desktop app)
 npm test             # unit + integration tests (vitest, fake IndexedDB, in-memory sync server)
 npm run typecheck
 npm run lint
@@ -328,7 +297,7 @@ node index.js        # sync server; see server/.env.example and docs/sync-server
 | --- | --- |
 | Web app | React 19, TypeScript, Vite 8, TipTap 3 (ProseMirror), Dexie 4 (IndexedDB), zod 4, vite-plugin-pwa (Workbox), fflate, docx |
 | Spell check | nspell with Hunspell en-US and en-GB dictionaries, in a Web Worker |
-| Launcher | C# on .NET Framework 4 |
+| Desktop app | Electron 44 (Windows and Linux), electron-builder |
 | Sync server | Node with `node:sqlite` |
 | Tests | vitest with jsdom and fake-indexeddb |
 
@@ -349,15 +318,15 @@ app/                React + TypeScript + Vite PWA
   src/ui/             pages and components
   tests/              vitest suites
 server/             self-hostable sync server (Node, no dependencies, SQLite)
-launcher/           AuthorDesk.exe source (C#) and icon
-scripts/            build.ps1, create-shortcut.ps1, make-icons.ps1
+desktop/            desktop app (Electron): window, local server, add-on installers, backups, updater
+scripts/            make-icons.ps1
 docs/               user guide, architecture, ADRs, setup guides, import template
 PROJECT.md          product specification
 IMPLEMENTATION_PLAN.md  phase-by-phase status
 IMPORTING.md        exact import layout
 ```
 
-`AuthorDesk.exe`, `app/dist`, `node_modules`, `.env*` files, `sync-server.txt`, databases, backups and exports are git-ignored. Build the exe with `scripts\build.ps1` or download it from Releases.
+`app/dist`, `releases/`, `node_modules`, `.env*` files, `sync-server.txt`, databases, backups and exports are git-ignored. Build the app as above or download it from Releases.
 
 ---
 
@@ -367,7 +336,7 @@ IMPORTING.md        exact import layout
 - **No manuscript text is ever sent anywhere** unless you turn on sync, Drive or the online grammar check. Sync and Drive go only to your own server or your own Drive. The online check sends only the paragraphs of the scene you're editing, and only after you agree to an explanation of exactly what is sent (Settings → Proofreading).
 - **AuthorDesk never silently changes your prose.** Every proofreading change is your click, and it can be undone.
 - **No secrets** in the app bundle or this repository. `.env`, `sync-server.txt`, databases and backups are git-ignored.
-- **The launcher answers only loopback requests.**
+- **The desktop app's local server answers only loopback requests.**
 - **The sync server** requires a login and uses:
   - HttpOnly, SameSite=Strict session cookies
   - an anti-CSRF header
@@ -399,8 +368,8 @@ Details: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 - Google Drive is untested with a real account. There's no folder picker: backups go to an "AuthorDesk Backups" folder that AuthorDesk creates.
 - Sync: deleting a project on one device doesn't delete it on others; use *Delete cloud copy*. Revision snapshots stay on each device.
 - Word `.docx` files can't be imported directly (see [IMPORTING.md](IMPORTING.md)).
-- The launcher is Windows-only and needs Edge or Chrome. On other systems you can run `npm run build` and serve `app/dist` yourself.
-- `AuthorDesk.exe` isn't code-signed, so Windows SmartScreen warns on first launch.
+- Windows and 64-bit Linux only for now (no macOS build).
+- The Windows app isn't code-signed, so Windows SmartScreen warns on first launch.
 
 ---
 
