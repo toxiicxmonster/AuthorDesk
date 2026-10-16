@@ -11,6 +11,7 @@ permissions:
 jobs:
   linux:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,13 +36,13 @@ jobs:
           sudo apt-get update -q && sudo apt-get install -y -q libfuse2t64 xvfb
           chmod +x releases/desktop/*.AppImage
           AUTHORDESK_DATA=$RUNNER_TEMP/appimage AUTHORDESK_SMOKE_SHOT=$RUNNER_TEMP/appimage.png \
-            xvfb-run -a releases/desktop/*.AppImage --smoke-test | tee $RUNNER_TEMP/appimage.txt
+            timeout 180 xvfb-run -a releases/desktop/*.AppImage --smoke-test | tee $RUNNER_TEMP/appimage.txt
           grep -q 'SMOKE {"ok":true' $RUNNER_TEMP/appimage.txt
       - name: Install the .deb and start it (self-test)
         run: |
           sudo apt-get install -y -q ./releases/desktop/authordesk_*_amd64.deb
           AUTHORDESK_DATA=$RUNNER_TEMP/deb AUTHORDESK_SMOKE_SHOT=$RUNNER_TEMP/deb.png \
-            xvfb-run -a /opt/AuthorDesk/authordesk --smoke-test | tee $RUNNER_TEMP/deb.txt
+            timeout 180 xvfb-run -a /opt/AuthorDesk/authordesk --smoke-test | tee $RUNNER_TEMP/deb.txt
           grep -q 'SMOKE {"ok":true' $RUNNER_TEMP/deb.txt
       - name: Add-on installers on Linux
         working-directory: desktop
