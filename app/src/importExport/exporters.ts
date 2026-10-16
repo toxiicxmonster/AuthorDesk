@@ -5,6 +5,8 @@ import { REFERENCE_TEMPLATES, REFERENCE_TYPE_LABELS } from '../domain/referenceT
 import { chronological } from '../domain/continuity';
 import type { PmNode } from '../domain/text';
 import { NO_EXTRA_PAGES, type ExtraPagesText } from '../domain/bookPages';
+import { buildOutline } from '../domain/outlineExport';
+import type { PlanLine } from '../domain/planChecklist';
 
 /** Ordered manuscript for one book: chapters (live, ordered) with their live scenes. */
 export function bookManuscript(data: ProjectData, bookId: string): { book: Book; chapters: { chapter: Chapter; scenes: Scene[] }[] } {
@@ -224,6 +226,49 @@ export async function exportDocx(projectId: string, bookId: string, pages: Extra
     creator: 'AuthorDesk',
     title: book.title,
     styles: { default: { document: { run: { font: 'Times New Roman', size: 24 } } } },
+    sections: [{ children: paras }],
+  });
+  return Packer.toBlob(doc);
+}
+
+/** The book's plan as a Word file: chapter and scene summaries, details and plan points (☐ to do, ☑ done). */
+export async function exportOutlineDocx(projectId: string, bookId: string): Promise<Blob> {
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import('docx');
+  const data = await collectProject(projectId);
+  const { book, chapters } = bookManuscript(data, bookId);
+  const outline = buildOutline(chapters, data.references);
+  const paras: InstanceType<typeof Paragraph>[] = [];
+  const lines = (list: PlanLine[], indent = 0) => {
+    for (const l of list)
+      paras.push(
+        l.kind === 'point'
+          ? new Paragraph({ children: [new TextRun({ text: `${l.done ? '☑' : '☐'}  ${l.text}`, color: l.done ? '777777' : undefined })], indent: { left: indent + 360, hanging: 360 }, spacing: { after: 60 } })
+          : new Paragraph({ children: [new TextRun(l.text)], indent: { left: indent }, spacing: { after: 120 } }),
+      );
+  };
+  paras.push(new Paragraph({ children: [new TextRun({ text: book.title, size: 40, bold: true })], alignment: AlignmentType.CENTER }));
+  paras.push(new Paragraph({ children: [new TextRun({ text: 'Outline', size: 28 })], alignment: AlignmentType.CENTER, spacing: { after: 120 } }));
+  if (outline.points)
+    paras.push(new Paragraph({ children: [new TextRun({ text: `${outline.done} of ${outline.points} plan points done`, italics: true, color: '555555' })], alignment: AlignmentType.CENTER, spacing: { after: 360 } }));
+  for (const c of outline.chapters) {
+    paras.push(new Paragraph({ text: c.title, heading: HeadingLevel.HEADING_1, spacing: { before: 360, after: 120 } }));
+    if (!c.summary.length && !c.scenes.length) paras.push(new Paragraph({ children: [new TextRun({ text: 'No summary or plan yet.', italics: true, color: '777777' })] }));
+    lines(c.summary);
+    for (const s of c.scenes) {
+      paras.push(new Paragraph({ text: s.title, heading: HeadingLevel.HEADING_3, spacing: { before: 200, after: 40 } }));
+      paras.push(new Paragraph({ children: [new TextRun({ text: s.details, size: 18, color: '666666' })], spacing: { after: 80 } }));
+      lines(s.summary, 360);
+      lines(s.notes, 360);
+      if (s.inText.length) {
+        paras.push(new Paragraph({ children: [new TextRun({ text: 'Plan typed in the text:', italics: true, color: '666666' })], indent: { left: 360 }, spacing: { after: 40 } }));
+        lines(s.inText, 360);
+      }
+    }
+  }
+  const doc = new Document({
+    creator: 'AuthorDesk',
+    title: `${book.title}: outline`,
+    styles: { default: { document: { run: { font: 'Calibri', size: 22 } } } },
     sections: [{ children: paras }],
   });
   return Packer.toBlob(doc);

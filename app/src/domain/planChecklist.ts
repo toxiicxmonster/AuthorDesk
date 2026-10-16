@@ -22,6 +22,19 @@ export function planItems(notes: string): PlanItem[] {
   return out;
 }
 
+export type PlanLine = { kind: 'text'; text: string } | { kind: 'point'; text: string; done: boolean };
+
+/** Every non-empty line of a summary or notes: plan points (ticked or not) and ordinary text. */
+export function planLines(text: string): PlanLine[] {
+  return text
+    .split('\n')
+    .filter((l) => l.trim())
+    .map((l): PlanLine => {
+      const m = ITEM.exec(l);
+      return m ? { kind: 'point', text: m[3].trim(), done: /x/i.test(m[2] ?? '') } : { kind: 'text', text: l.trim() };
+    });
+}
+
 /** The notes with one plan line ticked or unticked. */
 export function setPlanItem(notes: string, line: number, done: boolean): string {
   const lines = notes.split('\n');

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useBooks, useProject } from '../data';
 import { buildArchive, exportJson, ARCHIVE_EXTENSION } from '../../importExport/archive';
-import { exportDocx, exportMarkdownZip, exportReferencesCsv, exportText } from '../../importExport/exporters';
+import { exportDocx, exportMarkdownZip, exportOutlineDocx, exportReferencesCsv, exportText } from '../../importExport/exporters';
 import { saveFile, stamp, fileSafe } from '../../importExport/download';
 import { BundleImportCard } from '../components/BundleImport';
 import { KdpExportDialog } from '../components/KdpExport';
@@ -120,6 +120,13 @@ export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }:
           </button>
           <button disabled={!!busy || !book} onClick={() => run('Text export', async () => void (await saveFile(await exportText(projectId, book!.id, pagesFor(book!.id)), `${fileSafe(book!.title)}.txt`, 'text/plain')))}>
             Plain text (.txt)
+          </button>
+          <button
+            disabled={!!busy || !book}
+            title="Chapter and scene summaries, point of view, place, time and your plan points (ticked ones marked), to read or print"
+            onClick={() => run('Outline export', async () => void (await saveFile(await exportOutlineDocx(projectId, book!.id), `${fileSafe(book!.title)} - outline.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')))}
+          >
+            Outline (.docx)
           </button>
           <button disabled={!!busy} onClick={() => run('Markdown export', async () => void (await saveFile(await exportMarkdownZip(projectId, pagesFor), `${name}_markdown.zip`, 'application/zip')))}>
             Markdown folder (.zip)

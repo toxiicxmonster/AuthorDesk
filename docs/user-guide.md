@@ -131,7 +131,7 @@ Backup → **Import your own files** (or *Bring in my existing book* on the welc
 
 ## Backups
 
-**Backup** → **Save backup** regularly and keep copies elsewhere (USB drive, cloud folder). To restore: **Restore an AuthorDesk backup** → choose the file → review → Restore, Merge, or Import as a copy. Exports to Word, text, Markdown, JSON and CSV are there too.
+**Backup** → **Save backup** regularly and keep copies elsewhere (USB drive, cloud folder). To restore: **Restore an AuthorDesk backup** → choose the file → review → Restore, Merge, or Import as a copy. Exports to Word, text, Markdown, JSON and CSV are there too, plus **Outline (.docx)**: your plan to read or print, with each chapter's summary and plan, then each scene's point of view, place, time, word count, summary and notes, plan points marked ☐ or ☑ (and any plan lines still typed in the text).
 
 ## Keyboard shortcuts
 
