@@ -43,6 +43,8 @@ Create characters, places and more in **References**. While writing, select a na
 - **Family tree:** built from family words in characters' connections ("mother", "son", "sister", "wife", "grandmother", "aunt", "cousin"). Say what this person is to the other: on Winnie's entry, a connection to Betty labelled "granddaughter". One row per generation, oldest at the top.
 - **Places:** give a place a picture (a sketch, a floor plan, a real map; it stays on this computer) and pin other places, characters or items on it. Click a pin for the scenes set there or mentioning it.
 
+**Suggest relationships** (Maps → Relationships, with the AI Editor installed): *Read my notes* has the AI Editor read your characters' entries, your notes and your chapter summaries and suggest how characters are related (“Betty Hartley is Winnie Hartley's grandmother”), each with the words it comes from. It only keeps what the quoted words clearly support, and nothing is added until you click **Add** (both entries get the relationship).
+
 **Series.** A project with more than one book is a series (add a book with *+ New book…* above the chapter list, or **Series → Bring in another project**). Its books share one set of characters, places and world notes, so every check, the AI Editor and continuity know they're the same people in every book. Bringing a project in merges entries with the same name (filling in empty details, never overwriting) and hides the old project without deleting it. The **Series** tab shows each entry's mentions per book and where they first appear. Continuity checks across books; for a death, write the book too: "deceased, Book 2 Ch. 14".
 
 ## Planning
@@ -141,5 +143,3 @@ Backup → **Import your own files** (or *Bring in my existing book* on the welc
 | Alt+Shift+PageDown / PageUp | Next / previous scene |
 | Ctrl+Alt+F | Focus mode (Esc exits) |
 | Ctrl+\\ | Toggle chapter list |
-
-**Suggest relationships** (Maps → Relationships, with the AI Editor installed): *Read my notes* has the AI Editor read your characters' entries, your notes and your chapter summaries and suggest how characters are related (“Betty Hartley is Winnie Hartley's grandmother”), each with the words it comes from. It only keeps what the quoted words clearly support, and nothing is added until you click **Add** (both entries get the relationship).
