@@ -1,4 +1,5 @@
 import { chat, type ChatOptions } from './aiEditor';
+import { withoutTicks } from '../domain/planChecklist';
 
 /**
  * Logline, back-cover blurb and synopsis, drafted by the AI Editor from what the book already says about itself:
@@ -50,7 +51,7 @@ export function pitchSource(chapters: readonly PitchChapter[], characters: reado
   const parts: string[] = [];
   chapters.forEach((c, i) => {
     const head = `Chapter ${i + 1}${c.title && !/^chapter\s+\d+[.:)]?\s*$/i.test(c.title) ? ` (${c.title.replace(/^chapter\s+\d+[.:)\s-]*/i, '')})` : ''}:`;
-    const summary = c.summary.trim() || c.sceneSummaries.filter((s) => s.trim()).join(' ');
+    const summary = withoutTicks(c.summary).trim() || c.sceneSummaries.filter((s) => s.trim()).join(' ');
     if (summary) {
       counts.summary++;
       const prose = c.text

@@ -31,6 +31,9 @@ export function setPlanItem(notes: string, line: number, done: boolean): string 
   return lines.join('\n');
 }
 
+/** The text without its tick marks ("- [x] Funeral happens" → "- Funeral happens"), for the AI and exports. */
+export const withoutTicks = (text: string) => text.replace(/^(\s*[-*•–]\s+)\[[ xX]\]\s*/gm, '$1');
+
 const STOP = new Set(
   'about after again also back been before being both came come could does doing down even every from going gets have having here into just know like made make more most much only other over really said says some still such than that them then there these they thing things this those through very want were what when where which while will with would your kinda sorta gonna since because finally starts start begins tries'.split(
     ' ',
@@ -48,19 +51,20 @@ function stem(word: string): string {
 const WORDS = /[\p{L}][\p{L}’']{3,}/gu;
 
 /**
- * Whether the scene's text seems to cover a plan point: most of the point's distinctive words appear in it. Names
- * only count when the scene uses them (a first-person scene never names its narrator). Only a hint shown beside the
- * box; the author decides what's done.
+ * Whether the scene's text seems to cover a plan point: most of the point's distinctive words appear in it.
+ * `narrator` is the point-of-view character's name: it doesn't count when the text never uses it (a first-person
+ * scene doesn't name its narrator). Only a hint shown beside the box; the author decides what's done.
  */
-export function looksWritten(point: string, sceneText: string): boolean {
+export function looksWritten(point: string, sceneText: string, narrator: readonly string[] = []): boolean {
   const have = new Set((sceneText.match(WORDS) ?? []).map(stem));
+  const own = new Set(narrator.flatMap((n) => n.match(WORDS) ?? []).map(stem));
   const want = new Set<string>();
-  (point.match(WORDS) ?? []).forEach((w, i) => {
-    if (STOP.has(w.toLowerCase())) return;
-    const name = i > 0 && w[0] !== w[0].toLowerCase();
-    if (name && !have.has(stem(w))) return;
-    want.add(stem(w));
-  });
+  for (const w of point.match(WORDS) ?? []) {
+    if (STOP.has(w.toLowerCase())) continue;
+    const st = stem(w);
+    if (own.has(st) && !have.has(st)) continue;
+    want.add(st);
+  }
   if (want.size < 2) return false;
   const found = [...want].filter((w) => have.has(w)).length;
   return found >= 2 && found / want.size >= 0.66;

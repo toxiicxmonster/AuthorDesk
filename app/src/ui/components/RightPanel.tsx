@@ -22,7 +22,7 @@ import { AiEditorPanel } from './AiEditorPanel';
 import { EditPassPanel } from './EditPassPanel';
 import { ChapterSummaryAssist, SceneSummaryAssist } from './SummaryAssist';
 import { VersionChanges } from './VersionChanges';
-import { PlanChecklist } from './PlanChecklist';
+import { ChapterPlanChecklist, PlanChecklist } from './PlanChecklist';
 
 export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapter: Chapter; nextScene: Scene | null }) {
   const tab = useUi((s) => s.rightTab);
@@ -214,6 +214,7 @@ function SceneInspector({ scene, chapter, nextScene }: { scene: Scene; chapter: 
       <h3 className="small-heading">Chapter</h3>
       <CommitInput label="Chapter title" value={chapter.title} onCommit={(v) => v.trim() && void updateRecord('chapters', chapter.id, { title: v.trim() })} />
       <CommitInput label="Chapter summary" multiline value={chapter.summary} onCommit={(v) => void updateRecord('chapters', chapter.id, { summary: v })} />
+      <ChapterPlanChecklist chapter={chapter} />
       <ChapterSummaryAssist chapter={chapter} />
       <StatusSelect label="Chapter status" value={chapter.status} onChange={(v) => void updateRecord('chapters', chapter.id, { status: v })} />
       <h3 className="small-heading">Scene</h3>

@@ -562,6 +562,7 @@ function Outline({ projectId, bookId }: { projectId: string; bookId: string }) {
                   <strong>{c.title}</strong>
                 </a>
                 <span className="muted small">{scenes.reduce((n, s) => n + s.wordCount, 0).toLocaleString()} words</span>
+                <PlanChip notes={c.summary} />
                 <span className="grow" />
                 <button className="icon-btn" aria-label="Move chapter up" disabled={i === 0} onClick={() => void reorder('chapters', moveInList(tree.chapters.map((x) => x.id), i, i - 1))}>
                   ↑
@@ -650,13 +651,13 @@ function QuickAddCard({ onAdd, onOpen }: { onAdd: (title: string) => Promise<Boa
   );
 }
 
-/** Outline: how much of a scene's plan (the bullet lines in its notes) is ticked off. */
+/** Outline: how much of a plan (the bullet lines in a scene's notes or a chapter's summary) is ticked off. */
 function PlanChip({ notes }: { notes: string }) {
   const items = planItems(notes);
   if (!items.length) return null;
   const done = items.filter((i) => i.done).length;
   return (
-    <span className="chip" title="Plan points ticked off in Scene notes">
+    <span className="chip" title="Plan points ticked off (in Scene notes)">
       ☑ Plan {done}/{items.length}
     </span>
   );
