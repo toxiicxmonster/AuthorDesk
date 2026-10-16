@@ -3,6 +3,7 @@ import type { Chapter, Scene } from '../../domain/schema';
 import { looksWritten, planItems, setPlanItem } from '../../domain/planChecklist';
 import { db } from '../../storage/db';
 import { updateRecord } from '../../storage/repo';
+import { setUi } from '../store';
 
 /**
  * A plan's bullet lines (in the scene's notes or the chapter's summary) as a checklist to tick off while drafting.
@@ -50,4 +51,24 @@ export function ChapterPlanChecklist({ chapter }: { chapter: Chapter }) {
   if (!hasPlan) return null;
   const written = (scenes ?? []).map((s) => s.plainText).join('\n');
   return <Checklist label="Chapter plan" plan={chapter.summary} written={written} narrator={narrator} onChange={(summary) => void updateRecord('chapters', chapter.id, { summary })} />;
+}
+
+/**
+ * Write view footer: the next point of the plan that isn't ticked off yet (the scene's plan first, then the
+ * chapter's), so it's in sight while drafting. Clicking it opens the checklist.
+ */
+export function NextPlanPoint({ scene }: { scene: Scene }) {
+  const chapterSummary = useLiveQuery(async () => (await db.chapters.get(scene.chapterId))?.summary ?? '', [scene.chapterId]) ?? '';
+  const items = [...planItems(scene.notes), ...planItems(chapterSummary)];
+  if (!items.length) return null;
+  const next = items.find((i) => !i.done);
+  return (
+    <button
+      className="link-btn plan-next"
+      title={next ? `Next in your plan: ${next.text}. Click to open the checklist.` : 'Every point of the plan is ticked off. Click to open the checklist.'}
+      onClick={() => setUi({ rightOpen: true, rightTab: 'scene' })}
+    >
+      {next ? `Next: ${next.text}` : 'Plan done ✓'}
+    </button>
+  );
 }

@@ -3859,3 +3859,10 @@ h3.small-heading {
   color: var(--muted);
   text-decoration: line-through;
 }
+.editor-footer .plan-next {
+  max-width: min(42ch, 45%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: inherit;
+}

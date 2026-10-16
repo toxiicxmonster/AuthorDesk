@@ -31,6 +31,7 @@ import { avoidEchoes } from '../proofreading/echo';
 import { SprintButton } from '../ui/components/SprintButton';
 import { useFitNav } from '../ui/useFitNav';
 import { useSprint } from '../ui/sprint';
+import { NextPlanPoint } from '../ui/components/PlanChecklist';
 
 const SAVE_DELAY = 700;
 /** Underlines refresh this soon after a pause in typing (on-device checks; unchanged paragraphs come from a cache). */
@@ -351,6 +352,7 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
         <span>Book {(bookOtherWords + words_).toLocaleString()}</span>
         <span className="muted">{chars.toLocaleString()} chars</span>
         <span className="muted">{statusLabel[0].toUpperCase() + statusLabel.slice(1)}</span>
+        <NextPlanPoint scene={scene} />
       </footer>
       {pickerOpen && (
         <ReferencePicker
