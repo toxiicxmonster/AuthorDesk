@@ -31,7 +31,7 @@ const CACHE_LIMIT = 4_000;
  */
 const LT_DISABLED_RULES = ['EN_QUOTES'];
 
-/** Where the AuthorDesk launcher exposes the grammar engine running on this computer (see grammarEngine.ts). */
+/** Where the AuthorDesk desktop app exposes the grammar engine running on this computer (see grammarEngine.ts). */
 export const LOCAL_ENGINE_PATH = '/grammar/v2/check';
 
 export function isLocalEngine(endpoint: string): boolean {

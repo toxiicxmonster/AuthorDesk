@@ -1,6 +1,6 @@
 /**
  * The optional add-ons (the private grammar engine and the AI Editor), installed in the background by the AuthorDesk
- * launcher's /setup routes, which run the same scripts as a manual install.
+ * desktop app's /setup routes (desktop/src/installers.cjs).
  */
 
 export type AddonId = 'ai' | 'grammar';

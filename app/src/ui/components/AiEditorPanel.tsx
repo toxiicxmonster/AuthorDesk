@@ -159,7 +159,7 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
   }, [request, status?.installed]);
 
   if (status === undefined) return <p className="muted">Checking the AI Editor…</p>;
-  if (status === null) return <p className="muted">The AI Editor runs inside the AuthorDesk app. Start AuthorDesk.exe to use it.</p>;
+  if (status === null) return <p className="muted">The AI Editor runs in the AuthorDesk desktop app, not in a web browser. Open AuthorDesk to use it.</p>;
   if (!status.installed) return <AiNotInstalled />;
   if (!editor) return <p className="muted">Open a scene to use the AI Editor.</p>;
 
@@ -330,9 +330,7 @@ export function AiNotInstalled() {
         reads flagged adverbs in context, all on this PC with open-source software. No account, no subscription, nothing sent anywhere.
       </p>
       <p className="small">
-        To install it (about 8 GB), run this from the AuthorDesk folder, then restart AuthorDesk:
-        <br />
-        <code>powershell -ExecutionPolicy Bypass -File scripts\install-ai-editor.ps1</code>
+        To install it (about 8 GB), open <a href="#/settings">Settings → Add-ons</a> and choose Install. It downloads in the background while you write.
       </p>
     </div>
   );

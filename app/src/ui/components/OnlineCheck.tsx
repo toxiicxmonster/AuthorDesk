@@ -130,12 +130,12 @@ export function OnlineCheckSettings() {
 
 /** The private engine: what state it's in, and how to get it. */
 function EngineCard({ engine, active, onUse }: { engine: EngineStatus | null; active: boolean; onUse: () => void }) {
-  if (!engine) return null; // not running under the AuthorDesk launcher
+  if (!engine) return null; // not running in the AuthorDesk desktop app
   if (!engine.installed) {
     return (
       <div className="card small">
-        <strong>Grammar engine on this computer: not installed.</strong> For the most thorough checking, with nothing leaving this PC, run{' '}
-        <code>scripts\install-grammar-engine.ps1</code> from the AuthorDesk folder (about 9 GB), then restart AuthorDesk.
+        <strong>Grammar engine on this computer: not installed.</strong> For the most thorough checking, with nothing leaving this computer, install it
+        under <a href="#/settings">Settings → Add-ons</a> (about 9 GB). It downloads in the background while you write.
       </div>
     );
   }

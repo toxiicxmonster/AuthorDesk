@@ -37,7 +37,7 @@ export async function checkGrammarEngine(fetchImpl: typeof fetch = globalThis.fe
 
 export async function checkAiEditor(fetchImpl: typeof fetch = globalThis.fetch.bind(globalThis)): Promise<HealthResult> {
   const st = await fetchAiStatus(fetchImpl);
-  if (!st) return { ok: false, message: 'Couldn’t reach AuthorDesk. Start AuthorDesk.exe.' };
+  if (!st) return { ok: false, message: 'Couldn’t reach AuthorDesk’s add-on service. Restart AuthorDesk.' };
   if (!st.installed) return { ok: false, message: 'Not installed. Use Install above.' };
   const t0 = performance.now();
   try {

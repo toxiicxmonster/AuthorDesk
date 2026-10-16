@@ -16,6 +16,9 @@ import { ruleLabel } from '../../proofreading/rules';
 import { isPublicEndpoint } from '../../proofreading/languageTool';
 import { useSyncUi } from '../../sync/controller';
 
+/** The desktop app has its own engine with the browser's spell check switched off (it would download dictionaries). */
+const isDesktopApp = /\bElectron\//.test(navigator.userAgent);
+
 const SHORTCUTS: [string, string][] = [
   ['Ctrl+K or Ctrl+Shift+F', 'Search everything'],
   ['Ctrl+F', 'Find & replace in the current scene'],
@@ -136,10 +139,12 @@ export function SettingsPage({ projectId }: { projectId: string | null }) {
             )}
           </div>
         )}
-        <label className="check">
-          <input type="checkbox" checked={s.browserSpellcheck} onChange={(e) => void updateSettings({ browserSpellcheck: e.target.checked })} /> Also use the browser’s
-          built-in spell check (red squiggles from Chrome/Edge)
-        </label>
+        {!isDesktopApp && (
+          <label className="check">
+            <input type="checkbox" checked={s.browserSpellcheck} onChange={(e) => void updateSettings({ browserSpellcheck: e.target.checked })} /> Also use the
+            browser’s built-in spell check (red squiggles from Chrome/Edge)
+          </label>
+        )}
         <p className="muted small">
           Underlines appear as you write, a moment after you pause. The standard checks run on this device with a bundled dictionary and never send text anywhere.
         </p>

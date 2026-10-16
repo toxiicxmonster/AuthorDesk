@@ -35,7 +35,7 @@ export function AddonSettings() {
   }, []);
 
   if (st === undefined) return null;
-  if (st === null) return <p className="small muted">Add-ons can be installed when AuthorDesk runs from AuthorDesk.exe.</p>;
+  if (st === null) return <p className="small muted">Add-ons can be installed in the AuthorDesk desktop app (not in a web browser).</p>;
 
   const install = async (id: AddonId) => {
     if (st.freeGb >= 0 && st.freeGb < spaceNeeded([id])) return toast(`${ADDONS[id].label} needs about ${spaceNeeded([id])} GB free; this PC has ${st.freeGb} GB.`);

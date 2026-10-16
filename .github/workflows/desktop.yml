@@ -1,0 +1,58 @@
+# Builds the Linux desktop app (AppImage and .deb) and checks it on a clean Ubuntu machine: the app starts and serves
+# its pages, the .deb installs, and the add-on installers work on Linux. Run by hand or for a release tag.
+name: Desktop (Linux)
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+    branches: ['desktop-app']
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build the web app
+        working-directory: app
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Desktop tests
+        working-directory: desktop
+        run: |
+          npm ci
+          npm test
+      - name: Build AppImage and .deb
+        working-directory: desktop
+        run: npx electron-builder --linux AppImage deb --publish never
+      - name: Start the AppImage (self-test)
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q libfuse2t64 xvfb
+          chmod +x releases/desktop/*.AppImage
+          AUTHORDESK_DATA=$RUNNER_TEMP/appimage AUTHORDESK_SMOKE_SHOT=$RUNNER_TEMP/appimage.png \
+            xvfb-run -a releases/desktop/*.AppImage --smoke-test | tee $RUNNER_TEMP/appimage.txt
+          grep -q 'SMOKE {"ok":true' $RUNNER_TEMP/appimage.txt
+      - name: Install the .deb and start it (self-test)
+        run: |
+          sudo apt-get install -y -q ./releases/desktop/authordesk_*_amd64.deb
+          AUTHORDESK_DATA=$RUNNER_TEMP/deb AUTHORDESK_SMOKE_SHOT=$RUNNER_TEMP/deb.png \
+            xvfb-run -a /opt/AuthorDesk/authordesk --smoke-test | tee $RUNNER_TEMP/deb.txt
+          grep -q 'SMOKE {"ok":true' $RUNNER_TEMP/deb.txt
+      - name: Add-on installers on Linux
+        working-directory: desktop
+        run: AUTHORDESK_DATA=$RUNNER_TEMP/addons node scripts/ci-addons.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: authordesk-linux
+          path: |
+            releases/desktop/*.AppImage
+            releases/desktop/*.deb
+            ${{ runner.temp }}/*.png
+            ${{ runner.temp }}/*.txt
+          if-no-files-found: warn

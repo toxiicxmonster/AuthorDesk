@@ -39,7 +39,7 @@ export function DialogueVoice({ line, paragraph, characters, anchor }: { line: D
     if (speaker) setWho(speaker.id);
   }, [speaker?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!status) return null; // not under the launcher, or still checking
+  if (!status) return null; // not under the desktop app, or still checking
   if (!status.installed) {
     return <p className="small muted">Install the AI Editor (see its tab) to get suggestions in a character’s voice.</p>;
   }

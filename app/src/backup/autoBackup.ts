@@ -5,15 +5,15 @@ import { updateSettings } from '../storage/settings';
 
 /**
  * Automatic backups: after the author has been writing, the app builds a fresh archive of the book and hands it to
- * the AuthorDesk launcher, which keeps a rolling set on disk outside the browser profile (and prunes old ones).
- * Nothing happens when not running under the launcher (e.g. the dev server).
+ * the AuthorDesk desktop app, which keeps a rolling set on disk outside the app's storage (and prunes old ones).
+ * Nothing happens when not running under the desktop app (e.g. the dev server).
  */
 
 export interface BackupStatus {
   enabled: boolean;
   folder: string;
   /** Keyed by the first 8 characters of the project id. */
-  books: Record<string, { last: string; count: number; bytes: number }>;
+  books: Record<string, { last: string; count: number; bytes: number; title?: string }>;
 }
 
 /** Back up once writing has paused this long… */
@@ -47,7 +47,7 @@ export const setBackupsEnabled = (on: boolean) => call(`/backup/settings?enabled
 export const chooseBackupFolder = () => call('/backup/choose', { method: 'POST' });
 export const openBackupFolder = (projectId?: string) => call(`/backup/open${projectId ? `?project=${encodeURIComponent(projectId)}` : ''}`, { method: 'POST' });
 
-/** Builds the book's archive and saves it through the launcher. Returns the new status, or throws with a reason. */
+/** Builds the book's archive and saves it through the desktop app. Returns the new status, or throws with a reason. */
 export async function backUpNow(projectId: string): Promise<BackupStatus> {
   const project = await db.projects.get(projectId);
   if (!project) throw new Error('That book no longer exists.');

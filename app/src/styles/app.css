@@ -3570,3 +3570,10 @@ code.path {
 .chapter-notes .notes-list li {
   display: block;
 }
+.backup-recovery {
+  margin-top: 1rem;
+}
+.backup-recovery ul {
+  margin: 0.4rem 0 0.8rem;
+  padding-left: 1.2rem;
+}

@@ -30,7 +30,7 @@ export function AutoBackupCard({ projectId }: { projectId: string }) {
     return (
       <section className="card">
         <h2>Automatic backups</h2>
-        <p className="muted small">Automatic backups run when AuthorDesk is started from AuthorDesk.exe. Use “Save backup” below meanwhile.</p>
+        <p className="muted small">Automatic backups run in the AuthorDesk desktop app. Use “Save backup” below meanwhile.</p>
       </section>
     );
   }

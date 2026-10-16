@@ -29,7 +29,7 @@ export function AiEditorSettings() {
             : status === null
               ? 'available in the AuthorDesk app'
               : !status.installed
-                ? 'not installed (run scripts\\install-ai-editor.ps1, about 8 GB)'
+                ? 'not installed (install it under Add-ons, about 8 GB)'
                 : `${status.ready ? 'loaded' : 'installed; loads when first used'} · ${status.model}`}
         </strong>
       </p>
