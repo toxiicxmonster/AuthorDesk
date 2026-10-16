@@ -39,6 +39,8 @@ interface UiState {
   aiBest: MarkBest | null;
   searchOpen: boolean;
   helpOpen: boolean;
+  /** Find & replace across the book, with the text to start with. */
+  replaceOpen: { query: string } | null;
 }
 
 let state: UiState = {
@@ -56,6 +58,7 @@ let state: UiState = {
   aiBest: null,
   searchOpen: false,
   helpOpen: false,
+  replaceOpen: null,
 };
 
 const listeners = new Set<() => void>();

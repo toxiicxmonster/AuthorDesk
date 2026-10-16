@@ -22,6 +22,7 @@ const isDesktopApp = /\bElectron\//.test(navigator.userAgent);
 const SHORTCUTS: [string, string][] = [
   ['Ctrl+K or Ctrl+Shift+F', 'Search everything'],
   ['Ctrl+F', 'Find & replace in the current scene'],
+  ['Ctrl+Shift+H', 'Find & replace in the whole book (rename a character everywhere)'],
   ['Ctrl+S', 'Save now (work also autosaves continuously)'],
   ['Alt+PageDown / Alt+PageUp', 'Next / previous chapter'],
   ['Alt+Shift+PageDown / PageUp', 'Next / previous scene'],

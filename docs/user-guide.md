@@ -25,6 +25,7 @@ Click **◐** in the top bar to switch between Paper, Sepia, Pastel Blue, Sage, 
 - Toolbar: bold, italic, underline, heading, block quote, scene break (⁂), undo/redo, link to reference (🔗), find (🔍), snapshot (📸), focus mode (◎).
 - Chapter ⋯ menu: rename, move, add scene, insert chapter after, pin, put in a part, Move to Trash (restore it from 🗑 Trash at the bottom of the list). Double-click a chapter to rename it. Drag chapters or scenes to reorder; drop a scene on another chapter to move it.
 - **Scene notes** tab (right panel): chapter/scene titles, summaries, status, POV, location, time marker, plot threads, notes, split at cursor, merge with next, create a board card.
+- **Find & replace in the whole book** (Ctrl+Shift+H, *Whole book…* in the find bar, Ctrl+K → *Find & replace in the book*, or **Rename everywhere…** on a character's entry): every match is listed with its sentence and what it will become; untick any you want to keep. With *Match case* off, capitals follow each match ("Jace" at the start of a sentence becomes "Finn" even if you type "finn"). If the word is a character's or place's name (or part of it, like "Jace" in "Jace Kensington"), it offers to rename the entry too. Every changed scene keeps a *before replace* version, and **Undo** in the message afterwards puts it all back.
 - **Versions tab:** snapshots of the scene; preview, copy or restore (your current text is snapshotted first).
 - **Pacing strip:** the thin strip to the right of the page draws the scene's rhythm, one tick per sentence from top to bottom, wider for longer sentences. Dialogue ticks are in the accent colour and narration in grey, long sentences (30+ words) are orange, and an orange edge marks paragraphs of 150+ words. The outlined band is the part on screen; click anywhere on the strip to jump there. Hover it for a summary. Turn it off in Settings → Writing page; it hides in Focus mode.
 
@@ -129,6 +130,7 @@ Backup → **Import your own files** (or *Bring in my existing book* on the welc
 | --- | --- |
 | Ctrl+K / Ctrl+Shift+F | Search everything |
 | Ctrl+F | Find & replace in scene |
+| Ctrl+Shift+H | Find & replace in the whole book |
 | Ctrl+S | Save now |
 | Alt+PageDown / PageUp | Next / previous chapter |
 | Alt+Shift+PageDown / PageUp | Next / previous scene |

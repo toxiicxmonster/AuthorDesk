@@ -9,7 +9,7 @@ import { referenceBacklinks, unlinkReferenceEverywhere, type Backlink } from '..
 import { CommitInput, EmptyState, Modal, TagInput } from '../components/common';
 import { ReferencePicker } from '../components/ReferencePicker';
 import { Icon } from '../components/Icon';
-import { confirmDialog, promptDialog, toast } from '../store';
+import { confirmDialog, promptDialog, setUi, toast } from '../store';
 import { db } from '../../storage/db';
 import { downscale } from '../image';
 import { CharacterArc } from '../components/CharacterArc';
@@ -248,6 +248,11 @@ function ReferenceEditor({ r, all }: { r: ReferenceEntry; all: ReferenceEntry[] 
           {REFERENCE_TYPE_ICONS[r.type]} {REFERENCE_TYPE_LABELS[r.type]}
         </span>
         <span className="grow" />
+        {!r.archivedAt && r.name.trim() && (
+          <button onClick={() => setUi({ replaceOpen: { query: r.name.trim() } })} title="Change this name in every chapter, and in this entry">
+            Rename everywhere…
+          </button>
+        )}
         <button className={`fav-btn${r.favorite ? ' on' : ''}`} aria-pressed={r.favorite} onClick={() => upd({ favorite: !r.favorite })} title="Favourites appear first in lists">
           <Icon name="star" size={16} filled={r.favorite} /> {r.favorite ? 'Favourite' : 'Add to favourites'}
         </button>

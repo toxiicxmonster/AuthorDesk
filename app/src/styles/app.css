@@ -3577,3 +3577,51 @@ code.path {
   margin: 0.4rem 0 0.8rem;
   padding-left: 1.2rem;
 }
+/* Find & replace in the book */
+.replace-form {
+  display: grid;
+  gap: 0.5rem;
+}
+.replace-results {
+  max-height: 45vh;
+  overflow-y: auto;
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.12));
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  margin: 0.4rem 0 0.6rem;
+}
+.replace-results:empty {
+  display: none;
+}
+.replace-results h3 {
+  margin: 0.6rem 0 0.2rem;
+}
+.replace-results ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.replace-results li .check {
+  align-items: flex-start;
+  line-height: 1.45;
+  padding: 0.15rem 0;
+}
+.replace-snippet mark {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+.replace-snippet mark.old {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+.replace-snippet ins {
+  text-decoration: none;
+  background: color-mix(in srgb, #3a9a5b 25%, transparent);
+  border-radius: 2px;
+  margin-left: 0.15rem;
+}
+.modal-actions {
+  align-items: center;
+  margin-top: 0.4rem;
+}

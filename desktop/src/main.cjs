@@ -49,6 +49,13 @@ if (!SMOKE_TEST && !app.requestSingleInstanceLock()) {
 }
 
 async function start() {
+  // A self-test always ends, even if something in it never answers.
+  if (SMOKE_TEST)
+    setTimeout(() => {
+      process.stdout.write('SMOKE {"ok":false,"error":"timed out"}\n');
+      app.exit(1);
+    }, 150_000).unref();
+
   const root = findDist(execDir, __dirname);
   if (!root) {
     dialog.showErrorBox('AuthorDesk', 'The app files are missing. Download AuthorDesk again from its Releases page.');
@@ -169,7 +176,14 @@ async function countBooks(moved) {
 async function smokeResult(extra) {
   // Optional: a picture of the window, and a real request to each installed add-on.
   if (process.env.AUTHORDESK_SMOKE_HASH) await new Promise((r) => setTimeout(r, 6000)); // let the page settle (proofreading)
-  if (process.env.AUTHORDESK_SMOKE_SHOT) fs.writeFileSync(process.env.AUTHORDESK_SMOKE_SHOT, (await win.webContents.capturePage()).toPNG());
+  if (process.env.AUTHORDESK_SMOKE_SHOT) {
+    // Without a graphics card (CI) the capture can fail; the test is about the app, not the picture.
+    try {
+      fs.writeFileSync(process.env.AUTHORDESK_SMOKE_SHOT, (await win.webContents.capturePage()).toPNG());
+    } catch (e) {
+      extra.screenshotError = String(e.message ?? e);
+    }
+  }
   if (process.argv.includes('--smoke-addons')) {
     await addons.startGrammar();
     extra.addons = await win.webContents

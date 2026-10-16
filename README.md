@@ -93,7 +93,7 @@ AuthorDesk is a desktop app for **Windows and Linux**. It has its own built-in b
 | --- | --- |
 | **Getting started** | Welcome screen with a ready-made sample book, a **Ctrl+K** quick switcher to jump to any chapter, character, note or command, click-to-rename titles, a labelled toolbar, one-time tips, a Help panel (**F1**), and a Trash instead of permanent deletes. |
 | **Themes** | Paper, Sepia, Pastel Blue, Sage, Cozy Cottage and Night, plus *Match my device*. Make your own from five colours with a live preview and a readability check, and share themes as files. Quick theme menu (◐) in the top bar. |
-| **Manuscript editor** | Book → (Part) → Chapter → Scene. Bold, italic, underline, headings, block quotes and scene breaks. Autosave with a visible status, undo/redo, word counts (selection, scene, chapter, book), a **pacing strip** beside the page (sentence lengths, dialogue and narration, click to jump), focus mode, find & replace, clean paste from Word and Google Docs, automatic and manual snapshots with restore, split and merge scenes. |
+| **Manuscript editor** | Book → (Part) → Chapter → Scene. Bold, italic, underline, headings, block quotes and scene breaks. Autosave with a visible status, undo/redo, word counts (selection, scene, chapter, book), a **pacing strip** beside the page (sentence lengths, dialogue and narration, click to jump), focus mode, find & replace in a scene or **across the whole book** (rename a character everywhere, with a preview of every change and one-click undo), clean paste from Word and Google Docs, automatic and manual snapshots with restore, split and merge scenes. |
 | **Targets and length** | A book word target with a finish-by date at your recent pace, chapter targets with progress bars, a writing-streak calendar, and **estimated printed pages** for the book and every chapter (only the pages you've actually written) at mass-market, KDP paperback and hardcover sizes or as a standard manuscript. |
 | **Navigation** | Chapter list with a filter (titles and text), pinned and recent chapters, drag-and-drop or menu-based reordering, moving scenes between chapters, keyboard shortcuts for next and previous scene or chapter, and a collapsible drawer on phones. |
 | **Characters and world (series bible)** | Characters, locations, factions, species, items, lore, glossary and research entries with templated and custom fields, aliases, tags, favourites, images and relationships. Duplicate warnings, "Mentioned in" backlinks, a quick-reference side panel while you write, and each character's **arc** across the book (where they appear, and when they drop out). |
@@ -120,6 +120,7 @@ A full walk-through is in the [**user guide**](docs/user-guide.md).
 | --- | --- |
 | Ctrl+K / Ctrl+Shift+F | Search or jump to anything |
 | Ctrl+F | Find & replace in the scene |
+| Ctrl+Shift+H | Find & replace in the whole book |
 | Ctrl+S | Save now |
 | Alt+PageDown / PageUp | Next / previous chapter |
 | Alt+Shift+PageDown / PageUp | Next / previous scene |

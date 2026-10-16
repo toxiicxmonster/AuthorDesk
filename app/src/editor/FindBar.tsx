@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
 import { findKey } from './findExtension';
-import { confirmDialog, toast } from '../ui/store';
+import { confirmDialog, setUi, toast } from '../ui/store';
 
 export function FindBar({ editor, onClose, initialQuery = '' }: { editor: Editor; onClose: () => void; initialQuery?: string }) {
   const [query, setQuery] = useState(initialQuery);
@@ -90,6 +90,15 @@ export function FindBar({ editor, onClose, initialQuery = '' }: { editor: Editor
       <input value={replace} placeholder="Replace with" aria-label="Replace with" onChange={(e) => setReplace(e.target.value)} />
       <button onClick={replaceOne} disabled={!matches.length}>Replace</button>
       <button onClick={replaceAll} disabled={!matches.length}>All</button>
+      <button
+        title="Find & replace in every chapter (Ctrl+Shift+H)"
+        onClick={() => {
+          setUi({ replaceOpen: { query } });
+          onClose();
+        }}
+      >
+        Whole book…
+      </button>
       <button onClick={onClose} aria-label="Close find">✕</button>
     </div>
   );

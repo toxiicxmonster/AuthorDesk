@@ -6,6 +6,7 @@ const SHORTCUTS: [string, string][] = [
   ['Ctrl+K', 'Jump to any chapter, character or command'],
   ['Ctrl+Shift+F', 'Search all your writing'],
   ['Ctrl+F', 'Find & replace in this scene'],
+  ['Ctrl+Shift+H', 'Find & replace in the whole book'],
   ['Ctrl+S', 'Save now (it also saves automatically)'],
   ['Alt+PageDown / PageUp', 'Next / previous chapter'],
   ['Alt+Shift+PageDown / PageUp', 'Next / previous scene'],

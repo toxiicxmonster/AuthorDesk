@@ -25,6 +25,7 @@ import { useSyncStatus } from './sync/useSyncStatus';
 import { applyTheme, resolveTheme } from './ui/theme';
 import { QuickSwitcher } from './ui/components/QuickSwitcher';
 import { HelpDialog } from './ui/components/HelpDialog';
+import { BookReplace } from './ui/components/BookReplace';
 import { ThemeQuickButton } from './ui/components/ThemeQuickButton';
 import { Icon, type IconName } from './ui/components/Icon';
 
@@ -105,6 +106,10 @@ export function App() {
       } else if (route.projectId && mod && e.shiftKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         void flushAllEdits().then(() => navigate(route.projectId, 'search'));
+      } else if (route.projectId && mod && e.shiftKey && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        const sel = window.getSelection()?.toString().trim() ?? '';
+        setUi({ replaceOpen: { query: sel.length <= 80 && !sel.includes('\n') ? sel : '' } });
       } else if (e.key === 'F1' || (mod && e.key === '/')) {
         e.preventDefault();
         setUi((s) => ({ helpOpen: !s.helpOpen }));
@@ -272,6 +277,7 @@ export function App() {
       )}
       <QuickSwitcher projectId={pid && project ? pid : null} />
       <HelpDialog />
+      <BookReplace />
       <AddonSetup />
       <DialogHost />
       <ToastHost />
