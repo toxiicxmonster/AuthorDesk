@@ -137,8 +137,10 @@ describe('agreement, past tense and idioms (from a real manuscript)', () => {
     expect(fix("There's three of them.")).toEqual(["There's three -> There are three"]);
     expect(fix('A smile sprung on my face.')).toEqual(['sprung -> sprang']);
     expect(fix('It vanished in thin air.')).toEqual(['vanished in thin air -> vanished into thin air']);
+    expect(fix('I pressed send, sat my phone down, and sighed.')).toEqual(['sat  -> set ']);
   });
   it('leaves correct uses alone', () => {
     expect(fix('The trap had sprung. It had just begun. The ship was sunk. A sunk cost. There is a lot to do.')).toEqual([]);
+    expect(fix('She sat him down. I sat my weary bones down. We sit the kids at the table.')).toEqual([]);
   });
 });

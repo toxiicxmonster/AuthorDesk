@@ -342,6 +342,15 @@ export const RULES: Rule[] = [
     const single = new RegExp(re.source, 'i');
     return regexRule(id, 'confused', 'warning', re, msg, (m) => [matchCase(m[0], m[0].replace(single, rep))]);
   }),
+  // You set things down and sit people down: "I sat my phone down" → "set". Only for everyday objects.
+  regexRule(
+    'confused-set-sit',
+    'confused',
+    'warning',
+    /\b(sat|sit|sits|sitting) (?=(?:my|his|her|their|your|our|the|a|an) (?:phone|bag|cup|glass|mug|book|keys|plate|box|coffee|drink|tray|laptop|purse|backpack|bottle|pen|fork|knife|controller|remote|glasses|basket|suitcase|bowl|notebook)\b)/i,
+    'You “set” a thing down (and “sit” yourself or someone).',
+    (m) => [matchCase(m[1], { sat: 'set', sit: 'set', sits: 'sets', sitting: 'setting' }[m[1].toLowerCase()]!) + ' '],
+  ),
   regexRule('a-an-vowel', 'grammar', 'warning', /\b(a) ([aeiou][\p{L}]*)/iu, 'Use “an” before a vowel sound.', (m) => {
     if (/^(one|once|uni|use|usu|usa|uto|ufo|eu|ewe|ur|uti|ubiq|uk)/i.test(m[2])) return null;
     return [matchCase(m[1], 'an') + ' ' + m[2]];
@@ -591,6 +600,7 @@ const RULE_LABELS: Record<string, string> = {
   'new-name': 'Names not yet in your characters & world list',
   'character-fact': 'Character details missing from their entry (green)',
   'echo-word': 'Echo words (the same word again a few lines later)',
+  'confused-set-sit': '“sat my phone down” → “set”',
   'tense-shift': 'Tense slips (past and present mixed in narration)',
   continuity: 'Continuity: a character described differently elsewhere in the book',
   'continuity-death': 'Continuity: a character speaking after their death',
