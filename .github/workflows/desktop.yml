@@ -44,6 +44,12 @@ jobs:
           AUTHORDESK_DATA=$RUNNER_TEMP/deb AUTHORDESK_SMOKE_SHOT=$RUNNER_TEMP/deb.png \
             timeout 180 xvfb-run -a /opt/AuthorDesk/authordesk --smoke-test | tee $RUNNER_TEMP/deb.txt
           grep -q 'SMOKE {"ok":true' $RUNNER_TEMP/deb.txt
+      - name: Updates unpack inside Electron (an .asar file in the zip)
+        run: |
+          mkdir -p $RUNNER_TEMP/z/resources && head -c 4096 /dev/urandom > $RUNNER_TEMP/z/resources/app.asar
+          (cd $RUNNER_TEMP/z && zip -qr ../update.zip .)
+          ZIP=$RUNNER_TEMP/update.zip OUT=$RUNNER_TEMP/unpacked timeout 120 xvfb-run -a desktop/node_modules/.bin/electron --no-sandbox desktop/tests/electron-unpack | tee $RUNNER_TEMP/unpack.txt
+          grep -q 'UNPACK OK' $RUNNER_TEMP/unpack.txt
       - name: Add-on installers on Linux
         working-directory: desktop
         run: AUTHORDESK_DATA=$RUNNER_TEMP/addons node scripts/ci-addons.cjs
