@@ -241,7 +241,7 @@ The print interior gets:
 
 The **table of contents** is optional. In eBooks its entries link to each chapter. In print it is either a chapter list or one with dot leaders and page numbers. The typeset PDF has real page numbers already; in the Word file they're filled in by Microsoft Word, so open it in Word, click **Yes** to update fields, and save before uploading.
 
-The pre-publish checklist warns about missing author details, empty chapters, leftover "TK"/"TODO" notes, and books outside KDP's 24–828 print-page limits. Book details (author, ISBN, imprint…) are saved with the book; dedication, epigraph, acknowledgements, About the Author and "Also by" pages come from **Book pages** on Home.
+Chapters with no text yet are left out (the rest are numbered without a gap). The pre-publish checklist warns about missing author details, leftover "TK"/"TODO" notes, planning bullets still in a chapter, and books outside KDP's 24–828 print-page limits. Book details (author, ISBN, imprint…) are saved with the book; dedication, epigraph, acknowledgements, About the Author and "Also by" pages come from **Book pages** on Home.
 
 Upload the file as the **manuscript** on KDP's Content page. Check print interiors in KDP's **Print Previewer** (same trim size, *No bleed*) and eBooks in **Kindle Previewer**. Covers are uploaded separately.
 

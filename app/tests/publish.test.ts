@@ -227,3 +227,14 @@ describe('pre-publish: planning notes left in a chapter', () => {
     expect(msgs.find((m) => m.startsWith('Planning notes'))).not.toContain('Game Day');
   });
 });
+
+describe('empty chapters', () => {
+  it('are left out of the publish model, and the rest are numbered without a gap', () => {
+    const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
+    const ch = (title: string, words: number) => ({ chapter: { id: title, title } as never, scenes: [{ id: title + 's', title: '', wordCount: words, content: { type: 'doc', content: words ? [para('Some words here.')] : [] } } as never] });
+    const model = buildPublishModel({ id: 'b', title: 'T', publishing: { author: 'A' } } as never, [ch('Arrival', 10), ch('Trouble', 0), ch('Departure', 12)], { ...DEFAULT_PUBLISH_OPTIONS, headingStyle: 'number-title' });
+    expect(model.chapters.map((c) => `${c.label}: ${c.title}`)).toEqual(['Chapter 1: Arrival', 'Chapter 2: Departure']);
+    expect(model.skipped).toEqual(['Trouble']);
+    expect(preflight(model, 'ebook').map((p) => p.message).join(' ')).toContain('1 chapter has no text yet and is left out: Trouble');
+  });
+});

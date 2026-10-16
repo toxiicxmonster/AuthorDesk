@@ -85,6 +85,8 @@ export interface PublishModel {
   chapters: PublishChapter[];
   words: number;
   options: PublishOptions;
+  /** Chapters left out because they have no text yet (a blank chapter page is rejected by the stores). */
+  skipped?: string[];
 }
 
 const ONES = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
@@ -194,7 +196,13 @@ export function buildPublishModel(
   let n = 0;
   const out: PublishChapter[] = [];
   let total = 0;
+  const skipped: string[] = [];
   for (const { chapter, scenes } of chapters) {
+    // Nothing written yet: left out, and the chapters after it are numbered on without a gap.
+    if (scenes.every((s) => !s.wordCount)) {
+      skipped.push(chapter.title.trim() || 'Untitled chapter');
+      continue;
+    }
     const unnumbered = UNNUMBERED.test(chapter.title);
     if (!unnumbered) n++;
     const head = chapterHeading(chapter.title, n, options.headingStyle);
@@ -211,7 +219,7 @@ export function buildPublishModel(
     total += words;
     out.push({ label: head.label, title: head.title, blocks, words });
   }
-  return { title: book.title, subtitle: book.subtitle ?? '', info, chapters: out, words: total, options };
+  return { title: book.title, subtitle: book.subtitle ?? '', info, chapters: out, words: total, options, skipped };
 }
 
 // ---------------------------------------------------------------- KDP print geometry
@@ -300,8 +308,11 @@ export function preflight(model: PublishModel, target: 'ebook' | 'print', layout
   const out: PreflightItem[] = [];
   if (!model.info.author.trim()) out.push({ level: 'problem', message: 'Add the author name (it appears on the title page and in the eBook details).' });
   if (!model.chapters.length) out.push({ level: 'problem', message: 'This book has no chapters yet.' });
-  const empty = model.chapters.filter((c) => c.words === 0);
-  if (empty.length) out.push({ level: 'problem', message: `Empty chapter${empty.length === 1 ? '' : 's'}: ${empty.map((c) => c.title).join(', ')}. Remove or fill ${empty.length === 1 ? 'it' : 'them'} — stores reject blank pages.` });
+  const skipped = model.skipped ?? [];
+  if (skipped.length) {
+    const names = skipped.length > 4 ? `${skipped.slice(0, 4).join(', ')} and ${skipped.length - 4} more` : skipped.join(', ');
+    out.push({ level: 'check', message: `${skipped.length} chapter${skipped.length === 1 ? ' has' : 's have'} no text yet and ${skipped.length === 1 ? 'is' : 'are'} left out: ${names}. The chapters around ${skipped.length === 1 ? 'it' : 'them'} are numbered without a gap.` });
+  }
   const notes: string[] = [];
   const placeholder = /\b(TK|TODO|FIXME|XXX)\b|\[\s*(tk|todo|note|research|check)[^\]]*\]/i;
   for (const c of model.chapters) {
