@@ -212,3 +212,18 @@ describe('table of contents', () => {
     expect(doc2).not.toContain('PAGEREF');
   });
 });
+
+describe('pre-publish: planning notes left in a chapter', () => {
+  it('flags chapters whose text still holds outline bullets', () => {
+    const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
+    const book = { id: 'b', title: 'T', publishing: { author: 'A' } } as never;
+    const chapter = (title: string, lines: string[]) => ({ chapter: { id: title, title } as never, scenes: [{ id: title + 's', title: '', wordCount: 50, content: { type: 'doc', content: lines.map(para) } } as never] });
+    const model = buildPublishModel(book, [
+      chapter('Between the cracks', ['- Winnie received the keys', '- Finn stops, grumpy', 'She dropped a box.']),
+      chapter('Game Day', ['Finn hated losing.', '- one stray dash line is fine']),
+    ]);
+    const msgs = preflight(model, 'ebook').map((p) => p.message);
+    expect(msgs.find((m) => m.startsWith('Planning notes'))).toContain('Between the cracks');
+    expect(msgs.find((m) => m.startsWith('Planning notes'))).not.toContain('Game Day');
+  });
+});

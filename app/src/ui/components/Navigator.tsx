@@ -18,7 +18,11 @@ import {
   unarchiveRecord,
   renameBook,
   updateRecord,
+  createSnapshot,
+  restoreSnapshot,
+  saveSceneContent,
 } from '../../storage/repo';
+import { notesWithOutline, outlineLines, withoutOutline } from '../../domain/outlineNotes';
 import { flushAllEdits } from '../../editor/EditorContext';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../storage/db';
@@ -181,6 +185,53 @@ export function Navigator({ projectId, books, book, tree, currentSceneId }: Prop
               run: async () => {
                 const t = await promptDialog('Rename book', 'Title', book.title);
                 if (t?.trim()) await renameBook(book.id, t.trim());
+              },
+            },
+            book && {
+              label: 'Move planning notes to Scene notes…',
+              run: async () => {
+                // "- Finn helps her clean up" lines typed into a scene would be printed as story in exports.
+                await flushAllEdits();
+                const scenes = tree.sceneOrder.map((s) => ({ s, lines: outlineLines(s.content) })).filter((x) => x.lines.length);
+                if (!scenes.length) return toast('No planning notes in the chapters: nothing to move.');
+                const count = scenes.reduce((n, x) => n + x.lines.length, 0);
+                const where = [...new Set(scenes.map((x) => tree.chapters.find((c) => c.id === x.s.chapterId)?.title ?? ''))].filter(Boolean);
+                const ok = await confirmDialog(
+                  `Move ${count} planning line${count === 1 ? '' : 's'} to Scene notes?`,
+                  [
+                    `Lines starting with “-” or “•” in ${where.slice(0, 4).join(', ')}${where.length > 4 ? ` and ${where.length - 4} more` : ''} move out of the story text and into each scene’s Notes (the Scene notes tab while you write), so exports don’t print them.`,
+                    'Each scene keeps a copy under Versions, and Undo puts everything back.',
+                  ].join('\n\n'),
+                  { confirmLabel: 'Move them' },
+                );
+                if (!ok) return;
+                const done: { id: string; snapshot: string; notes: string }[] = [];
+                try {
+                  for (const { s, lines } of scenes) {
+                    const fresh = await db.scenes.get(s.id);
+                    if (!fresh) continue;
+                    const snapshot = (await createSnapshot(fresh, 'before moving planning notes')).id;
+                    await saveSceneContent(fresh.id, withoutOutline(fresh.content));
+                    await updateRecord('scenes', fresh.id, { notes: notesWithOutline(fresh.notes, lines) });
+                    done.push({ id: fresh.id, snapshot, notes: fresh.notes });
+                  }
+                  toast(`Moved ${count} line${count === 1 ? '' : 's'} to Scene notes.`, {
+                    ms: 15000,
+                    action: {
+                      label: 'Undo',
+                      run: () =>
+                        void (async () => {
+                          await flushAllEdits();
+                          for (const d of done) {
+                            await restoreSnapshot(d.snapshot);
+                            await updateRecord('scenes', d.id, { notes: d.notes });
+                          }
+                        })().catch((e) => reportError(e, 'Couldn’t undo')),
+                    },
+                  });
+                } catch (e) {
+                  reportError(e, 'Couldn’t move the planning notes');
+                }
               },
             },
             book && {

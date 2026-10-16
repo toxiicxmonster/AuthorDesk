@@ -309,6 +309,13 @@ export function preflight(model: PublishModel, target: 'ebook' | 'print', layout
     if (placeholder.test(text)) notes.push(c.title);
   }
   if (notes.length) out.push({ level: 'check', message: `Possible leftover notes (TK, TODO or [brackets]) in: ${notes.join(', ')}.` });
+  // Planning bullets typed into a chapter ("- Finn helps her clean up") would be printed as story.
+  const outlined = model.chapters.filter((c) => blocksText(c.blocks).split('\n').filter((l) => /^\s*[-*•–]\s+\S/.test(l)).length >= 2).map((c) => c.title);
+  if (outlined.length)
+    out.push({
+      level: 'check',
+      message: `Planning notes (lines starting with “-” or “•”) in: ${outlined.join(', ')}. They’d be printed as part of the story: move them to Scene notes or delete them.`,
+    });
   if (target === 'print' && layout) {
     if (layout.estimatedPages < 24) out.push({ level: 'problem', message: `About ${layout.estimatedPages} pages — KDP paperbacks need at least 24 pages.` });
     if (layout.estimatedPages > 828) out.push({ level: 'problem', message: `About ${layout.estimatedPages} pages — over KDP’s 828-page paperback limit at this trim size. Try a larger trim or smaller text.` });
