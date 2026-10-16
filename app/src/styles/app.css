@@ -3837,3 +3837,21 @@ h3.small-heading {
 .diff-view del + ins {
   margin-left: 0.15em;
 }
+
+/* Scene notes → plan checklist */
+.plan-checklist .check {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.4;
+  margin: 3px 0;
+}
+.plan-checklist .check input {
+  margin-top: 3px;
+}
+.plan-checklist .plan-hint {
+  white-space: nowrap;
+}
+.plan-checklist .check.done > span {
+  color: var(--muted);
+  text-decoration: line-through;
+}

@@ -22,6 +22,7 @@ import { AiEditorPanel } from './AiEditorPanel';
 import { EditPassPanel } from './EditPassPanel';
 import { ChapterSummaryAssist, SceneSummaryAssist } from './SummaryAssist';
 import { VersionChanges } from './VersionChanges';
+import { PlanChecklist } from './PlanChecklist';
 
 export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapter: Chapter; nextScene: Scene | null }) {
   const tab = useUi((s) => s.rightTab);
@@ -260,6 +261,7 @@ function SceneInspector({ scene, chapter, nextScene }: { scene: Scene; chapter: 
         ))}
       </fieldset>
       <CommitInput label="Scene notes" multiline rows={5} value={scene.notes} onCommit={(v) => upd({ notes: v })} />
+      <PlanChecklist scene={scene} />
       <h3 className="small-heading">Scene tools</h3>
       <div className="stack">
         <button

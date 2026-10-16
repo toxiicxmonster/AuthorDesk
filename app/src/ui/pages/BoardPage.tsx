@@ -4,6 +4,7 @@ import { useBooks, useManuscript, useProjectTable, useReferences } from '../data
 import { navigate } from '../router';
 import { CARD_TYPES, WRITING_STATUSES, type BoardCard, type BoardLane, type Chapter } from '../../domain/schema';
 import { BUILTIN_TEMPLATES, type BoardTemplate } from '../../domain/boardTemplates';
+import { planItems } from '../../domain/planChecklist';
 import {
   archiveRecord,
   convertCardToChapter,
@@ -579,6 +580,7 @@ function Outline({ projectId, bookId }: { projectId: string; bookId: string }) {
                       {s.povCharacterId && <span className="chip">👤 {name(s.povCharacterId)}</span>}
                       {s.locationId && <span className="chip">📍 {name(s.locationId)}</span>}
                       {s.timeMarker && <span className="chip">⏱ {s.timeMarker}</span>}
+                      <PlanChip notes={s.notes} />
                       {s.plotThreadIds.map((t) => (
                         <span key={t} className="chip">🧵 {threads.find((x) => x.id === t)?.name}</span>
                       ))}
@@ -645,5 +647,17 @@ function QuickAddCard({ onAdd, onOpen }: { onAdd: (title: string) => Promise<Boa
         )}
       </div>
     </div>
+  );
+}
+
+/** Outline: how much of a scene's plan (the bullet lines in its notes) is ticked off. */
+function PlanChip({ notes }: { notes: string }) {
+  const items = planItems(notes);
+  if (!items.length) return null;
+  const done = items.filter((i) => i.done).length;
+  return (
+    <span className="chip" title="Plan points ticked off in Scene notes">
+      ☑ Plan {done}/{items.length}
+    </span>
   );
 }
