@@ -136,6 +136,7 @@ export function QuickSwitcher({ projectId }: { projectId: string | null }) {
         { id: 'a-new-place', icon: '+', label: 'New place…', group: 'Actions', keywords: 'add create location', run: go('refs', null, { new: 'location' }) },
         { id: 'a-replace', icon: '⇄', label: 'Find & replace in the book…', group: 'Actions', keywords: 'rename character everywhere change name all chapters', run: async () => setUi({ replaceOpen: { query: '' } }) },
         { id: 'a-backup', icon: '⇩', label: 'Back up now', group: 'Actions', keywords: 'save export archive', run: go('data') },
+        { id: 'a-outline', icon: '☑', label: 'Export the outline…', group: 'Actions', keywords: 'plan checklist print summaries word docx synopsis', run: go('data') },
         { id: 'a-kdp', icon: '📘', label: 'Publish on Amazon KDP…', group: 'Actions', keywords: 'kindle ebook epub paperback print export amazon', run: go('data', null, { kdp: '1' }) },
         { id: 'a-focus', icon: '◎', label: 'Focus mode', group: 'Actions', keywords: 'distraction free zen', run: async () => { await go('write')(); setUi({ focusMode: true }); } },
       );
