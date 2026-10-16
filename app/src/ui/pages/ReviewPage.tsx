@@ -369,7 +369,7 @@ function ReviewBody({ report: r, go, projectId, firstScene }: { report: ReviewRe
             </tr>
           </thead>
           <tbody>
-            {r.chapters.map((c) => {
+            {r.chapters.filter((c) => c.words > 0).map((c) => {
               const first = firstScene(c.chapterId);
               return (
                 <tr key={c.chapterId} onClick={() => first && navigate(projectId, 'write', first)} className={first ? 'clickable' : ''}>
@@ -393,6 +393,7 @@ function ReviewBody({ report: r, go, projectId, firstScene }: { report: ReviewRe
             })}
           </tbody>
         </table>
+        <EmptyChapters titles={r.chapters.filter((c) => c.words === 0).map((c) => c.title)} />
       </section>
 
       <div className="review-grid">
@@ -495,5 +496,16 @@ function Spark({ values }: { values: number[] }) {
         <i key={i} style={{ height: `${Math.max(8, (v / max) * 100)}%` }} />
       ))}
     </span>
+  );
+}
+
+/** Chapters with no text yet: one line instead of a row of zeros each. */
+function EmptyChapters({ titles }: { titles: string[] }) {
+  if (!titles.length) return null;
+  const names = titles.length > 4 ? `${titles.slice(0, 3).join(', ')} and ${titles.length - 3} more` : titles.join(', ');
+  return (
+    <p className="muted small" title={titles.join('\n')}>
+      {titles.length === 1 ? 'One chapter has' : `${titles.length} chapters have`} no text yet: {names}.
+    </p>
   );
 }
