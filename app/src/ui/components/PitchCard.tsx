@@ -3,6 +3,8 @@ import type { Book } from '../../domain/schema';
 import { updateRecord } from '../../storage/repo';
 import { fetchAiStatus } from '../../ai/aiEditor';
 import { draftPitch, pitchSource, unknownNames, type PitchKind } from '../../ai/pitch';
+import { summarizeChapter, summarizeScene, summaryBasis } from '../../ai/summaries';
+import { db } from '../../storage/db';
 import type { ManuscriptTree } from '../data';
 import { useReferences } from '../data';
 import { flushAllEdits } from '../../editor/EditorContext';
@@ -87,6 +89,40 @@ export function PitchCard({ projectId, book, tree }: { projectId: string; book: 
     }
   };
 
+  // Chapters with text but no summary: the drafts are much better with one for each.
+  const unsummarized = tree.chapters.filter((c) => !c.summary?.trim() && (tree.scenesByChapter.get(c.id) ?? []).some((s) => s.plainText.trim().split(/\s+/).length >= 30));
+  const [summarizing, setSummarizing] = useState<string | null>(null);
+  const summarizeAll = async () => {
+    const ctrl = new AbortController();
+    abort.current?.abort();
+    abort.current = ctrl;
+    try {
+      await flushAllEdits();
+      for (const [i, c] of unsummarized.entries()) {
+        setSummarizing(`Summarizing chapter ${i + 1} of ${unsummarized.length}…`);
+        const scenes = (await db.scenes.where('chapterId').equals(c.id).toArray()).filter((s) => !s.archivedAt && s.plainText.trim()).sort((a, b) => a.order - b.order);
+        const sums: string[] = [];
+        for (const s of scenes) {
+          if (s.summary.trim()) {
+            sums.push(s.summary);
+            continue;
+          }
+          const text = await summarizeScene(s.plainText, { signal: ctrl.signal });
+          // Scene summaries are only filled in where there were none; nothing the author wrote is replaced.
+          await updateRecord('scenes', s.id, { summary: text, summaryBasis: summaryBasis(s.plainText) });
+          sums.push(text);
+        }
+        const fresh = await db.chapters.get(c.id);
+        if (fresh && !fresh.summary?.trim()) await updateRecord('chapters', c.id, { summary: await summarizeChapter(sums, { signal: ctrl.signal }) });
+      }
+      toast(`Summarized ${unsummarized.length} chapter${unsummarized.length === 1 ? '' : 's'}. Read or change them in Scene notes.`);
+    } catch (e) {
+      if (!ctrl.signal.aborted) reportError(e, 'The AI Editor couldn’t summarize the chapters');
+    } finally {
+      setSummarizing(null);
+    }
+  };
+
   const info = KINDS.find((x) => x.id === kind)!;
   const n = words(draft);
   const invented = basis?.kind === kind && busy !== kind ? unknownNames(draft, basis.text, book.title) : [];
@@ -102,6 +138,23 @@ export function PitchCard({ projectId, book, tree }: { projectId: string; book: 
         ))}
       </div>
       <p className="muted small">{info.hint}</p>
+      {aiInstalled && unsummarized.length > 0 && (
+        <p className="small pitch-summaries">
+          {unsummarized.length} chapter{unsummarized.length === 1 ? ' has' : 's have'} text but no summary, so a draft has less to go on.{' '}
+          {summarizing ? (
+            <>
+              <span className="muted">{summarizing}</span>{' '}
+              <button className="link-btn" onClick={() => abort.current?.abort()}>
+                Stop
+              </button>
+            </>
+          ) : (
+            <button className="link-btn" disabled={!!busy} onClick={() => void summarizeAll()}>
+              Summarize {unsummarized.length === 1 ? 'it' : 'them'} with the AI Editor
+            </button>
+          )}
+        </p>
+      )}
       <textarea
         aria-label={info.label}
         rows={info.rows}
