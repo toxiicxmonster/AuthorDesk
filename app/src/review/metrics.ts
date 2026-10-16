@@ -63,6 +63,20 @@ const PASSIVE = /\b(?:am|is|are|was|were|be|been|being)\s+(?:\w+ed|written|taken
 const WORD = /[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu;
 const words = (s: string) => s.match(WORD) ?? [];
 
+const PLAN_LINE = /^[-*•–]\s+\S/;
+
+/**
+ * The story paragraphs of a scene's text. Planning lines ("- Finn helps her clean up") are notes, not prose, so a
+ * scene with two or more of them is measured without them (one dash-led line may be a dialogue dash).
+ */
+export function proseParagraphs(text: string): string[] {
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter((p) => p && p !== '* * *');
+  return paragraphs.filter((p) => PLAN_LINE.test(p)).length >= 2 ? paragraphs.filter((p) => !PLAN_LINE.test(p)) : paragraphs;
+}
+
 /** Sentences of a paragraph (keeps quotes with their sentence). */
 export function sentencesOf(paragraph: string): string[] {
   return paragraph
@@ -143,7 +157,7 @@ export function reviewManuscript(scenes: readonly SceneInput[], knownNames: read
   for (const scene of scenes) {
     const ci = chapterIndex.get(scene.chapterId)!;
     const a = acc.get(scene.chapterId)!;
-    const paragraphs = scene.text.split(/\n{2,}/).map((p) => p.trim()).filter((p) => p && p !== '* * *');
+    const paragraphs = proseParagraphs(scene.text);
     const dlg = analyzeDialogue(paragraphs, knownNames);
     a.tags += dlg.lines.filter((l) => l.tag).length;
     a.echoes += findEchoes(paragraphs, knownNames).length;

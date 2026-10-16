@@ -3,6 +3,14 @@ import { reviewManuscript, sentencesOf, syllables, type SceneInput } from '../sr
 const scene = (chapterId: string, text: string, sceneId = `s-${chapterId}`): SceneInput => ({ sceneId, chapterId, chapterTitle: `Chapter ${chapterId}`, text });
 
 describe('whole-manuscript review', () => {
+  it('measures the story, not planning lines left in a chapter', () => {
+    const plan = '- Winnie hauls boxes heavier than her\n\n- She drops some\n\n- Finn stops, grumpy after practice';
+    const r = reviewManuscript([scene('1', 'The box slipped from her hands.'), scene('2', plan)]);
+    expect(r.chapters.map((c) => c.words)).toEqual([6, 0]);
+    // One dash-led paragraph may be dialogue in the dash style: it stays.
+    expect(reviewManuscript([scene('1', '– Wait, she said.\n\nHe waited.')]).words).toBe(5);
+  });
+
   it('splits sentences and counts syllables sensibly', () => {
     expect(sentencesOf('She ran. “Stop!” he said. It was 9 p.m. when it ended.')).toEqual(['She ran.', '“Stop!” he said.', 'It was 9 p.m. when it ended.']);
     expect(['cat', 'table', 'beautiful', 'running', 'the', 'education'].map(syllables)).toEqual([1, 2, 3, 2, 1, 4]);

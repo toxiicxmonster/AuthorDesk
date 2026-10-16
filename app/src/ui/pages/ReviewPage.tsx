@@ -321,7 +321,7 @@ function ReviewBody({ report: r, go, projectId, firstScene }: { report: ReviewRe
       <section className="card review-overview">
         <div className="stat">
           <strong>{r.words.toLocaleString()}</strong>
-          <span>words</span>
+          <span title="Story text only: planning lines (starting with “-” or “•”) aren't measured">words of story</span>
         </div>
         <div className="stat">
           <strong>{o.readingEase}</strong>
@@ -505,7 +505,7 @@ function EmptyChapters({ titles }: { titles: string[] }) {
   const names = titles.length > 4 ? `${titles.slice(0, 3).join(', ')} and ${titles.length - 3} more` : titles.join(', ');
   return (
     <p className="muted small" title={titles.join('\n')}>
-      {titles.length === 1 ? 'One chapter has' : `${titles.length} chapters have`} no text yet: {names}.
+      {titles.length === 1 ? 'One chapter has' : `${titles.length} chapters have`} no story text yet: {names}.
     </p>
   );
 }
