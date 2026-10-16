@@ -58,7 +58,7 @@ export async function referenceBacklinks(ref: ReferenceEntry): Promise<Backlink[
   for (const r of refs) {
     if (r.id === ref.id || r.archivedAt) continue;
     const link = r.links.find((l) => l.targetId === ref.id);
-    if (link) out.push({ kind: 'reference', id: r.id, title: r.name, how: 'linked', detail: link.label });
+    if (link) out.push({ kind: 'reference', id: r.id, title: r.name, how: 'linked', detail: link.label ? `lists this as “${link.label}”` : '' });
   }
   for (const t of threads) {
     if (!t.archivedAt && t.keyCharacterIds.includes(ref.id)) out.push({ kind: 'thread', id: t.id, title: t.name, how: 'linked' });

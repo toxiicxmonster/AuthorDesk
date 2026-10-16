@@ -16,15 +16,22 @@ describe('family tree', () => {
 
   it('puts each generation on its own row, oldest first, with spouses side by side', () => {
     const t = familyTree([
-      ref('w', 'Winnie Hartley', [['b', 'granddaughter']]),
+      // Labels say what the linked person is: Betty is Winnie's grandmother, Winnie is Jace's wife.
+      ref('w', 'Winnie Hartley', [['b', 'grandmother']]),
       ref('b', 'Betty Hartley', [['w', '']]),
-      ref('j', 'Jace Kensington', [['w', 'husband']]),
-      ref('m', 'Mary Hartley', [['w', 'mother'], ['b', 'daughter']]),
+      ref('j', 'Jace Kensington', [['w', 'wife']]),
+      ref('m', 'Mary Hartley', [['w', 'daughter'], ['b', 'mother']]),
       ref('f', 'Finn Callahan', [['j', 'rival']]),
     ]);
     expect(t.rows).toEqual([['b'], ['m'], ['w', 'j']]);
-    expect(t.edges.map((e) => `${e.from}>${e.to}:${e.kin}`).sort()).toEqual(['j>w:spouse', 'm>b:child', 'm>w:parent', 'w>b:grandchild']);
+    expect(t.edges.map((e) => `${e.from}>${e.to}:${e.kin}`).sort()).toEqual(['b>m:parent', 'b>w:grandparent', 'w>j:spouse', 'w>m:child']);
     expect(t.generation.has('f')).toBe(false); // a rival isn't family
+  });
+
+  it('leaves an empty row (not a hole) for the generation between grandparent and grandchild', () => {
+    const t = familyTree([ref('w', 'Winnie Hartley', [['b', 'grandmother']]), ref('b', 'Betty Hartley', [['w', 'grandchild']])]);
+    expect(t.rows).toEqual([['b'], [], ['w']]);
+    expect(Math.max(...t.rows.map((r) => r.length))).toBe(1); // the drawing's width comes from this
   });
 });
 

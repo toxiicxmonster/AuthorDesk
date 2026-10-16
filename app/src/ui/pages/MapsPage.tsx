@@ -227,7 +227,7 @@ function FamilyTreeView({ projectId, refs }: { projectId: string; refs: Referenc
           <button className="link-btn" onClick={() => navigate(projectId, 'refs')}>
             World
           </button>
-          : open a character, <em>+ Add connection</em>, and say what they are to the other person (“mother”, “son”, “sister”, “wife”, “grandmother”).
+          : open a character, <em>+ Add connection</em>, and say what the other person is to them (“mother”, “son”, “sister”, “wife”, “grandmother”).
         </p>
       </section>
     );

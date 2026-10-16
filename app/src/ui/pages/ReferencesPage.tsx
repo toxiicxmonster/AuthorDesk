@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useReferences } from '../data';
 import { navigate } from '../router';
 import { REFERENCE_TYPES, type ReferenceEntry, type ReferenceType } from '../../domain/schema';
@@ -13,6 +14,7 @@ import { confirmDialog, promptDialog, setUi, toast } from '../store';
 import { db } from '../../storage/db';
 import { downscale } from '../image';
 import { CharacterArc } from '../components/CharacterArc';
+import { kinNames } from '../../domain/kinNames';
 
 export function ReferencesPage({ projectId, selectedId, newType }: { projectId: string; selectedId: string | null; newType?: string | null }) {
   const refs = useReferences(projectId);
@@ -297,6 +299,7 @@ function ReferenceEditor({ r, all }: { r: ReferenceEntry; all: ReferenceEntry[] 
             placeholder="Separate with commas"
             onCommit={(v) => upd({ aliases: v.split(',').map((s) => s.trim()).filter(Boolean) })}
           />
+          {r.type === 'character' && <KinNameOffer r={r} all={all} onAdd={(names) => upd({ aliases: [...r.aliases, ...names] })} />}
           <div className="two-col">
             <label className="field">
               <span>Kind</span>
@@ -383,7 +386,7 @@ function ReferenceEditor({ r, all }: { r: ReferenceEntry; all: ReferenceEntry[] 
           onPick={async (t) => {
             setLinkPicker(false);
             if (t.id === r.id || r.links.some((l) => l.targetId === t.id)) return;
-            const label = (await promptDialog('Connection', `How is ${r.name} connected to ${t.name}?`, '', 'Save')) ?? '';
+            const label = (await promptDialog('Connection', `What is ${t.name} to ${r.name}? (for example “grandmother”, “sister”, “rival”)`, '', 'Save')) ?? '';
             await updateRecord('references', r.id, { links: [...r.links, { targetId: t.id, label }] });
             // Add the reverse link too so both entries show it.
             const target = await db.references.get(t.id);
@@ -436,3 +439,24 @@ function ReferenceEditor({ r, all }: { r: ReferenceEntry; all: ReferenceEntry[] 
   );
 }
 
+
+/** "In Winnie's scenes, Betty is called “Grandma” (5×)": family names from the text, offered as nicknames. */
+function KinNameOffer({ r, all, onAdd }: { r: ReferenceEntry; all: ReferenceEntry[]; onAdd: (names: string[]) => void }) {
+  const scenes = useLiveQuery(
+    async () =>
+      (await db.scenes.where('projectId').equals(r.projectId).toArray()).filter((s) => !s.archivedAt && s.povCharacterId).map((s) => ({ povId: s.povCharacterId, text: s.plainText })),
+    [r.projectId],
+  );
+  const found = useMemo(() => (scenes ? kinNames(r, all, scenes) : []), [r, all, scenes]);
+  if (!found.length) return null;
+  const relative = all.find((x) => x.id === found[0].relativeId)?.name ?? 'their relative';
+  const names = found.map((k) => `“${k.name}” (${k.count}×)`);
+  return (
+    <p className="small">
+      In {relative}’s scenes, {r.name.split(/\s+/)[0]} is called {names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0]}.{' '}
+      <button className="link-btn" onClick={() => onAdd(found.map((k) => k.name))} title="So look-ups, mentions and the continuity checks find them under these names too">
+        Add as nickname{found.length > 1 ? 's' : ''}
+      </button>
+    </p>
+  );
+}

@@ -1,9 +1,9 @@
 import type { ReferenceEntry } from './schema';
 
 /**
- * Family trees from the relationships written on character entries. A link's label says what the entry is to the
- * other one ("Winnie → Betty: granddaughter"). Labels are read for family words; anything else (rival, mentor) is not
- * family. Pure.
+ * Family trees from the relationships written on character entries. A link's label says what the linked person is
+ * to the entry, as the entry page shows it ("Winnie → Betty Hartley — grandmother": Betty is Winnie's grandmother).
+ * Labels are read for family words; anything else (rival, mentor) is not family. Pure.
  */
 
 export type Kin = 'parent' | 'child' | 'grandparent' | 'grandchild' | 'sibling' | 'spouse' | 'auntuncle' | 'niblings' | 'cousin';
@@ -57,7 +57,8 @@ export function familyTree(refs: readonly Pick<ReferenceEntry, 'id' | 'name' | '
       const key = [r.id, l.targetId].sort().join('|');
       if (seen.has(key)) continue; // one relationship per pair (the first written wins)
       seen.add(key);
-      edges.push({ from: r.id, to: l.targetId, kin });
+      // The label describes the linked person: they are this entry's `kin`.
+      edges.push({ from: l.targetId, to: r.id, kin });
     }
   }
   // Generations: walk the family graph, each edge fixing the other person's generation relative to this one.
@@ -105,5 +106,6 @@ export function familyTree(refs: readonly Pick<ReferenceEntry, 'id' | 'name' | '
       row.splice(row.indexOf(a) + 1, 0, b);
     }
   }
-  return { rows: rows.map((r) => r ?? []), generation, edges };
+  // Array.from visits holes (a generation with nobody in it, between grandparent and grandchild); map would skip them.
+  return { rows: Array.from(rows, (r) => r ?? []), generation, edges };
 }
