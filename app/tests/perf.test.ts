@@ -60,3 +60,42 @@ describe('large manuscript', () => {
     expect(rulesMs).toBeLessThan(1500);
   }, 120_000);
 });
+
+describe('whole-book checks on a full-length novel', () => {
+  it('tense slips, character voices and pronouns stay quick on 100k words', async () => {
+    const { findTenseSlips } = await import('../src/proofreading/tense');
+    const { characterVoices } = await import('../src/review/voices');
+    const { findInDoc } = await import('../src/domain/replace');
+    const line = (i: number) =>
+      i % 3 === 0 ? `“We should go before the storm,” Elara said, and she pulled her coat tighter.` : i % 3 === 1 ? `Tobias shrugged. “The boats will hold,” he muttered.` : 'I walked to the harbour and watched the lights of the town go out one by one.';
+    const scenes = Array.from({ length: 70 }, (_, s) => ({
+      sceneId: `s${s}`,
+      chapterId: `c${s}`,
+      chapterIndex: s,
+      chapterTitle: `Chapter ${s + 1}`,
+      paragraphs: Array.from({ length: 110 }, (_, p) => line(s + p)),
+      povId: null,
+    }));
+    const words = scenes.reduce((n, s) => n + s.paragraphs.join(' ').split(/\s+/).length, 0);
+    expect(words).toBeGreaterThan(95_000);
+    const chars = [
+      { id: 'e', name: 'Elara Quill', aliases: [], type: 'character', archivedAt: null },
+      { id: 't', name: 'Tobias Wren', aliases: [], type: 'character', archivedAt: null },
+    ] as never[];
+    let t = performance.now();
+    for (const s of scenes) findTenseSlips(s.paragraphs, ['Elara Quill', 'Tobias Wren']);
+    const tenseMs = performance.now() - t;
+    t = performance.now();
+    const v = characterVoices(scenes, chars, ['Elara Quill', 'Tobias Wren']);
+    const voicesMs = performance.now() - t;
+    t = performance.now();
+    for (const s of scenes) findInDoc({ type: 'doc', content: s.paragraphs.map((p) => ({ type: 'paragraph', content: [{ type: 'text', text: p }] })) } as never, 'harbour', { caseSensitive: false, wholeWord: true });
+    const replaceMs = performance.now() - t;
+    expect(v.map((x) => x.name).sort()).toEqual(['Elara Quill', 'Tobias Wren']);
+    // Generous ceilings for slow CI machines; in practice each is well under a second.
+    expect(tenseMs).toBeLessThan(3000);
+    expect(voicesMs).toBeLessThan(5000);
+    expect(replaceMs).toBeLessThan(2000);
+    console.info(`100k words: tense ${tenseMs.toFixed(0)} ms, voices ${voicesMs.toFixed(0)} ms, find ${replaceMs.toFixed(0)} ms`);
+  }, 60_000);
+});

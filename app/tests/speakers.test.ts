@@ -41,5 +41,7 @@ describe('who "he" and "she" are', () => {
       ['Jace Kensington', 'Winnie Hartley'],
     );
     expect(r.lines.map((l) => l.speaker)).toEqual(['Jace Kensington', 'Jace Kensington', 'he', 'he', null]);
+    const beat = analyzeDialogue(['Tobias shrugged. “The boats will hold,” he muttered.'], ['Tobias Wren']);
+    expect(beat.lines[0]).toMatchObject({ speaker: 'Tobias Wren', tag: 'muttered' });
   });
 });

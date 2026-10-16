@@ -146,6 +146,13 @@ export function analyzeDialogue(texts: readonly string[], knownNames: readonly s
           tag = b[2].toLowerCase();
         }
       }
+      // A tag that only says "he"/"she" ("Tobias shrugged. “Fine,” he muttered."): the one person the paragraph's
+      // action beats name is who "he" is.
+      if (speaker && /^(?:he|she|they)$/.test(speaker)) {
+        const narration = text.replace(/“[^”]*(?:”|$)|"[^"]*(?:"|$)/g, ' ');
+        const named = [...new Set([...narration.matchAll(BEAT)].map((b) => speakerFrom(b[1], knownNames)).filter((x): x is string => !!x && !/^(?:he|she|they|I|we|you|it)$/i.test(x)))];
+        if (named.length === 1) speaker = named[0];
+      }
       if (!speaker) {
         // Action beat anywhere in the paragraph's narration: "Tom shrugged. “Fine.”" (a quote left open runs to the end).
         const narration = text.replace(/“[^”]*(?:”|$)|"[^"]*(?:"|$)/g, ' ');
