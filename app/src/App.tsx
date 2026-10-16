@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { AddonSetup } from './ui/components/AddonSetup';
 import { href, navigate, useRoute, type View } from './ui/router';
-import { getUi, setUi, useUi } from './ui/store';
+import { getUi, setUi, toast, useUi } from './ui/store';
 import { useProject } from './ui/data';
 import { DialogHost, ToastHost } from './ui/components/common';
 import { HomePage } from './ui/pages/HomePage';
@@ -96,6 +96,24 @@ export function App() {
       window.removeEventListener('offline', off);
       window.removeEventListener('beforeunload', beforeUnload);
     };
+  }, []);
+
+  // After an update (it installs itself), say so once, with a link to what changed.
+  useEffect(() => {
+    try {
+      const key = 'authordesk.lastVersion';
+      const last = localStorage.getItem(key);
+      localStorage.setItem(key, __APP_VERSION__);
+      if (last && last !== __APP_VERSION__) {
+        const tag = __APP_VERSION__.replace(/\.0$/, '');
+        toast(`AuthorDesk was updated to ${tag}.`, {
+          ms: 15000,
+          action: { label: 'What’s new', run: () => window.open(`https://github.com/toxiicxmonster/AuthorDesk/releases/tag/v${tag}`, '_blank', 'noopener') },
+        });
+      }
+    } catch {
+      /* no storage: nothing to compare with */
+    }
   }, []);
 
   // Global shortcuts
