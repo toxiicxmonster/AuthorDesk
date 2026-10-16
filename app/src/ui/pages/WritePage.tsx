@@ -106,7 +106,7 @@ export function WritePage({ projectId, sceneId, initialFind }: { projectId: stri
             <Navigator projectId={projectId} books={books} book={book} tree={tree} currentSceneId={scene?.id ?? null} />
           </>
         )}
-        <main className="center" id="main">
+        <div className="center">
           {scene && chapter ? (
             <>
               <div className="scene-head">
@@ -169,7 +169,7 @@ export function WritePage({ projectId, sceneId, initialFind }: { projectId: stri
           ) : (
             <p className="muted pad">Loading…</p>
           )}
-        </main>
+        </div>
         {rightOpen && !focusMode && scene && chapter && (
           <>
             <div className="scrim right" onClick={() => setUi({ rightOpen: false })} aria-hidden />

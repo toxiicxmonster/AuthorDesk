@@ -108,17 +108,32 @@ export function onColor(hex: string): string {
   return contrast(hex, '#ffffff') >= contrast(hex, '#1a1a1a') ? '#ffffff' : '#1a1a1a';
 }
 
+/**
+ * Text softened toward the panel colour as far as `wanted`, but never so far that it drops below `minContrast`
+ * against any of the backgrounds it's used on (muted hints must stay readable in every theme).
+ */
+function softened(c: ThemeColors, wanted: number, minContrast: number, backgrounds: readonly string[]): string {
+  for (let f = wanted; f > 0; f -= 0.02) {
+    const color = mix(c.text, c.panel, f);
+    if (backgrounds.every((b) => contrast(color, b) >= minContrast)) return color;
+  }
+  return c.text;
+}
+
 /** Expand the five base colours into every CSS token the app uses. */
 export function themeTokens(c: ThemeColors): Record<string, string> {
   const dark = isDark(c);
+  const surface2 = mix(c.panel, c.text, dark ? 0.08 : 0.05);
+  const behind = [c.background, c.panel, surface2, c.page];
   return {
     '--bg': c.background,
     '--surface': c.panel,
-    '--surface-2': mix(c.panel, c.text, dark ? 0.08 : 0.05),
+    '--surface-2': surface2,
     '--line': mix(c.panel, c.text, dark ? 0.18 : 0.14),
     '--text': c.text,
-    '--text-2': mix(c.text, c.panel, 0.28),
-    '--muted': mix(c.text, c.panel, 0.48),
+    // WCAG AA for small text is 4.5:1; secondary text gets a little more.
+    '--text-2': softened(c, 0.28, 5.5, behind),
+    '--muted': softened(c, 0.48, 4.5, behind),
     '--accent': c.accent,
     '--accent-soft': mix(c.panel, c.accent, dark ? 0.22 : 0.16),
     '--on-accent': onColor(c.accent),

@@ -35,12 +35,15 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
   ];
   return (
     <aside className="right-panel" aria-label="Writing tools">
-      <div className="tabs" role="tablist">
-        {tabs.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setUi({ rightTab: k })}>
-            {label}
-          </button>
-        ))}
+      <div className="tabs">
+        {/* Only the tabs are in the tab list; the close button sits beside it (display: contents keeps the layout). */}
+        <div role="tablist" aria-label="Side panel" className="tablist-inner">
+          {tabs.map(([k, label]) => (
+            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setUi({ rightTab: k })}>
+              {label}
+            </button>
+          ))}
+        </div>
         <button className="icon-btn close-panel" aria-label="Close panel" title="Close panel" onClick={() => setUi({ rightOpen: false })}>
           <Icon name="close" size={16} />
         </button>
@@ -100,7 +103,7 @@ function QuickReference({ scene }: { scene: Scene }) {
       </div>
       {!q && linked.length + mentioned.length > 0 && (
         <section>
-          <h4>In this scene</h4>
+          <h3 className="small-heading">In this scene</h3>
           <ul className="ref-mini">
             {linked.map((r) => (
               <RefMini key={r.id} r={r} note="linked" />
@@ -112,7 +115,7 @@ function QuickReference({ scene }: { scene: Scene }) {
         </section>
       )}
       <section>
-        <h4>{q || type ? 'Results' : 'All references'}</h4>
+        <h3 className="small-heading">{q || type ? 'Results' : 'All references'}</h3>
         <ul className="ref-mini">
           {list.slice(0, 100).map((r) => (
             <RefMini key={r.id} r={r} />
@@ -167,7 +170,7 @@ export function ReferenceCard({ r, all }: { r: ReferenceEntry; all: ReferenceEnt
       </dl>
       {r.links.length > 0 && (
         <>
-          <h4>Connections</h4>
+          <h3 className="small-heading">Connections</h3>
           <ul>
             {r.links.map((l) => {
               const t = all.find((x) => x.id === l.targetId);
@@ -185,7 +188,7 @@ export function ReferenceCard({ r, all }: { r: ReferenceEntry; all: ReferenceEnt
       )}
       {r.notes && (
         <>
-          <h4>Notes</h4>
+          <h3 className="small-heading">Notes</h3>
           <p className="pre">{r.notes}</p>
         </>
       )}
@@ -206,12 +209,12 @@ function SceneInspector({ scene, chapter, nextScene }: { scene: Scene; chapter: 
 
   return (
     <div className="inspector">
-      <h4>Chapter</h4>
+      <h3 className="small-heading">Chapter</h3>
       <CommitInput label="Chapter title" value={chapter.title} onCommit={(v) => v.trim() && void updateRecord('chapters', chapter.id, { title: v.trim() })} />
       <CommitInput label="Chapter summary" multiline value={chapter.summary} onCommit={(v) => void updateRecord('chapters', chapter.id, { summary: v })} />
       <ChapterSummaryAssist chapter={chapter} />
       <StatusSelect label="Chapter status" value={chapter.status} onChange={(v) => void updateRecord('chapters', chapter.id, { status: v })} />
-      <h4>Scene</h4>
+      <h3 className="small-heading">Scene</h3>
       <CommitInput label="Scene title" value={scene.title} onCommit={(v) => v.trim() && upd({ title: v.trim() })} />
       <CommitInput label="Summary" multiline value={scene.summary} onCommit={(v) => upd({ summary: v })} />
       <SceneSummaryAssist scene={scene} />
@@ -256,7 +259,7 @@ function SceneInspector({ scene, chapter, nextScene }: { scene: Scene; chapter: 
         ))}
       </fieldset>
       <CommitInput label="Scene notes" multiline rows={5} value={scene.notes} onCommit={(v) => upd({ notes: v })} />
-      <h4>Scene tools</h4>
+      <h3 className="small-heading">Scene tools</h3>
       <div className="stack">
         <button
           onClick={async () => {

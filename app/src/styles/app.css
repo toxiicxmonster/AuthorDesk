@@ -591,7 +591,12 @@ details.banner {
 .nav-filter {
   width: 100%;
 }
-.nav-section h4 {
+.nav-section h4,
+.nav-section .nav-heading {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
   margin: 0.4rem 0 0.2rem;
 }
 .nav-mini {
@@ -677,7 +682,7 @@ details.banner {
 }
 .wc {
   font-size: 0.75rem;
-  color: var(--muted);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 .add-btn {
@@ -3786,4 +3791,26 @@ code.path {
   align-items: flex-start;
   padding: 0.45rem 0;
   border-top: 1px solid var(--line);
+}
+.tablist-inner {
+  display: contents;
+}
+/* Empty states keep their old look with a proper heading level. */
+.empty .empty-title {
+  font-size: 1rem;
+  margin: 0 0 0.6rem;
+}
+main.page-wrap:focus {
+  outline: none;
+}
+/* Small caps-style section labels that are real headings (h3), styled like h4. */
+h3.small-heading {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 1rem 0 0.3rem;
+}
+[aria-current='true'] > .wc {
+  color: inherit;
 }

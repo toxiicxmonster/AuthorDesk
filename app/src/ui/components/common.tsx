@@ -119,7 +119,7 @@ export function StatusSelect({ value, onChange, label = 'Status' }: { value: Wri
 }
 
 export function StatusDot({ status }: { status: WritingStatus }) {
-  return <span className={`status-dot st-${status}`} title={status} aria-label={`Status: ${status}`} />;
+  return <span className={`status-dot st-${status}`} title={status} role="img" aria-label={`Status: ${status}`} />;
 }
 
 /** Text input that saves on blur / Enter, so typing doesn't write to the database per keystroke. */
@@ -199,7 +199,7 @@ export function TagInput({ value, onChange, label = 'Tags' }: { value: string[];
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="empty">
-      <h3>{title}</h3>
+      <h2 className="empty-title">{title}</h2>
       {children}
     </div>
   );

@@ -21,6 +21,7 @@
     "yauzl": "^3.4.0"
   },
   "devDependencies": {
+    "axe-core": "^4.14.0",
     "electron": "^44.7.2",
     "electron-builder": "^26.15.3"
   },

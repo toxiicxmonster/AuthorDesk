@@ -227,7 +227,7 @@ export function App() {
                   href={href(pid, v)}
                   className={view === v ? 'on' : ''}
                   aria-current={view === v ? 'page' : undefined}
-                  aria-label={hint}
+                  aria-label={label}
                   title={hint}
                   onClick={() => void flushAllEdits()}
                 >
@@ -237,7 +237,7 @@ export function App() {
             </nav>
           )}
           <div className="top-right">
-            <button className="jump-btn" onClick={() => setUi({ searchOpen: true })} aria-label="Jump to anything (Ctrl+K)" title="Jump to a chapter, character, note or command">
+            <button className="jump-btn" onClick={() => setUi({ searchOpen: true })} aria-label="Jump to… Ctrl K" title="Jump to a chapter, character, note or command">
               <Icon name="search" size={16} /> <span className="jump-label">Jump to…</span> <kbd>Ctrl K</kbd>
             </button>
             {pid && (
@@ -272,9 +272,13 @@ export function App() {
           copying the text as a precaution.
         </div>
       )}
-      <div className="page-wrap">
+      <main id="main" className="page-wrap" tabIndex={-1}>
+        {/* Pages whose layout has no big title still get one for screen readers. */}
+        {pid && (view === 'write' || view === 'refs' || view === 'notes') && (
+          <h1 className="visually-hidden">{view === 'write' ? 'Write' : view === 'refs' ? 'Characters & world' : 'Notes'}</h1>
+        )}
         <Suspense fallback={<p className="muted page-loading">Loading…</p>}>{page}</Suspense>
-      </div>
+      </main>
       {focusMode && (
         <button className="exit-focus" onClick={() => setUi({ focusMode: false })}>
           Exit focus (Esc)

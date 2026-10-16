@@ -71,3 +71,16 @@ describe('sample project', () => {
     expect(await db.timelineEvents.where('projectId').equals(projectId).count()).toBe(2);
   });
 });
+
+describe('theme readability', () => {
+  it('keeps muted and secondary text readable on every background, in every built-in theme', async () => {
+    const { BUILTIN_THEMES, contrast, themeTokens } = await import('../src/ui/theme');
+    for (const t of BUILTIN_THEMES) {
+      const k = themeTokens(t.colors);
+      for (const bg of ['--bg', '--surface', '--surface-2', '--page']) {
+        expect(contrast(k['--muted'], k[bg]), `${t.id} muted on ${bg}`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(k['--text-2'], k[bg]), `${t.id} text-2 on ${bg}`).toBeGreaterThanOrEqual(5.5);
+      }
+    }
+  });
+});

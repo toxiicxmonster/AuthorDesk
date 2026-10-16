@@ -236,7 +236,7 @@ export function Navigator({ projectId, books, book, tree, currentSceneId }: Prop
       />
       {!q && pinned.length > 0 && (
         <div className="nav-section">
-          <h4>Pinned</h4>
+          <h2 className="nav-heading">Pinned</h2>
           {pinned.map((c) => {
             const first = tree.scenesByChapter.get(c.id)?.[0];
             return (
@@ -249,7 +249,7 @@ export function Navigator({ projectId, books, book, tree, currentSceneId }: Prop
       )}
       {!q && recent.length > 0 && (
         <div className="nav-section">
-          <h4>Recent</h4>
+          <h2 className="nav-heading">Recent</h2>
           {recent.map((s) => (
             <button key={s.id} className="nav-mini" onClick={() => open(s.id)} title={relativeTime(s.updatedAt)}>
               ↺ {chapterTitle(s.chapterId)}

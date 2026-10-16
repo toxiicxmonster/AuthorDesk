@@ -141,7 +141,7 @@ function RelationshipMap({ projectId, refs, saved }: { projectId: string; refs: 
         ref={svgRef}
         className="rel-map"
         viewBox={`0 0 ${W} ${H}`}
-        role="img"
+        role="group"
         aria-label="Relationship map"
         onPointerMove={(e) => {
           if (!drag || !svgRef.current) return;
