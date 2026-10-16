@@ -3771,3 +3771,19 @@ code.path {
     grid-column: 1 / -1;
   }
 }
+/* Maps → Suggest relationships */
+.suggest-relations {
+  margin-bottom: 0.8rem;
+}
+.suggest-list {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+}
+.suggest-list li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.45rem 0;
+  border-top: 1px solid var(--line);
+}

@@ -11,6 +11,7 @@ import { useReferences } from '../data';
 import { navigate } from '../router';
 import { confirmDialog, reportError } from '../store';
 import { downscale } from '../image';
+import { SuggestRelations } from '../components/SuggestRelations';
 
 type Tab = 'relationships' | 'family' | 'places';
 
@@ -38,6 +39,7 @@ export function MapsPage({ projectId, selectedId }: { projectId: string; selecte
           ))}
         </div>
       </div>
+      {tab === 'relationships' && <SuggestRelations projectId={projectId} />}
       {tab === 'relationships' && <RelationshipMap projectId={projectId} refs={live} saved={maps?.find((m) => m.kind === 'relationships') ?? null} />}
       {tab === 'family' && <FamilyTreeView projectId={projectId} refs={live} />}
       {tab === 'places' && <PlaceMaps projectId={projectId} refs={live} maps={maps ?? []} selectedId={selectedId} />}

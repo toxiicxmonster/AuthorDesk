@@ -141,3 +141,5 @@ Backup → **Import your own files** (or *Bring in my existing book* on the welc
 | Alt+Shift+PageDown / PageUp | Next / previous scene |
 | Ctrl+Alt+F | Focus mode (Esc exits) |
 | Ctrl+\\ | Toggle chapter list |
+
+**Suggest relationships** (Maps → Relationships, with the AI Editor installed): *Read my notes* has the AI Editor read your characters' entries, your notes and your chapter summaries and suggest how characters are related (“Betty Hartley is Winnie Hartley's grandmother”), each with the words it comes from. It only keeps what the quoted words clearly support, and nothing is added until you click **Add** (both entries get the relationship).
