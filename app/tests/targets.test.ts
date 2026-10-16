@@ -13,20 +13,21 @@ describe('page estimates', () => {
   it('counts a standard manuscript at 250 words a page', () => {
     const e = estimatePages([1084, 78, 0, 2500], 'manuscript');
     expect(e.perChapter).toEqual([5, 1, 0, 10]);
-    expect(e.total).toBe(17); // plus a title page
+    expect(e.total).toBe(16);
+    expect(e.printed).toBeNull();
   });
 
   it('gives more pages on smaller trims, and a full novel lands in the usual range', () => {
     const novel = Array.from({ length: 30 }, () => 3000); // 90,000 words
-    const big = estimatePages(novel, '6x9').total;
-    const mid = estimatePages(novel, '5.5x8.5').total;
-    const small = estimatePages(novel, '5x8').total;
+    const big = estimatePages(novel, '6x9').printed!;
+    const mid = estimatePages(novel, '5.5x8.5').printed!;
+    const small = estimatePages(novel, '5x8').printed!;
     expect(big).toBeLessThan(mid);
     expect(mid).toBeLessThan(small);
     // A 90k-word novel with 30 chapters, each opening on a right-hand page, is roughly 300–380 pages at 6 × 9 in.
     expect(big).toBeGreaterThan(300);
     expect(big).toBeLessThan(380);
-    const mm = estimatePages(novel, 'mass-market').total;
+    const mm = estimatePages(novel, 'mass-market').printed!;
     expect(mm).toBeGreaterThan(small - 150);
     expect(mm).toBeLessThan(450);
   });
@@ -34,8 +35,18 @@ describe('page estimates', () => {
   it('adds a blank page after an odd-length chapter so the next opens on the right', () => {
     const e = estimatePages([100, 100], '6x9'); // one page each
     expect(e.perChapter).toEqual([1, 1]);
-    expect(e.total).toBe(6 + 1 + 1 + 1);
+    expect(e.total).toBe(2);
+    expect(e.printed).toBe(6 + 1 + 1 + 1);
     expect(estimatePages([], '6x9').total).toBe(0);
+  });
+
+  it('only counts book pages that exist', () => {
+    const none = estimatePages([1095, 80, 80], '6x9');
+    expect(none.total).toBe(6); // the user's book: about 4 + 1 + 1, no title or blank pages
+    const withDedication = estimatePages([1095, 80, 80], '6x9', ['For Grammy', '', '']);
+    expect(withDedication.total).toBe(7);
+    expect(withDedication.printed).toBe(none.printed! + 2); // it opens on a right-hand page in print
+    expect(estimatePages([1000], 'manuscript', ['A short bio.']).total).toBe(5);
   });
 });
 

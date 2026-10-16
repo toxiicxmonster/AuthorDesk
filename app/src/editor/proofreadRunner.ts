@@ -6,6 +6,7 @@ import { knownNameSpans, protectNames } from '../proofreading/names';
 import { characterDetailSuggestions, type CharacterInfo } from '../proofreading/characterFacts';
 import { avoidEchoes, findEchoes } from '../proofreading/echo';
 import { findHardSentences, hardSentenceMessage } from '../proofreading/hardSentence';
+import { findTenseSlips, tenseSlipMessage } from '../proofreading/tense';
 import { findContradictions, findDeathIssues } from '../proofreading/continuity';
 import { findAgeIssues } from '../proofreading/ages';
 import { bookScenesFor, placeFactsCached, storyDates } from '../proofreading/continuityData';
@@ -140,6 +141,24 @@ export async function runProofread(
       }
     });
   }
+  // Tense slips: narration that drifts out of the scene's main tense, marked where each stretch starts.
+  const tense = texts.map((): Suggestion[] => []);
+  if (!ctx.disabledRules.has('tense-shift') && !ctx.disabledCategories.has('grammar')) {
+    for (const t of findTenseSlips(texts, charInfo.flatMap((c) => [c.name, ...c.aliases]))) {
+      tense[t.block].push({
+        start: t.start,
+        end: t.end,
+        original: t.word,
+        replacements: t.replacement ? [t.replacement] : [],
+        category: 'grammar',
+        severity: 'warning',
+        ruleId: 'tense-shift',
+        providerId: 'local-tense',
+        message: tenseSlipMessage(t),
+        data: { toTense: t.main },
+      });
+    }
+  }
   // Continuity (purple): this scene describes a character differently from elsewhere in the book, or a character
   // speaks after their entry says they died.
   const continuity = texts.map((): Suggestion[] => []);
@@ -227,7 +246,8 @@ export async function runProofread(
     // across chapters comes before "add this to the entry" (settle which is right first).
     const cont = (continuity[bi] ?? []).filter((c) => !(details[bi] ?? []).some((d) => d.ruleId === 'character-conflict' && overlaps(c, d)));
     const mine = (details[bi] ?? []).filter((d) => !(d.ruleId === 'character-fact' && cont.some((c) => overlaps(c, d))));
-    return [...actionable, ...prompts, ...mine, ...cont, ...echo, ...(hard[bi] ?? [])].sort((a, b) => a.start - b.start);
+    const slips = (tense[bi] ?? []).filter((t) => !actionable.some((s) => overlaps(s, t)));
+    return [...actionable, ...prompts, ...mine, ...cont, ...slips, ...echo, ...(hard[bi] ?? [])].sort((a, b) => a.start - b.start);
   };
 
   let lastLists: Suggestion[][] = results;

@@ -20,8 +20,8 @@ async function passScenes(bookId: string, chapterId: string | null): Promise<Pas
   return scenes.map((s) => ({ sceneId: s.id, chapterId: s.chapterId, chapterTitle: titles.get(s.chapterId) ?? '', paragraphs: paragraphsOf(s.plainText) }));
 }
 
-/** Starts an edit pass over a book or one chapter: collects its items and saves them as a checklist. */
-export async function startEditPass(projectId: string, bookId: string, chapterId: string | null, name: string): Promise<{ passId: string; count: number }> {
+/** Everything an edit pass of a chapter (or the book) would list, leaving out what the author ignored. Saves nothing. */
+export async function passDrafts(projectId: string, bookId: string, chapterId: string | null) {
   const [scenes, ctx, ignoredRows, ai] = await Promise.all([
     passScenes(bookId, chapterId),
     buildProofreadContext(projectId),
@@ -29,7 +29,12 @@ export async function startEditPass(projectId: string, bookId: string, chapterId
     fetchAiStatus().catch(() => null),
   ]);
   const ignored = new Set(ignoredRows.map((i) => i.key));
-  const drafts = await collectPassItems(scenes, ctx, { aiInstalled: !!ai?.installed, skip: (ruleId, original, context) => ignored.has(ignoreKey(ruleId, original, context)) });
+  return collectPassItems(scenes, ctx, { aiInstalled: !!ai?.installed, skip: (ruleId, original, context) => ignored.has(ignoreKey(ruleId, original, context)) });
+}
+
+/** Starts an edit pass over a book or one chapter: collects its items and saves them as a checklist. */
+export async function startEditPass(projectId: string, bookId: string, chapterId: string | null, name: string): Promise<{ passId: string; count: number }> {
+  const drafts = await passDrafts(projectId, bookId, chapterId);
   const passId = newId();
   await createRecords(
     'revisions',

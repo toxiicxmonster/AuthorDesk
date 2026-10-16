@@ -8,6 +8,8 @@ export interface MarkRequest {
   context: string;
   task: AiTaskId;
   focus: string | null;
+  /** For a tense slip: the tense to put the passage in. */
+  toTense?: 'past' | 'present';
   from: number;
   to: number;
   /** The mark that asked, so its popover can show the answer. */
@@ -35,7 +37,7 @@ export function bestOf(task: AiTask, answer: string, original: string, focus: st
 /** Runs a mark's request without the panel (small screens): the same prompt, best version only. */
 export async function bestForMark(req: MarkRequest, opts: Pick<ChatOptions, 'signal' | 'fetchImpl' | 'temperature'> = {}): Promise<string | null> {
   const task = taskById(req.task);
-  const answer = await chat(buildMessages(task, { text: req.text, context: req.context, focus: req.focus }), {
+  const answer = await chat(buildMessages(task, { text: req.text, context: req.context, focus: req.focus, toTense: req.toTense }), {
     ...opts,
     temperature: Math.min(opts.temperature ?? 0.25, 0.25),
     maxTokens: Math.min(2400, 200 + Math.ceil(req.text.length / 3) * (task.request ?? task.versions)),

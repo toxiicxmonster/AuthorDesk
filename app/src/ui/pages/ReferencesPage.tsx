@@ -100,9 +100,13 @@ export function ReferencesPage({ projectId, selectedId, newType }: { projectId: 
           <EmptyState title="Characters & world">
             <p>Keep notes on the people, places and things in your story — only as much as is useful to you.</p>
             <p>While writing, select a name and choose “Link” to connect it. Click linked words to peek at the notes without leaving your page.</p>
-            <button className="primary" onClick={() => setCreating('choose')}>
-              + Add your first entry
-            </button>
+            {refs.some((r) => !r.archivedAt) ? (
+              <p className="muted">Choose an entry on the left to open it.</p>
+            ) : (
+              <button className="primary" onClick={() => setCreating('choose')}>
+                + Add your first entry
+              </button>
+            )}
           </EmptyState>
         )}
       </section>

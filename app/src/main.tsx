@@ -10,6 +10,7 @@ import { adoptLocalEngine } from './proofreading/grammarEngine';
 import { startAutoBackup } from './backup/autoBackup';
 import { registerSW } from 'virtual:pwa-register';
 import { detectServer } from './sync/controller';
+import { toast } from './ui/store';
 
 async function start() {
   await runMigrations();
@@ -23,7 +24,20 @@ async function start() {
       <App />
     </StrictMode>,
   );
-  registerSW({ immediate: true });
+  // After an update the new build takes over on its own. Straight away if nothing has been typed yet; otherwise the
+  // author chooses when, so a reload never lands mid-sentence. A copy left open for days still hears about updates.
+  let typed = false;
+  window.addEventListener('keydown', () => (typed = true), { once: true, capture: true });
+  registerSW({
+    immediate: true,
+    onNeedReload() {
+      if (!typed) return window.location.reload();
+      toast('A new version of AuthorDesk is ready.', { action: { label: 'Reload', run: () => window.location.reload() }, ms: 30 * 60_000 });
+    },
+    onRegisteredSW(_url, reg) {
+      if (reg) setInterval(() => void reg.update().catch(() => undefined), 60 * 60_000);
+    },
+  });
   void detectServer();
   void adoptLocalEngine();
   startAutoBackup();

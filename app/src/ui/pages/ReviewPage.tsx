@@ -5,7 +5,9 @@ import { runReview } from '../../review/runReview';
 import type { Finding, PaceKind, ReviewReport } from '../../review/metrics';
 import { flushAllEdits } from '../../editor/EditorContext';
 import { reportError, setUi, toast } from '../store';
-import { startEditPass } from '../../storage/revisions';
+import { passDrafts, startEditPass } from '../../storage/revisions';
+import { fetchAiStatus } from '../../ai/aiEditor';
+import { explainChapter, type ChapterNote } from '../../ai/chapterNotes';
 import { ContinuityReport } from '../components/ContinuityReport';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { ReferenceEntry } from '../../domain/schema';
@@ -85,6 +87,7 @@ export function ReviewPage({ projectId }: { projectId: string }) {
       ) : (
         <>
           <ReviewBody report={report} go={go} projectId={projectId} firstScene={(chapterId) => tree?.scenesByChapter.get(chapterId)?.[0]?.id ?? null} />
+          {book && tree && <ChapterNotes projectId={projectId} bookId={book.id} chapters={tree.chapters} report={report} />}
           {book && <ContinuityReport projectId={projectId} bookId={book.id} refs={refs} runKey={String(ranAt?.getTime() ?? 0)} />}
           {book && <ArcGaps projectId={projectId} bookId={book.id} refs={refs} names={names} runKey={String(ranAt?.getTime() ?? 0)} />}
         </>
@@ -143,6 +146,65 @@ function StartEditPass({
         {busy ? 'Collecting…' : 'Start an edit pass'}
       </button>
     </div>
+  );
+}
+
+/** With the AI Editor: an editor's note on a chapter's main patterns, from what the checks found there. */
+function ChapterNotes({ projectId, bookId, chapters, report }: { projectId: string; bookId: string; chapters: { id: string; title: string }[]; report: ReviewReport }) {
+  const [installed, setInstalled] = useState(false);
+  const [chapterId, setChapterId] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [notes, setNotes] = useState<{ chapterId: string; title: string; notes: ChapterNote[] } | null>(null);
+  useEffect(() => {
+    void fetchAiStatus().then((s) => setInstalled(!!s?.installed));
+  }, []);
+  if (!installed || !chapters.length) return null;
+  const chosen = chapters.find((c) => c.id === chapterId) ?? chapters.find((c) => (report.chapters.find((s) => s.chapterId === c.id)?.words ?? 0) > 0) ?? chapters[0];
+  const title = chosen.title || `Chapter ${chapters.indexOf(chosen) + 1}`;
+  const explain = async () => {
+    setBusy(true);
+    try {
+      await flushAllEdits();
+      const items = await passDrafts(projectId, bookId, chosen.id);
+      const out = await explainChapter(title, items, report.chapters.find((c) => c.chapterId === chosen.id), report.overall);
+      setNotes({ chapterId: chosen.id, title, notes: out.length ? out : [{ heading: 'Nothing stands out', text: 'The checks found nothing worth a note in this chapter.' }] });
+    } catch (e) {
+      reportError(e, 'The AI Editor couldn’t explain this chapter');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="card chapter-notes">
+      <h2>Editor’s notes</h2>
+      <div className="row gap wrap">
+        <span className="small">The main patterns in</span>
+        <select value={chosen.id} onChange={(e) => setChapterId(e.target.value)} aria-label="Chapter to explain">
+          {chapters.map((c, i) => (
+            <option key={c.id} value={c.id}>
+              {c.title || `Chapter ${i + 1}`}
+            </option>
+          ))}
+        </select>
+        <button onClick={() => void explain()} disabled={busy}>
+          {busy ? 'Reading the chapter…' : 'Explain the top issues'}
+        </button>
+      </div>
+      <p className="muted small">The AI Editor reads what the checks found and explains what matters most. It doesn’t change your text. Takes a minute or so.</p>
+      {notes && (
+        <>
+          <h3>{notes.title}</h3>
+          <ul className="review-list notes-list">
+            {notes.notes.map((n, i) => (
+              <li key={i}>
+                <strong>{n.heading}.</strong> {n.text}
+                {n.example && <span className="block small muted">For example: “{n.example}”</span>}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }
 

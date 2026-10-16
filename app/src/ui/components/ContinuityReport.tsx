@@ -5,11 +5,36 @@ import { deathWithoutChapter, findContradictions, findDeathIssues, type Contradi
 import { bookScenes, placeFactsCached, seriesScenes, storyDates } from '../../proofreading/continuityData';
 import { findAgeIssues, type AgeIssue } from '../../proofreading/ages';
 import type { ReferenceEntry } from '../../domain/schema';
-import { toast } from '../store';
+import { reportError, toast } from '../store';
+import type { ContinuityScene } from '../../proofreading/continuity';
+import { fetchAiStatus } from '../../ai/aiEditor';
+import { judgeChange, VERDICT_LABEL, type ChangeView } from '../../ai/continuityJudge';
 
 /** Review → Continuity: the same character described differently across the book, and characters speaking after death. */
 export function ContinuityReport({ projectId, bookId, refs, runKey }: { projectId: string; bookId: string; refs: ReferenceEntry[]; runKey: string }) {
-  const [found, setFound] = useState<{ contradictions: Contradiction[]; deaths: DeathIssue[]; ages: AgeIssue[] } | null>(null);
+  const [found, setFound] = useState<{ contradictions: Contradiction[]; deaths: DeathIssue[]; ages: AgeIssue[]; scenes: ContinuityScene[] } | null>(null);
+  const [aiInstalled, setAiInstalled] = useState(false);
+  const [views, setViews] = useState<Record<string, ChangeView | 'asking'>>({});
+
+  useEffect(() => {
+    void fetchAiStatus().then((s) => setAiInstalled(!!s?.installed));
+  }, []);
+
+  const ask = async (c: Contradiction) => {
+    if (!found) return;
+    setViews((v) => ({ ...v, [c.key]: 'asking' }));
+    try {
+      const view = await judgeChange(c, found.scenes);
+      setViews((v) => ({ ...v, [c.key]: view }));
+    } catch (e) {
+      setViews((v) => {
+        const rest = { ...v };
+        delete rest[c.key];
+        return rest;
+      });
+      reportError(e, 'The AI Editor couldn’t look at this');
+    }
+  };
 
   const load = async () => {
     const chars = refs.filter((r) => !r.archivedAt && r.type === 'character');
@@ -20,6 +45,7 @@ export function ContinuityReport({ projectId, bookId, refs, runKey }: { projectI
     const facts = placeFactsCached(scenes, info);
     const { dates, births, startAges } = await storyDates(projectId, scenes, chars);
     setFound({
+      scenes,
       ages: findAgeIssues(facts, dates, births, dismissed, startAges),
       contradictions: findContradictions(facts, dismissed, new Set(dates.keys())),
       deaths: findDeathIssues(scenes, info.map((c, i) => ({ ...c, status: chars[i].status })), names, dismissed),
@@ -78,6 +104,21 @@ export function ContinuityReport({ projectId, bookId, refs, runKey }: { projectI
                 </button>
                 .{c.note ? ` ${c.note}` : ''}
               </span>
+              {(() => {
+                const v = views[c.key];
+                if (v === 'asking') return <span className="block small muted">The AI Editor is reading both passages…</span>;
+                if (v)
+                  return (
+                    <span className="block small ai-note">
+                      <strong>AI Editor: {VERDICT_LABEL[v.verdict]}.</strong> {v.reason}
+                    </span>
+                  );
+                return aiInstalled ? (
+                  <button className="link-btn small" onClick={() => void ask(c)}>
+                    Mistake or on purpose? Ask the AI Editor
+                  </button>
+                ) : null;
+              })()}
             </div>
             <button className="small" onClick={() => void dismiss(c.key, `${c.characterName}’s ${c.label.toLowerCase()}`)}>
               Changed on purpose

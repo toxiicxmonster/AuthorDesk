@@ -6,7 +6,9 @@ import { AI_JUDGED_RULES, judgedWord } from './adverbJudge';
  * Which AI Editor action suits a flagged mark, if any. Clicking such a mark opens the AI Editor on its sentence and
  * runs this action. Spelling, punctuation, names and character details have exact fixes already, so they don't.
  */
-export function aiTaskForMark(s: Pick<Suggestion, 'ruleId' | 'category' | 'original'>): { task: AiTaskId; focus: string | null } | null {
+export function aiTaskForMark(s: Pick<Suggestion, 'ruleId' | 'category' | 'original'> & { data?: Suggestion['data'] }): { task: AiTaskId; focus: string | null; toTense?: 'past' | 'present' } | null {
+  // A tense slip: put the sentence's narration back into the scene's tense.
+  if (s.ruleId === 'tense-shift') return { task: 'grammar', focus: s.original, toTense: s.data?.toTense === 'present' ? 'present' : 'past' };
   if (AI_JUDGED_RULES.has(s.ruleId)) return { task: 'no-adverb', focus: judgedWord(s) };
   if (s.ruleId === 'echo-word') return { task: 'no-repeat', focus: s.original };
   if (s.ruleId === 'hard-sentence') return { task: 'clearer', focus: null };

@@ -93,6 +93,8 @@ export interface TaskInput {
   question?: string;
   /** The flagged words to work on (from a clicked mark); the rest of the passage should stay as it is. */
   focus?: string | null;
+  /** For a tense slip: put the passage's narration into this tense. */
+  toTense?: 'past' | 'present';
   /** For "What's the tone?": the tone the author wants, from the scene notes ("Tone: tense, hopeful"). */
   intendedTone?: string;
 }
@@ -141,6 +143,16 @@ export function buildMessages(task: AiTask, input: TaskInput): ChatMessage[] {
   const tense = narrativeTense(input.text);
   // The model drifts into the past tense on its own; say which tense the passage is in.
   const keepTense = tense ? ` Keep it in the ${tense} tense, as written: don't change any verb's tense.` : '';
+  if (task.id === 'grammar' && input.toTense) {
+    const instruction = `The rest of this scene is told in the ${input.toTense} tense, but this passage slipped out of it. Put every narration verb of the passage into the ${input.toTense} tense (for example ${input.toTense === 'past' ? '“I reach” → “I reached”, “she picks” → “she picked”' : '“I reached” → “I reach”, “she picked” → “she picks”'}). Leave the words inside quotation marks, and everything else, exactly as written.`;
+    return [
+      { role: 'system', content: EDITOR_BRIEF.replace("Keep the author's voice, tense,", "Keep the author's voice,") + chars },
+      { role: 'user', content: `${instruction}${context}
+
+Passage:
+"""${input.text}"""` },
+    ];
+  }
   const instruction = (base + (task.id === 'voice' ? '' : keepTense))
     .replace('{n}', String(asked))
     .replace('{tone}', input.tone ?? 'warmer')

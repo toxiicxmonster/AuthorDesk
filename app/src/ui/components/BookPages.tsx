@@ -24,7 +24,7 @@ import { reportError, toast } from '../store';
 import { href } from '../router';
 
 /** Everything the pickers need: all projects (for "all my books" pages) and all books (for labels). */
-function usePageData() {
+export function usePageData() {
   return useLiveQuery(async () => {
     const [projects, books] = await Promise.all([db.projects.toArray(), db.books.toArray()]);
     return { projects: projects.filter((p) => !p.archivedAt), books: books.filter((b) => !b.archivedAt) };

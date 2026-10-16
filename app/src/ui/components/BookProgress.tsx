@@ -6,6 +6,8 @@ import type { ManuscriptTree } from '../data';
 import { href } from '../router';
 import { confirmDialog, reportError, toast } from '../store';
 import { CommitInput } from './common';
+import { usePageData } from './BookPages';
+import { resolveExtraPages } from '../../domain/bookPages';
 
 const SIZE_KEY = 'authordesk.pageEstimateSize';
 
@@ -36,7 +38,11 @@ export function BookProgress({ projectId, book, tree, wordlog }: { projectId: st
   const [sizeId, setSizeId] = useState(loadSize);
   const chapters = tree.chapters;
   const words = useMemo(() => chapters.map((c) => (tree.scenesByChapter.get(c.id) ?? []).reduce((n, s) => n + s.wordCount, 0)), [chapters, tree]);
-  const pages = useMemo(() => estimatePages(words, sizeId), [words, sizeId]);
+  const pageData = usePageData();
+  // Only the book pages this book actually has (a dedication, an about-the-author page…) add to the count.
+  const extras = useMemo(() => (pageData ? Object.values(resolveExtraPages(book.id, projectId, pageData.projects, pageData.books)) : []), [pageData, book.id, projectId]);
+  const pages = useMemo(() => estimatePages(words, sizeId, extras), [words, sizeId, extras]);
+  const extraCount = extras.filter((t) => t.trim()).length;
   const target = book.targetWords ?? 0;
   const projection = target ? projectFinish(wordlog, tree.wordCount, target) : null;
   const streak = writingStreak(wordlog);
@@ -113,9 +119,11 @@ export function BookProgress({ projectId, book, tree, wordlog }: { projectId: st
           </label>
           <div className="big-num">≈ {pages.total.toLocaleString()} pages</div>
           <p className="small muted">
-            About {pages.wordsPerPage} words a page
-            {size.trim ? `, ${size.fontSize} pt text, with title, copyright and contents pages and chapters opening on right-hand pages` : ''}. The paperback export
-            gives the exact count.
+            Your chapters{extraCount ? ` and ${extraCount} book page${extraCount === 1 ? '' : 's'}` : ''}, at about {pages.wordsPerPage} words a page
+            {size.trim ? ` (${size.fontSize} pt text)` : ''}.
+            {pages.printed !== null && pages.printed > pages.total
+              ? ` As a paperback, with a title page, copyright and contents, and chapters opening on right-hand pages, it comes to about ${pages.printed.toLocaleString()}. The paperback export gives the exact count.`
+              : ''}
           </p>
         </div>
       </div>

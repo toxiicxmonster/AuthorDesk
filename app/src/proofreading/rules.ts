@@ -559,6 +559,7 @@ const RULE_LABELS: Record<string, string> = {
   'new-name': 'Names not yet in your characters & world list',
   'character-fact': 'Character details missing from their entry (green)',
   'echo-word': 'Echo words (the same word again a few lines later)',
+  'tense-shift': 'Tense slips (past and present mixed in narration)',
   continuity: 'Continuity: a character described differently elsewhere in the book',
   'continuity-death': 'Continuity: a character speaking after their death',
   'continuity-age': 'Continuity: ages that don’t fit the timeline',

@@ -457,7 +457,7 @@ function aiRequestFor(editor: Editor, items: PlacedSuggestion[], panel: boolean)
     const text = whole ? para : sentence;
     // Where the passage is, so "Use" can put the chosen version in its place.
     const from = $pos.start() + offset;
-    return { id: Date.now(), text, context: para, task: pick.task, focus: pick.focus, from, to: from + text.length, markKey: it.key, panel };
+    return { id: Date.now(), text, context: para, task: pick.task, focus: pick.focus, toTense: pick.toTense, from, to: from + text.length, markKey: it.key, panel };
   }
   return null;
 }

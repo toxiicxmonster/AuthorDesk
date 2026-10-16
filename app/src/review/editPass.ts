@@ -4,6 +4,7 @@ import { knownNameSpans, protectNames } from '../proofreading/names';
 import { avoidEchoes, findEchoes } from '../proofreading/echo';
 import { synonymsFor } from '../proofreading/synonyms';
 import { findHardSentences, hardSentenceMessage } from '../proofreading/hardSentence';
+import { findTenseSlips, tenseSlipMessage } from '../proofreading/tense';
 import { sentenceAround } from '../ai/adverbJudge';
 import { CATEGORY_LABELS, type Category, type ProofreadContext } from '../proofreading/types';
 import { reviewManuscript } from './metrics';
@@ -53,6 +54,7 @@ export async function collectPassItems(
   for (const s of scenes) {
     const { results } = await checkBlocks(s.paragraphs, ctx);
     const echoes = ctx.disabledRules.has('echo-word') || ctx.disabledCategories.has('repetition') ? [] : findEchoes(s.paragraphs, ctx.knownNames);
+    const slips = ctx.disabledRules.has('tense-shift') || ctx.disabledCategories.has('grammar') ? [] : findTenseSlips(s.paragraphs, ctx.knownNames);
     s.paragraphs.forEach((para, bi) => {
       const fixes = protectNames(para, results[bi] ?? [], knownNameSpans(para, ctx.knownNames)).filter((x) => x.replacements.length > 0);
       for (const x of fixes) add(s, para, x.start, x.end, { kind: x.category, ruleId: x.ruleId, message: x.message, replacements: x.replacements });
@@ -61,6 +63,9 @@ export async function collectPassItems(
         const replacements = avoidEchoes(e.word, synonymsFor(e.word), near);
         if (!replacements.length && !opts.aiInstalled) continue;
         add(s, para, e.start, e.end, { kind: 'echo', ruleId: 'echo-word', message: `“${e.word}” was also used ${e.distance} words earlier.`, replacements });
+      }
+      for (const t of slips.filter((t) => t.block === bi)) {
+        add(s, para, t.start, t.end, { kind: 'grammar', ruleId: 'tense-shift', message: tenseSlipMessage(t), replacements: t.replacement ? [t.replacement] : [] });
       }
       if (opts.aiInstalled && !ctx.disabledRules.has('hard-sentence') && !ctx.disabledCategories.has('clarity' as Category)) {
         for (const h of findHardSentences(para)) add(s, para, h.start, h.end, { kind: 'hard', ruleId: 'hard-sentence', message: hardSentenceMessage(h), replacements: [] });

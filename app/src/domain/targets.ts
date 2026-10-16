@@ -1,4 +1,5 @@
 import { kdpMinimumInside, printWordsPerPage, TRIM_SIZES } from '../importExport/publish';
+import { countWords } from './text';
 
 /**
  * Word targets, a finish-by projection, the writing streak, and estimated page counts, for the Home dashboard.
@@ -29,33 +30,43 @@ export const DEFAULT_PAGE_SIZE = '6x9';
 export interface PageEstimate {
   /** Pages for each chapter's text (including its opening page). */
   perChapter: number[];
-  /** The whole book: front matter, chapters (each opening on a right-hand page in print) and the chapters' pages. */
+  /** The chapters' pages plus the book pages that exist (dedication, about the author…), nothing that hasn't been written. */
   total: number;
+  /**
+   * The finished paperback as the export lays it out: also a title page, copyright and contents, and a blank page
+   * wherever one is needed so chapters open on the right. Null for a manuscript page.
+   */
+  printed: number | null;
   wordsPerPage: number;
 }
 
 /**
- * Estimated pages for a book whose chapters have these word counts. Print sizes follow the paperback export:
- * a chapter opens a third of the way down a right-hand page (so a blank page can follow an odd-length chapter),
- * plus title, copyright and contents pages, and KDP's gutter for the page count.
+ * Estimated pages for a book whose chapters have these word counts, plus the texts of its book pages (dedication,
+ * epigraph, acknowledgements, about the author, also by) that exist. Print sizes follow the paperback export: a
+ * chapter opens a third of the way down the page, and KDP's gutter is allowed for.
  */
-export function estimatePages(chapterWords: number[], sizeId: string): PageEstimate {
+export function estimatePages(chapterWords: number[], sizeId: string, bookPages: readonly string[] = []): PageEstimate {
   const size = PAGE_SIZES.find((s) => s.id === sizeId) ?? PAGE_SIZES.find((s) => s.id === DEFAULT_PAGE_SIZE)!;
+  const extras = bookPages.filter((t) => t.trim());
+  const extraPages = (wpp: number) => extras.reduce((n, t) => n + Math.max(1, Math.ceil(countWords(t) / wpp)), 0);
   if (!size.trim) {
     const perChapter = chapterWords.map((w) => (w > 0 ? Math.ceil(w / size.wordsPerPage!) : 0));
-    return { perChapter, total: perChapter.reduce((a, b) => a + b, 0) + (chapterWords.length ? 1 : 0), wordsPerPage: size.wordsPerPage! };
+    return { perChapter, total: perChapter.reduce((a, b) => a + b, 0) + extraPages(size.wordsPerPage!), printed: null, wordsPerPage: size.wordsPerPage! };
   }
   const layout = (inside: number) => {
     const wpp = size.wordsPerPage ?? printWordsPerPage(size.trim!, size.fontSize!, inside);
     const perChapter = chapterWords.map((w) => (w > 0 ? Math.ceil(w / wpp + 0.35) : 0));
     const written = perChapter.filter((n) => n > 0);
+    const text = written.reduce((a, b) => a + b, 0);
     // A blank left-hand page after each odd-length chapter, so the next one opens on the right.
     const blanks = written.slice(0, -1).filter((n) => n % 2 === 1).length;
     const front = written.length ? 6 : 0; // title and its back, copyright, a blank, two contents pages
-    return { perChapter, total: front + written.reduce((a, b) => a + b, 0) + blanks, wordsPerPage: Math.round(wpp) };
+    // In print each book page starts on a right-hand page too.
+    const printedExtras = extras.reduce((n, t) => n + 2 * Math.ceil(Math.max(1, Math.ceil(countWords(t) / wpp)) / 2), 0);
+    return { perChapter, total: text + extraPages(wpp), printed: front + text + blanks + printedExtras, wordsPerPage: Math.round(wpp) };
   };
   const first = layout(0.75);
-  return layout(kdpMinimumInside(first.total) + 0.25);
+  return layout(kdpMinimumInside(first.printed!) + 0.25);
 }
 
 // ---------------------------------------------------------------- targets and projection

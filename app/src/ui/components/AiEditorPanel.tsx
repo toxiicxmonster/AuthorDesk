@@ -28,6 +28,8 @@ interface Passage {
   context: string;
   /** The flagged words this passage was opened for, if it came from clicking a mark. */
   focus: string | null;
+  /** For a tense slip: the tense to put the passage in. */
+  toTense?: 'past' | 'present';
   /** Where the passage is in the scene (for "Use"). */
   anchor: TextAnchor | null;
 }
@@ -129,7 +131,7 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
     const patch = (x: Partial<Result>) => setResults((rs) => rs.map((r) => (r.id === id ? { ...r, ...x } : r)));
     try {
       const intendedTone = task.id === 'tone-read' ? await intendedToneOf(route.view === 'write' ? route.itemId : null) : undefined;
-      const text = await chat(buildMessages(task, { text: p.text, context: p.context, tone, question, focus: p.focus, intendedTone }), {
+      const text = await chat(buildMessages(task, { text: p.text, context: p.context, tone, question, focus: p.focus, toTense: p.toTense, intendedTone }), {
         signal: ctrl.signal,
         // A fix for one flagged word should change as little as possible.
         temperature: p.focus ? Math.min(settings.aiTemperature, 0.25) : settings.aiTemperature,
@@ -149,7 +151,7 @@ export function AiEditorPanel({ projectId }: { projectId: string }) {
   useEffect(() => {
     if (!request?.panel || handled.current === request.id || !status?.installed) return;
     handled.current = request.id;
-    const p: Passage = { text: request.text, context: request.context, focus: request.focus, anchor: { from: request.from, to: request.to, text: request.text } };
+    const p: Passage = { text: request.text, context: request.context, focus: request.focus, toTense: request.toTense, anchor: { from: request.from, to: request.to, text: request.text } };
     setPinned(true);
     setPassage(p);
     void run(taskById(request.task), p, request.id);

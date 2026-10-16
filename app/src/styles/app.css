@@ -3552,3 +3552,21 @@ code.path {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+.ai-note {
+  margin-top: 0.3rem;
+  padding: 0.3rem 0.5rem;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 4px 4px 0;
+}
+.sugg-main > .link-btn {
+  display: block;
+  margin-top: 0.25rem;
+}
+.chapter-notes .notes-list li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+.chapter-notes .notes-list li {
+  display: block;
+}
