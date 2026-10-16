@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Chapter, Scene } from '../../domain/schema';
-import { looksWritten, planItems, setPlanItem } from '../../domain/planChecklist';
+import { inlinePoints, looksWritten, planItems, setPlanItem, splitPlanItem } from '../../domain/planChecklist';
 import { db } from '../../storage/db';
 import { updateRecord } from '../../storage/repo';
 import { setUi } from '../store';
@@ -24,6 +24,21 @@ function Checklist({ label, plan, written, narrator, onChange }: { label: string
           <span>
             {it.text}
             {!it.done && looksWritten(it.text, written, narrator) && <span className="muted small plan-hint"> · looks written</span>}
+            {inlinePoints(it.text).length > 1 && (
+              <>
+                {' '}
+                <button
+                  className="link-btn"
+                  title="These look like several points typed on one line. Put each on its own line so you can tick them off one by one."
+                  onClick={(e) => {
+                    e.preventDefault(); // inside the label: don't tick the box
+                    onChange(splitPlanItem(plan, it.line));
+                  }}
+                >
+                  Split into {inlinePoints(it.text).length} points
+                </button>
+              </>
+            )}
           </span>
         </label>
       ))}

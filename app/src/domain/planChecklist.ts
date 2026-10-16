@@ -31,6 +31,26 @@ export function setPlanItem(notes: string, line: number, done: boolean): string 
   return lines.join('\n');
 }
 
+// " - Finn catches a glimpse": a dash between spaces before a capital starts another point typed on the same line.
+const INLINE = /\s+[-–•]\s+(?=\p{Lu})/u;
+
+/** The points of a plan line typed as one ("Winnie wears his number - Finn sees her - He's surprised"). */
+export function inlinePoints(text: string): string[] {
+  const parts = text.split(INLINE).map((p) => p.trim()).filter(Boolean);
+  return parts.length >= 2 ? parts : [text];
+}
+
+/** The notes with one plan line split into a line per point, each unticked. */
+export function splitPlanItem(notes: string, line: number): string {
+  const lines = notes.split('\n');
+  const m = ITEM.exec(lines[line] ?? '');
+  if (!m) return notes;
+  const parts = inlinePoints(m[3]);
+  if (parts.length < 2) return notes;
+  lines.splice(line, 1, ...parts.map((p) => `${m[1]}${p}`));
+  return lines.join('\n');
+}
+
 /** The text without its tick marks ("- [x] Funeral happens" → "- Funeral happens"), for the AI and exports. */
 export const withoutTicks = (text: string) => text.replace(/^(\s*[-*•–]\s+)\[[ xX]\]\s*/gm, '$1');
 
@@ -56,7 +76,12 @@ const WORDS = /[\p{L}][\p{L}’']{3,}/gu;
  * scene doesn't name its narrator). Only a hint shown beside the box; the author decides what's done.
  */
 export function looksWritten(point: string, sceneText: string, narrator: readonly string[] = []): boolean {
-  const have = new Set((sceneText.match(WORDS) ?? []).map(stem));
+  // Plan lines still in the text are the plan itself, not the story written from it.
+  const story = sceneText
+    .split('\n')
+    .filter((l) => !ITEM.test(l))
+    .join('\n');
+  const have = new Set((story.match(WORDS) ?? []).map(stem));
   const own = new Set(narrator.flatMap((n) => n.match(WORDS) ?? []).map(stem));
   const want = new Set<string>();
   for (const w of point.match(WORDS) ?? []) {

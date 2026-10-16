@@ -18,6 +18,15 @@ describe('pacing strip', () => {
     expect(ticks[0].words).toBe(5);
   });
 
+  it('leaves planning lines out, but not dialogue dashes', () => {
+    const ticks = pacingTicks([
+      { text: '- Finn catches a glimpse of her - He was surprised to see her.', pos: 1 },
+      { text: '• She drops some boxes.', pos: 80 },
+      { text: '– Wait, she said.', pos: 120 },
+    ]);
+    expect(ticks.map((t) => t.pos)).toEqual([120]);
+  });
+
   it('marks every sentence of a long paragraph', () => {
     const para = Array.from({ length: 25 }, () => 'The shop bell rings and rings again.').join(' ');
     const ticks = pacingTicks([{ text: para, pos: 1 }]);

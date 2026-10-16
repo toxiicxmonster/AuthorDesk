@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { looksWritten, planItems, setPlanItem, withoutTicks } from '../src/domain/planChecklist';
+import { inlinePoints, looksWritten, planItems, setPlanItem, splitPlanItem, withoutTicks } from '../src/domain/planChecklist';
 
 const NOTES =
   'Plan (moved from the text):\n- Winnie hauls boxes heavier than her\n- [x] She drops some\n• Finn stops, grumpy after practice\nNot a bullet';
@@ -35,6 +35,19 @@ describe('scene plan checklist', () => {
     expect(looksWritten('Winnie drives her Jeep to the hospital', text, ['Winnie Hartley'])).toBe(true);
     // Other missing names still count against the point.
     expect(looksWritten('Lawyer tells Winnie the Bookshop is in her name', 'He told me my name.', ['Winnie Hartley'])).toBe(false);
+  });
+
+  it('doesn’t count plan lines left in the text as written', () => {
+    expect(looksWritten('Finn catches a glimpse of her at the game', 'It was game day.\n\n- Finn catches a glimpse of her at the game')).toBe(false);
+  });
+
+  it('splits points typed on one line into a line each', () => {
+    const notes = 'Intro\n\n- Winnie wearing Jace number - Finn catches a glimpse of her - He was surprised, but goes back to the game';
+    expect(inlinePoints(planItems(notes)[0].text)).toHaveLength(3);
+    expect(splitPlanItem(notes, 2)).toBe('Intro\n\n- Winnie wearing Jace number\n- Finn catches a glimpse of her\n- He was surprised, but goes back to the game');
+    // A dash inside a point that isn't followed by a new sentence stays.
+    expect(inlinePoints('Finn helps - reluctantly - with the boxes')).toEqual(['Finn helps - reluctantly - with the boxes']);
+    expect(splitPlanItem(notes, 0)).toBe(notes);
   });
 
   it('leaves the tick marks out of what the AI reads', () => {

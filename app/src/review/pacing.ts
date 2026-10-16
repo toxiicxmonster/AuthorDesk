@@ -37,6 +37,8 @@ const QUOTE = /["“”]/;
 export function pacingTicks(blocks: PacingBlock[]): PacingTick[] {
   const out: PacingTick[] = [];
   for (const b of blocks) {
+    // A planning line ("- Finn helps her clean up") isn't part of the story's rhythm. (Dialogue dashes are – or —.)
+    if (/^\s*[-*•]\s+\S/.test(b.text)) continue;
     const sentences = sentencesOf(b.text);
     if (!sentences.length) continue;
     const longParagraph = countWords(b.text) >= LONG_PARAGRAPH;
