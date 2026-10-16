@@ -84,8 +84,9 @@ async function start() {
       root,
       execDir,
       hooks: {
-        chooseFolder: async (current) => {
-          const r = await dialog.showOpenDialog(win, { title: 'Choose where AuthorDesk keeps automatic backups', defaultPath: current, properties: ['openDirectory', 'createDirectory'] });
+        chooseFolder: async (current, second) => {
+          const title = second ? 'Choose a second place for backups (a USB drive or a cloud folder)' : 'Choose where AuthorDesk keeps automatic backups';
+          const r = await dialog.showOpenDialog(win, { title, defaultPath: current, properties: ['openDirectory', 'createDirectory'] });
           return r.canceled ? null : r.filePaths[0];
         },
         openFolder: (dir) => shell.openPath(dir),
@@ -176,6 +177,8 @@ async function countBooks(moved) {
 async function smokeResult(extra) {
   // Optional: a picture of the window, and a real request to each installed add-on.
   if (process.env.AUTHORDESK_SMOKE_HASH) await new Promise((r) => setTimeout(r, 6000)); // let the page settle (proofreading)
+  // Self-test only: a script to run in the page first (e.g. press a button), its result reported.
+  if (process.env.AUTHORDESK_SMOKE_JS) extra.js = await win.webContents.executeJavaScript(process.env.AUTHORDESK_SMOKE_JS).catch((e) => `error: ${e.message ?? e}`);
   if (process.env.AUTHORDESK_SMOKE_SHOT) {
     // Without a graphics card (CI) the capture can fail; the test is about the app, not the picture.
     try {

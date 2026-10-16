@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react';
-import { backUpNow, chooseBackupFolder, fetchBackupStatus, openBackupFolder, setBackupsEnabled, shortId, type BackupStatus } from '../../backup/autoBackup';
+import {
+  backUpNow,
+  chooseBackupFolder,
+  chooseSecondFolder,
+  fetchBackupStatus,
+  openBackupFolder,
+  openSecondFolder,
+  setBackupsEnabled,
+  shortId,
+  stopSecondFolder,
+  type BackupStatus,
+} from '../../backup/autoBackup';
 import { flushAllEdits } from '../../editor/EditorContext';
 import { reportError, toast } from '../store';
 import { relativeTime } from './common';
@@ -77,6 +88,39 @@ export function AutoBackupCard({ projectId }: { projectId: string }) {
           Change folder…
         </button>
         <button onClick={() => void openBackupFolder(projectId)}>Open folder</button>
+      </div>
+      <div className="second-backup">
+        <h3>A second copy</h3>
+        {st.second ? (
+          <>
+            <p className="small">
+              Every backup is also copied to <code className="path">{st.second.folder}</code>
+              <br />
+              {st.second.ok === null
+                ? 'The next backup goes there too.'
+                : st.second.ok
+                  ? `Last copied ${relativeTime(st.second.at!)}.`
+                  : `The last copy was skipped: ${st.second.error}. The main backup was saved; the copy happens again next time.`}
+            </p>
+            <div className="row gap wrap">
+              <button onClick={() => void chooseSecondFolder().then(update).catch((e) => reportError(e, 'Couldn’t use that folder'))}>Change…</button>
+              <button onClick={() => void openSecondFolder()}>Open</button>
+              <button className="danger-text" onClick={async () => update(await stopSecondFolder())}>
+                Stop copying
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="small muted">
+              Keep a copy somewhere else too, so one failing drive can’t take your book with it: a USB drive, or a OneDrive, Google Drive or Dropbox folder. If
+              it isn’t there when a backup runs (the drive is unplugged), the main backup still happens.
+            </p>
+            <button disabled={!st.enabled} onClick={() => void chooseSecondFolder().then(update).catch((e) => reportError(e, 'Couldn’t use that folder'))}>
+              Choose a second folder…
+            </button>
+          </>
+        )}
       </div>
       <p className="muted small">
         To restore, use <strong>Restore a backup</strong> in Settings with any file from that folder.

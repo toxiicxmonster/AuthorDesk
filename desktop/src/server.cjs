@@ -152,7 +152,7 @@ function createHandler({ root, execDir, hooks = {}, migration = () => ({}) }) {
         res.setHeader('Cache-Control', 'no-store');
         if (p === '/backup/status') return send(res, 200, backup.status());
         if (req.method !== 'POST') return send(res, 405, '');
-        const { folder, enabled } = backup.readConfig();
+        const { folder, enabled, second } = backup.readConfig();
         if (p === '/backup/save') return send(res, 200, backup.save(q.get('project'), q.get('title') ?? 'Untitled', await readBody(req)));
         if (p === '/backup/settings') {
           const on = q.get('enabled');
@@ -160,15 +160,28 @@ function createHandler({ root, execDir, hooks = {}, migration = () => ({}) }) {
           return send(res, 200, backup.status());
         }
         if (p === '/backup/choose') {
-          const chosen = await hooks.chooseFolder?.(folder);
-          if (chosen && path.isAbsolute(chosen)) backup.writeConfig(chosen, enabled);
+          // ?which=second picks the folder that gets a second copy of every backup.
+          const isSecond = q.get('which') === 'second';
+          const chosen = await hooks.chooseFolder?.(isSecond ? (second ?? folder) : folder, isSecond);
+          if (chosen && path.isAbsolute(chosen)) {
+            if (isSecond && path.resolve(chosen).toLowerCase() === path.resolve(folder).toLowerCase())
+              return send(res, 400, { error: 'That’s the main backup folder. Choose a different place, like a USB drive or a cloud folder.' });
+            if (isSecond) backup.writeConfig(folder, enabled, chosen);
+            else backup.writeConfig(chosen, enabled);
+          }
+          return send(res, 200, backup.status());
+        }
+        if (p === '/backup/second/off') {
+          backup.writeConfig(folder, enabled, null);
           return send(res, 200, backup.status());
         }
         if (p === '/backup/open') {
           fs.mkdirSync(folder, { recursive: true });
           const project = q.get('project');
-          let target = project ? backup.bookDir(folder, project, null, false) : folder;
-          if (!fs.existsSync(target)) target = folder;
+          const base = q.get('which') === 'second' && second ? second : folder;
+          if (base !== folder && !fs.existsSync(base)) return send(res, 404, { error: 'That folder isn’t there right now.' });
+          let target = project ? backup.bookDir(base, project, null, false) : base;
+          if (!fs.existsSync(target)) target = base;
           await hooks.openFolder?.(target);
           return send(res, 200, {});
         }

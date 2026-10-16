@@ -14,20 +14,26 @@ const defaultFolder = () => path.join(documentsDir(), 'AuthorDesk Backups');
 function readConfig() {
   let folder = defaultFolder();
   let enabled = true;
+  let second = null;
   try {
     const j = JSON.parse(fs.readFileSync(configPath(), 'utf8'));
     if (typeof j.folder === 'string' && path.isAbsolute(j.folder)) folder = j.folder;
     if (typeof j.enabled === 'boolean') enabled = j.enabled;
+    if (typeof j.second === 'string' && path.isAbsolute(j.second)) second = j.second;
   } catch {
     /* defaults */
   }
-  return { folder, enabled };
+  return { folder, enabled, second };
 }
 
-function writeConfig(folder, enabled) {
+/** Saves the settings; `second` (an optional second folder that gets a copy of every backup) is kept unless given. */
+function writeConfig(folder, enabled, second = readConfig().second) {
   fs.mkdirSync(dataDir(), { recursive: true });
-  fs.writeFileSync(configPath(), JSON.stringify({ folder, enabled }));
+  fs.writeFileSync(configPath(), JSON.stringify(second ? { folder, enabled, second } : { folder, enabled }));
 }
+
+// How the last copy to the second folder went (it may be a USB drive that isn't plugged in).
+let secondResult = null;
 
 /** A name that's safe as a file or folder name on Windows and Linux. */
 function safeFileName(s, max) {
@@ -113,7 +119,7 @@ function pruneBackups(dir, now = new Date()) {
 }
 
 function status() {
-  const { folder, enabled } = readConfig();
+  const { folder, enabled, second } = readConfig();
   const books = {};
   try {
     if (fs.existsSync(folder)) {
@@ -130,7 +136,7 @@ function status() {
   } catch {
     /* an unreadable folder shows as no backups */
   }
-  return { enabled, folder, books };
+  return { enabled, folder, books, second: second ? { folder: second, ...(secondResult ?? { ok: null, at: null, error: '' }) } : null };
 }
 
 function freeBytes(dir) {
@@ -157,7 +163,32 @@ function save(projectId, title, body, now = new Date()) {
   fs.writeFileSync(file + '.part', body);
   fs.renameSync(file + '.part', file);
   pruneBackups(dir, now);
+  copyToSecond(projectId, title, body, now);
   return status();
+}
+
+/**
+ * The same backup into the second folder, kept the same way. Never fails the main backup: a drive that's unplugged
+ * or full is reported in the status instead. Only when the folder's drive is there; nothing is created on a drive
+ * letter that has gone.
+ */
+function copyToSecond(projectId, title, body, now) {
+  const { second } = readConfig();
+  if (!second) return;
+  try {
+    const root = path.parse(second).root;
+    if (!fs.existsSync(root) || !fs.existsSync(path.dirname(second))) throw new Error('The folder isn’t there (is the drive plugged in?)');
+    fs.mkdirSync(second, { recursive: true });
+    if (freeBytes(second) < body.length * 2 + 50 * 1024 * 1024) throw new Error('Not enough free space there');
+    const dir = bookDir(second, projectId, title, true);
+    const file = path.join(dir, `${safeFileName(title, 80)} ${stamp(now)}.authorproj`);
+    fs.writeFileSync(file + '.part', body);
+    fs.renameSync(file + '.part', file);
+    pruneBackups(dir, now);
+    secondResult = { ok: true, at: now.toISOString(), error: '' };
+  } catch (e) {
+    secondResult = { ok: false, at: now.toISOString(), error: e.message };
+  }
 }
 
 module.exports = { readConfig, writeConfig, safeFileName, bookDir, listBackups, pruneBackups, status, save, stamp };

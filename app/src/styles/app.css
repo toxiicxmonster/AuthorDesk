@@ -3689,3 +3689,11 @@ code.path {
   background: color-mix(in srgb, var(--warn, #c08a1e) 12%, transparent);
   border-radius: 0 4px 4px 0;
 }
+.second-backup {
+  margin-top: 0.8rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+}
+.second-backup h3 {
+  margin: 0 0 0.3rem;
+}

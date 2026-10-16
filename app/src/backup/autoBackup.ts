@@ -14,6 +14,8 @@ export interface BackupStatus {
   folder: string;
   /** Keyed by the first 8 characters of the project id. */
   books: Record<string, { last: string; count: number; bytes: number; title?: string }>;
+  /** An optional second folder that gets a copy of every backup, and how the last copy there went. */
+  second?: { folder: string; ok: boolean | null; at: string | null; error: string } | null;
 }
 
 /** Back up once writing has paused this long… */
@@ -46,6 +48,15 @@ export const fetchBackupStatus = () => call('/backup/status');
 export const setBackupsEnabled = (on: boolean) => call(`/backup/settings?enabled=${on ? 1 : 0}`, { method: 'POST' });
 export const chooseBackupFolder = () => call('/backup/choose', { method: 'POST' });
 export const openBackupFolder = (projectId?: string) => call(`/backup/open${projectId ? `?project=${encodeURIComponent(projectId)}` : ''}`, { method: 'POST' });
+
+/** Picks the second folder. Throws with the reason when it's refused (e.g. the main folder again). */
+export async function chooseSecondFolder(): Promise<BackupStatus | null> {
+  const res = await fetch('/backup/choose?which=second', { method: 'POST', cache: 'no-store' });
+  if (res.status === 400) throw new Error(((await res.json()) as { error?: string }).error ?? 'That folder can’t be used.');
+  return res.ok ? ((await res.json()) as BackupStatus) : null;
+}
+export const stopSecondFolder = () => call('/backup/second/off', { method: 'POST' });
+export const openSecondFolder = () => call('/backup/open?which=second', { method: 'POST' });
 
 /** Builds the book's archive and saves it through the desktop app. Returns the new status, or throws with a reason. */
 export async function backUpNow(projectId: string): Promise<BackupStatus> {

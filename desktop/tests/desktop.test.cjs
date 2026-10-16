@@ -42,6 +42,32 @@ test('backups are saved per book, named by time, and pruned', () => {
   assert.ok(fs.existsSync(path.join(folder, 'New Title (bc8f4cc6)')));
 });
 
+test('a second backup folder gets a copy, and an unplugged one never stops the main backup', () => {
+  const main = path.join(tmp, 'b-main');
+  const second = path.join(tmp, 'b-second');
+  fs.mkdirSync(second, { recursive: true });
+  backup.writeConfig(main, true, second);
+  const zip = Buffer.from('PK second');
+  backup.save('aaaabbbb-1', 'Two Places', zip, new Date(2026, 9, 1, 9, 0));
+  assert.equal(backup.listBackups(path.join(second, 'Two Places (aaaabbbb)')).length, 1);
+  let st = backup.status();
+  assert.equal(st.second.folder, second);
+  assert.equal(st.second.ok, true);
+  // The drive goes away: the main backup still happens, and the status says why the copy didn't.
+  backup.writeConfig(main, true, path.join(tmp, 'unplugged', 'AuthorDesk'));
+  backup.save('aaaabbbb-1', 'Two Places', zip, new Date(2026, 9, 1, 10, 0));
+  st = backup.status();
+  assert.equal(st.books.aaaabbbb.count, 2);
+  assert.equal(st.second.ok, false);
+  assert.match(st.second.error, /plugged in/);
+  assert.ok(!fs.existsSync(path.join(tmp, 'unplugged')), 'nothing created where the drive was');
+  // Changing other settings keeps the second folder; turning it off removes it.
+  backup.writeConfig(main, false);
+  assert.ok(backup.readConfig().second);
+  backup.writeConfig(main, true, null);
+  assert.equal(backup.readConfig().second, null);
+});
+
 test('versions compare numerically and each install updates from its own asset', () => {
   assert.equal(updater.compareVersions('v0.10', '0.9'), 1);
   assert.equal(updater.compareVersions('0.9', '0.9.0'), 0);
