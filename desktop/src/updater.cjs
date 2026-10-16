@@ -9,7 +9,7 @@
 const fs = require(process.versions.electron ? 'original-fs' : 'node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const { isWindows, dataDir, log } = require('./paths.cjs');
 const { download, extract, Step } = require('./installers.cjs');
 
@@ -42,8 +42,11 @@ function assetFor(kind, assets) {
   return null;
 }
 
+// Tests only: a local stand-in for GitHub's "latest release" answer (its download links aren't checked against GitHub).
+const FEED = process.env.AUTHORDESK_UPDATE_FEED || null;
+
 async function latestRelease() {
-  const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+  const r = await fetch(FEED ?? `https://api.github.com/repos/${REPO}/releases/latest`, {
     headers: { 'User-Agent': 'AuthorDesk-updater', Accept: 'application/vnd.github+json' },
     signal: AbortSignal.timeout(8000),
   });
@@ -100,6 +103,18 @@ ${relaunch ? `Start-Process -FilePath (Join-Path $to 'AuthorDesk.exe') -WorkingD
 }
 
 /**
+ * Starts a command that outlives AuthorDesk. Windows ends every process AuthorDesk starts when it closes (they share
+ * its job), so the update helper is started by Windows' own process service instead. Waits only for it to launch.
+ * Returns its process id, or null.
+ */
+function startOutsideApp(commandLine) {
+  const ps = `$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = '${commandLine.replace(/'/g, "''")}' }; if ($r.ReturnValue -eq 0) { $r.ProcessId }`;
+  const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps], { encoding: 'utf8', windowsHide: true, timeout: 20_000 });
+  const pid = parseInt(String(r.stdout).trim(), 10);
+  return Number.isFinite(pid) ? pid : null;
+}
+
+/**
  * Checks for a newer release and gets it ready. Calls `onReady({ tag, apply })` when it can be installed (apply(true)
  * restarts into it), or `onNotice({ tag, url })` when this kind of install can't update itself.
  */
@@ -116,7 +131,7 @@ async function checkForUpdate({ version, execDir, onReady, onNotice }) {
   if (!rel.tag || compareVersions(rel.tag, version) <= 0) return;
   const kind = installKind(execDir);
   const asset = assetFor(kind, rel.assets);
-  if (!asset || !asset.url.startsWith(`https://github.com/${REPO}/releases/download/`)) return onNotice?.({ tag: rel.tag, url: rel.url });
+  if (!asset || (!FEED && !asset.url.startsWith(`https://github.com/${REPO}/releases/download/`))) return onNotice?.({ tag: rel.tag, url: rel.url });
 
   const work = path.join(dataDir(), 'update');
   fs.rmSync(work, { recursive: true, force: true });
@@ -159,11 +174,8 @@ async function checkForUpdate({ version, execDir, onReady, onNotice }) {
         applied = true;
         const script = path.join(os.tmpdir(), `authordesk-update-${Date.now()}.ps1`);
         fs.writeFileSync(script, windowsSwapScript(root, execDir, process.pid, restart));
-        spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', script], {
-          detached: true,
-          stdio: 'ignore',
-          windowsHide: true,
-        }).unref();
+        const pid = startOutsideApp(`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "${script}"`);
+        log(pid ? `Installing ${rel.tag} as AuthorDesk closes (helper ${pid})` : `Could not start the update helper for ${rel.tag}`);
       },
     });
   } catch (e) {
