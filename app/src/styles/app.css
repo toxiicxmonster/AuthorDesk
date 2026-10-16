@@ -2346,13 +2346,17 @@ details.banner {
     display: inline-flex;
   }
 }
-@media (max-width: 1300px) and (min-width: 901px) {
-  .topnav .nav-label {
-    display: none;
-  }
-  .topnav a {
-    font-size: 1.05rem;
-  }
+/* When the section names don't fit (measured in useFitNav): first tighter, then icons only (names stay as tooltips). */
+.topnav.tight a {
+  padding: 0.35em 0.4em;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+.topnav.compact .nav-label {
+  display: none;
+}
+.topnav.compact a {
+  font-size: 1.05rem;
 }
 
 /* ---------- Welcome ---------- */

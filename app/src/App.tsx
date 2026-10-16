@@ -28,6 +28,7 @@ import { HelpDialog } from './ui/components/HelpDialog';
 import { BookReplace } from './ui/components/BookReplace';
 import { ThemeQuickButton } from './ui/components/ThemeQuickButton';
 import { Icon, type IconName } from './ui/components/Icon';
+import { useFitNav } from './ui/useFitNav';
 
 const NAV: [View, string, IconName, string][] = [
   ['home', 'Home', 'home', 'Your book at a glance'],
@@ -131,6 +132,8 @@ export function App() {
 
   const pid = route.projectId;
   const view = route.view;
+  // Section names hide (icons only) when they don't fit beside the title and the search box.
+  const nav = useFitNav<HTMLElement>([project?.kind, pid]);
 
   let page: React.ReactNode;
   if (!pid) page = view === 'settings' ? <SettingsPage projectId={null} /> : <HomePage projectId={null} />;
@@ -198,7 +201,7 @@ export function App() {
             <span className="brand-name">{project?.name ?? 'AuthorDesk'}</span>
           </a>
           {pid && (
-            <nav className="topnav" aria-label="Sections">
+            <nav className={`topnav${nav.level === 1 ? ' tight' : nav.level === 2 ? ' compact' : ''}`} aria-label="Sections" ref={nav.ref}>
               {NAV.filter(([v]) => v !== 'series' || project?.kind === 'series').map(([v, label, icon, hint]) => (
                 <a
                   key={v}
