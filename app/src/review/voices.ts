@@ -2,6 +2,7 @@ import { analyzeDialogue } from '../proofreading/dialogue';
 import type { ContinuityScene } from '../proofreading/continuity';
 import type { ReferenceEntry } from '../domain/schema';
 import { GLUE } from '../proofreading/wordLists';
+import { learnPronouns, mentions, resolvePronoun } from '../proofreading/speakers';
 
 /**
  * Character voices: who talks, how much, and what makes each of them sound like themselves. From the dialogue lines
@@ -48,10 +49,24 @@ export function characterVoices(scenes: readonly (ContinuityScene & { chapterInd
   const acc = new Map<string, Acc>();
   const all = new Map<string, number>();
   let allWords = 0;
+  // Pronouns are learned from the whole book: one scene rarely says enough.
+  const pronouns = learnPronouns(
+    scenes.flatMap((s) => s.paragraphs),
+    chars,
+  );
   for (const s of scenes) {
+    const ms = mentions(s.paragraphs, chars);
     for (const l of analyzeDialogue(s.paragraphs, knownNames).lines) {
-      // In a first-person scene, "I" is the point-of-view character.
-      const c = l.speaker === 'I' ? chars.find((x) => x.id === s.povId) : l.speaker ? byName.get(l.speaker.toLowerCase()) : undefined;
+      // In a first-person scene, "I" is the point-of-view character; "he" and "she" are whoever was last mentioned.
+      const byPronoun = l.speaker ? resolvePronoun(l.speaker, l.block, l.start, ms, pronouns) : null;
+      const c =
+        l.speaker === 'I'
+          ? chars.find((x) => x.id === s.povId)
+          : byPronoun
+            ? chars.find((x) => x.id === byPronoun)
+            : l.speaker
+              ? byName.get(l.speaker.toLowerCase())
+              : undefined;
       if (!c) continue;
       const a = acc.get(c.id) ?? { lines: 0, words: 0, tags: new Map(), vocab: new Map(), sample: null, chapters: new Set() };
       const words = spoken(l.text).match(WORD) ?? [];

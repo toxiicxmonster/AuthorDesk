@@ -48,8 +48,14 @@ const NAME = String.raw`\p{Lu}[\p{Ll}'’-]+(?:\s\p{Lu}[\p{Ll}'’-]+)?`;
 const PRONOUN = '[Hh]e|[Ss]he|[Tt]hey|I|[Ww]e|[Yy]ou|[Ii]t';
 const TAG_AFTER = new RegExp(String.raw`^[\s,]*(?:(${NAME}|${PRONOUN})\s+(${SPEECH})\b|(${SPEECH})\s+(${NAME}|${PRONOUN})\b)`, 'u');
 const TAG_BEFORE = new RegExp(String.raw`(?:^|[.!?]\s+|\s)(${NAME}|${PRONOUN})\s+(${SPEECH})(?:\s+\p{Ll}+)?[,:]?\s*$`, 'u');
-const BEAT = new RegExp(String.raw`(?:^|[.!?]\s+)(${NAME})\s+\p{Ll}+`, 'gu');
-const NOT_SPEAKERS = new Set(['The', 'A', 'An', 'Then', 'But', 'And', 'So', 'When', 'After', 'Before', 'Now', 'Still', 'There', 'This', 'That', 'What', 'Why', 'How']);
+// Sentence starts (a blanked-out quote before it leaves only spaces).
+const BEAT = new RegExp(String.raw`(?:^|[.!?…])\s*(${NAME})\s+\p{Ll}+`, 'gu');
+const NOT_SPEAKERS = new Set([
+  ...['The', 'A', 'An', 'Then', 'But', 'And', 'So', 'When', 'After', 'Before', 'Now', 'Still', 'There', 'This', 'That', 'What', 'Why', 'How'],
+  ...['Your', 'My', 'His', 'Her', 'Their', 'Our', 'Its', 'If', 'Of', 'In', 'On', 'At', 'As', 'For', 'With', 'Maybe', 'Yes', 'No', 'Oh', 'Well', 'Please', 'Sorry', 'Okay', 'Hey', 'Hi', 'Every', 'Each', 'All', 'Some', 'Everything', 'Nothing', 'Something'],
+]);
+// An action beat by a pronoun at the start of a sentence: "He tightened his grip."
+const PRONOUN_BEAT = /(?:^|[.!?…])\s*(He|She|They|I)\s+\p{Ll}+/gu;
 
 /** "Winnie" → "Winnie Hartley" when the full name is listed; otherwise the name as written. */
 function canonical(name: string, knownNames: readonly string[]): string {
@@ -141,19 +147,29 @@ export function analyzeDialogue(texts: readonly string[], knownNames: readonly s
         }
       }
       if (!speaker) {
-        // Action beat anywhere in the paragraph's narration: "Tom shrugged. “Fine.”"
-        const narration = text.replace(/“[^”]*”|"[^"]*"/g, ' ');
+        // Action beat anywhere in the paragraph's narration: "Tom shrugged. “Fine.”" (a quote left open runs to the end).
+        const narration = text.replace(/“[^”]*(?:”|$)|"[^"]*(?:"|$)/g, ' ');
         for (const beat of narration.matchAll(BEAT)) {
           speaker = speakerFrom(beat[1], knownNames);
           if (speaker) break;
+        }
+        if (!speaker) {
+          const p = PRONOUN_BEAT.exec(narration);
+          PRONOUN_BEAT.lastIndex = 0;
+          if (p) speaker = speakerFrom(p[1], knownNames);
         }
       }
       const line: DialogueLine = { block, start: s, end, text: text.slice(s, end), speaker, tag };
       lines.push(line);
       inPara.push(line);
-      if (speaker) flushRun();
-      else unattributed.push(line);
     });
+    // A paragraph is one speaker's: its untagged quotes belong to whoever its tagged ones name.
+    const voices = [...new Set(inPara.map((l) => l.speaker).filter(Boolean))];
+    if (voices.length === 1) for (const l of inPara) l.speaker ??= voices[0];
+    for (const l of inPara) {
+      if (l.speaker) flushRun();
+      else unattributed.push(l);
+    }
     const named = [...new Set(inPara.map((l) => l.speaker).filter((x): x is string => !!x && !/^(?:he|she|they|I|we|you|it)$/.test(x)))];
     if (named.length >= 2) {
       const second = inPara.find((l) => l.speaker === named[1])!;
