@@ -4,7 +4,8 @@
 // automatic backups, and updates itself.
 const fs = require('node:fs');
 const path = require('node:path');
-const { app, BrowserWindow, Menu, dialog, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, screen, shell } = require('electron');
+const windowState = require('./windowState.cjs');
 const { dataDir, findDist, log } = require('./paths.cjs');
 const { PORT, startServer, serverRunning } = require('./server.cjs');
 const addons = require('./addons.cjs');
@@ -109,9 +110,11 @@ async function start() {
 }
 
 function createWindow(moved) {
+  const state = SMOKE_TEST ? { width: 1400, height: 900, maximized: false } : windowState.loadState(screen.getAllDisplays());
   win = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width: state.width,
+    height: state.height,
+    ...(state.x !== undefined ? { x: state.x, y: state.y } : {}),
     minWidth: 360,
     minHeight: 400,
     title: 'AuthorDesk',
@@ -143,6 +146,15 @@ function createWindow(moved) {
   });
   win.webContents.on('did-finish-load', () => setTimeout(() => void countBooks(moved), 3000));
   win.webContents.on('render-process-gone', (_e, d) => log(`Window crashed: ${d.reason}`));
+  if (state.maximized) win.maximize();
+  // Remembered for next time (on close, and as it changes, in case AuthorDesk is closed some other way).
+  let saveTimer;
+  const remember = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => win && !SMOKE_TEST && windowState.saveState(win), 500);
+  };
+  for (const ev of ['resize', 'move', 'maximize', 'unmaximize']) win.on(ev, remember);
+  win.on('close', () => !SMOKE_TEST && windowState.saveState(win));
   win.on('closed', () => (win = null));
   // A self-test can open a particular page (e.g. #/p/<id>/write/<scene>) to check it.
   void win.loadURL(`${ORIGIN}/${SMOKE_TEST ? (process.env.AUTHORDESK_SMOKE_HASH ?? '') : ''}`);

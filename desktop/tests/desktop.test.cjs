@@ -68,6 +68,18 @@ test('a second backup folder gets a copy, and an unplugged one never stops the m
   assert.equal(backup.readConfig().second, null);
 });
 
+test('the window opens where it was left, unless that monitor is gone', () => {
+  const windowState = require('../src/windowState.cjs');
+  const displays = [{ workArea: { x: 0, y: 0, width: 1920, height: 1040 } }];
+  fs.writeFileSync(path.join(process.env.AUTHORDESK_DATA, 'window.json'), JSON.stringify({ x: 100, y: 50, width: 1200, height: 800, maximized: true }));
+  assert.deepEqual(windowState.loadState(displays), { width: 1200, height: 800, x: 100, y: 50, maximized: true });
+  // Left on a second monitor that has since been unplugged: same size, centred by the system.
+  fs.writeFileSync(path.join(process.env.AUTHORDESK_DATA, 'window.json'), JSON.stringify({ x: 2500, y: 50, width: 1200, height: 800 }));
+  assert.deepEqual(windowState.loadState(displays), { width: 1200, height: 800, maximized: false });
+  fs.writeFileSync(path.join(process.env.AUTHORDESK_DATA, 'window.json'), 'nonsense');
+  assert.deepEqual(windowState.loadState(displays), { width: 1400, height: 900, maximized: false });
+});
+
 test('versions compare numerically and each install updates from its own asset', () => {
   assert.equal(updater.compareVersions('v0.10', '0.9'), 1);
   assert.equal(updater.compareVersions('0.9', '0.9.0'), 0);
