@@ -245,6 +245,7 @@ function SceneInspector({ scene, chapter, nextScene }: { scene: Scene; chapter: 
         </select>
       </label>
       <CommitInput label="Time marker" value={scene.timeMarker} placeholder="e.g. Day 3, dawn" onCommit={(v) => upd({ timeMarker: v })} />
+      {!scene.timeMarker.trim() && <TimeFromTimeline scene={scene} onUse={(when) => upd({ timeMarker: when })} />}
       <fieldset className="field">
         <legend>Plot threads</legend>
         {threads.length === 0 && <span className="muted small">No plot threads yet.</span>}
@@ -508,5 +509,23 @@ function HistoryPanel({ scene }: { scene: Scene }) {
         </Modal>
       )}
     </div>
+  );
+}
+
+/** An empty time marker can take the time of the timeline event placed in this scene (or, failing that, its chapter). */
+function TimeFromTimeline({ scene, onUse }: { scene: Scene; onUse: (when: string) => void }) {
+  const event = useLiveQuery(async () => {
+    const events = (await db.timelineEvents.where('projectId').equals(scene.projectId).toArray()).filter((e) => !e.archivedAt && e.when.trim());
+    const order = (list: typeof events) => list.sort((a, b) => (a.sortKey ?? Infinity) - (b.sortKey ?? Infinity))[0];
+    return order(events.filter((e) => e.sceneId === scene.id)) ?? order(events.filter((e) => !e.sceneId && e.chapterId === scene.chapterId)) ?? null;
+  }, [scene.id, scene.chapterId, scene.projectId]);
+  if (!event) return null;
+  return (
+    <p className="small muted">
+      On your timeline: {event.title} ({event.when.trim()}).{' '}
+      <button className="link-btn" onClick={() => onUse(event.when.trim())}>
+        Use “{event.when.trim()}”
+      </button>
+    </p>
   );
 }
