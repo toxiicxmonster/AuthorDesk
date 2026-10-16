@@ -1,4 +1,5 @@
 import { ADVERB_EXCEPTIONS } from '../proofreading/rules';
+import { planPointCount } from '../domain/outlineNotes';
 import { analyzeDialogue } from '../proofreading/dialogue';
 import { GLUE } from '../proofreading/wordLists';
 import { findEchoes } from '../proofreading/echo';
@@ -67,14 +68,14 @@ const PLAN_LINE = /^[-*•–]\s+\S/;
 
 /**
  * The story paragraphs of a scene's text. Planning lines ("- Finn helps her clean up") are notes, not prose, so a
- * scene with two or more of them is measured without them (one dash-led line may be a dialogue dash).
+ * scene with two or more of them is measured without them (one dash-led line holding one point may be a dialogue dash).
  */
 export function proseParagraphs(text: string): string[] {
   const paragraphs = text
     .split(/\n{2,}/)
     .map((p) => p.trim())
     .filter((p) => p && p !== '* * *');
-  return paragraphs.filter((p) => PLAN_LINE.test(p)).length >= 2 ? paragraphs.filter((p) => !PLAN_LINE.test(p)) : paragraphs;
+  return planPointCount(paragraphs.filter((p) => PLAN_LINE.test(p))) >= 2 ? paragraphs.filter((p) => !PLAN_LINE.test(p)) : paragraphs;
 }
 
 /** Sentences of a paragraph (keeps quotes with their sentence). */

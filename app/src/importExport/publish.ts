@@ -6,6 +6,7 @@ import type { Book, Chapter, DocJson, Scene } from '../domain/schema';
 import type { PmNode } from '../domain/text';
 import { countWords } from '../domain/text';
 import type { ExtraPagesText } from '../domain/bookPages';
+import { planPointCount } from '../domain/outlineNotes';
 
 export interface PublishingInfo {
   author: string;
@@ -321,7 +322,7 @@ export function preflight(model: PublishModel, target: 'ebook' | 'print', layout
   }
   if (notes.length) out.push({ level: 'check', message: `Possible leftover notes (TK, TODO or [brackets]) in: ${notes.join(', ')}.` });
   // Planning bullets typed into a chapter ("- Finn helps her clean up") would be printed as story.
-  const outlined = model.chapters.filter((c) => blocksText(c.blocks).split('\n').filter((l) => /^\s*[-*•–]\s+\S/.test(l)).length >= 2).map((c) => c.title);
+  const outlined = model.chapters.filter((c) => planPointCount(blocksText(c.blocks).split('\n').filter((l) => /^\s*[-*•–]\s+\S/.test(l))) >= 2).map((c) => c.title);
   if (outlined.length)
     out.push({
       level: 'check',

@@ -16,6 +16,11 @@ describe('planning notes in a scene', () => {
     expect(outlineLines(d)).toEqual([]);
     expect(withoutOutline(d)).toBe(d);
   });
+  it('counts several points typed on one bullet line', () => {
+    const d = doc('There is two things Finn hates.', '- Winnie wearing Jace number - Finn catches a glimpse of her - He was surprised');
+    expect(outlineLines(d)).toEqual(['- Winnie wearing Jace number - Finn catches a glimpse of her - He was surprised']);
+    expect(docToPlainText(withoutOutline(d)).trim()).toBe('There is two things Finn hates.');
+  });
   it('keeps an empty paragraph when the scene was only a plan, and adds to existing notes', () => {
     expect(withoutOutline(doc('- a', '- b'))).toEqual({ type: 'doc', content: [{ type: 'paragraph' }] });
     expect(notesWithOutline('POV: Finn', ['- a', '- b'])).toBe('POV: Finn\n\nPlan (moved from the text):\n- a\n- b');
