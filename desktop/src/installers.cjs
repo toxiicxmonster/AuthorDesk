@@ -5,7 +5,8 @@
 // They replace the PowerShell scripts the earlier Windows launcher ran, and record the same versions, so add-ons
 // installed by those scripts are recognised as up to date.
 const crypto = require('node:crypto');
-const fs = require('node:fs');
+// Inside Electron, plain fs treats any '.asar' file as an archive to read; unpacking an update must write it as a file.
+const fs = require(process.versions.electron ? 'original-fs' : 'node:fs');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 const { pipeline } = require('node:stream/promises');

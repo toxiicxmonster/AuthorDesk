@@ -1,7 +1,7 @@
 {
   "name": "authordesk-desktop",
   "productName": "AuthorDesk",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Private writing studio for novelists",
   "author": {
     "name": "Bailey McCreary",
@@ -47,7 +47,7 @@
         "to": "LICENSE.txt"
       }
     ],
-    "asar": true,
+    "asar": false,
     "win": {
       "target": "dir",
       "icon": "build/icon.ico"

@@ -5,7 +5,8 @@
 //     helper swaps them in (running files can't be replaced) and keeps the old ones as *.old until the next start.
 //   Linux AppImage: the new AppImage replaces the old file straight away (Linux allows that while it runs).
 //   Other Linux installs (.deb): only says that a new version is out, with a link to it.
-const fs = require('node:fs');
+// Inside Electron, plain fs treats any '.asar' file as an archive to read; unpacking an update must write it as a file.
+const fs = require(process.versions.electron ? 'original-fs' : 'node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');

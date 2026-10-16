@@ -22,6 +22,7 @@ import {
 import { flushAllEdits } from '../../editor/EditorContext';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../storage/db';
+import { withoutChapterNumber } from '../../importExport/publish';
 
 interface Props {
   projectId: string;
@@ -180,6 +181,38 @@ export function Navigator({ projectId, books, book, tree, currentSceneId }: Prop
               run: async () => {
                 const t = await promptDialog('Rename book', 'Title', book.title);
                 if (t?.trim()) await renameBook(book.id, t.trim());
+              },
+            },
+            book && {
+              label: 'Tidy chapter titles…',
+              run: async () => {
+                // "Chapter 8.) An unwanted distraction" → "An unwanted distraction": numbering is automatic everywhere.
+                const changes = tree.chapters
+                  .map((c) => ({ c, next: withoutChapterNumber(c.title) }))
+                  .filter(({ c, next }) => next && next !== c.title.trim());
+                if (!changes.length) return toast('The chapter titles have no typed-in numbers to tidy.');
+                const sample = changes
+                  .slice(0, 4)
+                  .map(({ c, next }) => `“${c.title.trim()}” → “${next}”`)
+                  .join('\n');
+                const ok = await confirmDialog(
+                  `Tidy ${changes.length} chapter title${changes.length === 1 ? '' : 's'}?`,
+                  [
+                    'Removes the chapter numbers typed into titles; AuthorDesk numbers chapters for you.',
+                    sample + (changes.length > 4 ? `\n…and ${changes.length - 4} more` : ''),
+                    'When you export, pick a heading style that shows the number (like “Chapter 1 above each title”).',
+                  ].join('\n\n'),
+                  { confirmLabel: 'Tidy titles' },
+                );
+                if (!ok) return;
+                try {
+                  for (const { c, next } of changes) await updateRecord('chapters', c.id, { title: next });
+                  toast(`Tidied ${changes.length} title${changes.length === 1 ? '' : 's'}.`, {
+                    action: { label: 'Undo', run: () => void Promise.all(changes.map(({ c }) => updateRecord('chapters', c.id, { title: c.title }))) },
+                  });
+                } catch (e) {
+                  reportError(e, 'Couldn’t tidy the titles');
+                }
               },
             },
             book && {

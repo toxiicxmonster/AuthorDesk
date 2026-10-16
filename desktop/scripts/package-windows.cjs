@@ -11,7 +11,8 @@ const { version } = require(path.join(desktop, 'package.json'));
 const short = version.replace(/\.0$/, '');
 const releases = path.join(desktop, '..', 'releases');
 const unpacked = path.join(releases, 'desktop', 'win-unpacked');
-for (const need of ['AuthorDesk.exe', path.join('dist', 'index.html'), path.join('resources', 'app.asar')]) {
+// The app ships as plain files (resources/app), not an app.asar: AuthorDesk 0.9's updater can't unpack an .asar file.
+for (const need of ['AuthorDesk.exe', path.join('dist', 'index.html'), path.join('resources', 'app', 'package.json')]) {
   if (!fs.existsSync(path.join(unpacked, need))) throw new Error(`Missing ${need} in ${unpacked}; run npm run dist:win first.`);
 }
 
