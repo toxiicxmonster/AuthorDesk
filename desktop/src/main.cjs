@@ -220,7 +220,8 @@ async function smokeResult(extra) {
       `(async () => ({ href: location.href, title: document.title, text: document.body.innerText.slice(0, 200), ping: await fetch('/__authordesk_ping').then((r) => r.text()), setup: await fetch('/setup/status').then((r) => r.json()) }))()`,
     )
     .catch((e) => ({ error: String(e) }));
-  const ok = page.title === 'AuthorDesk' && page.ping === 'authordesk' && /AuthorDesk/.test(page.text ?? '');
+  // Served, and the app drew something (the brand on the welcome screen, or a book's own name).
+  const ok = page.title === 'AuthorDesk' && page.ping === 'authordesk' && (page.text ?? '').trim().length > 20;
   process.stdout.write(`SMOKE ${JSON.stringify({ ok, platform: process.platform, version: app.getVersion(), ...extra, ...page })}\n`);
   app.exit(ok ? 0 : 1);
 }
