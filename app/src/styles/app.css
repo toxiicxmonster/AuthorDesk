@@ -3814,3 +3814,26 @@ h3.small-heading {
 [aria-current='true'] > .wc {
   color: inherit;
 }
+/* Versions → what changed */
+.diff-view ins,
+.version-changes > p ins {
+  text-decoration: none;
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+  border-radius: 2px;
+}
+.diff-view del,
+.version-changes > p del {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border-radius: 2px;
+}
+.diff-view p {
+  margin: 0 0 0.7rem;
+}
+.diff-view .fold {
+  display: block;
+  margin: 0.2rem 0 0.8rem;
+}
+.diff-view del + ins {
+  margin-left: 0.15em;
+}

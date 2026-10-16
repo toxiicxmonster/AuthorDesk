@@ -21,6 +21,7 @@ import { DialoguePanel } from './DialoguePanel';
 import { AiEditorPanel } from './AiEditorPanel';
 import { EditPassPanel } from './EditPassPanel';
 import { ChapterSummaryAssist, SceneSummaryAssist } from './SummaryAssist';
+import { VersionChanges } from './VersionChanges';
 
 export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapter: Chapter; nextScene: Scene | null }) {
   const tab = useUi((s) => s.rightTab);
@@ -455,6 +456,7 @@ function HistoryPanel({ scene }: { scene: Scene }) {
     [scene.id],
   );
   const [preview, setPreview] = useState<string | null>(null);
+  const [showChanges, setShowChanges] = useState(true);
   const shown = snaps?.find((s) => s.id === preview);
   return (
     <div>
@@ -475,7 +477,15 @@ function HistoryPanel({ scene }: { scene: Scene }) {
       </ul>
       {shown && (
         <Modal title={`Snapshot from ${new Date(shown.createdAt).toLocaleString()}`} onClose={() => setPreview(null)} wide>
-          <div className="snap-preview">{shown.plainText}</div>
+          <div className="seg" role="tablist" aria-label="Show">
+            <button role="tab" aria-selected={showChanges} className={showChanges ? 'on' : ''} onClick={() => setShowChanges(true)}>
+              What changed since
+            </button>
+            <button role="tab" aria-selected={!showChanges} className={!showChanges ? 'on' : ''} onClick={() => setShowChanges(false)}>
+              This version
+            </button>
+          </div>
+          {showChanges ? <VersionChanges before={shown.plainText} after={scene.plainText} /> : <div className="snap-preview">{shown.plainText}</div>}
           <div className="dialog-actions">
             <button onClick={() => navigator.clipboard?.writeText(shown.plainText).then(() => toast('Copied'))}>Copy text</button>
             <button
