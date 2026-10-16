@@ -50,14 +50,14 @@ const TOPICS: { title: string; body: string[] }[] = [
   {
     title: 'Bringing in a book you already started',
     body: [
-      'Backup & Sync → Import your own files. Put your chapters in a folder called “chapters” (one .md or .txt file each, numbered 01, 02…) and your characters, places, story board and timeline in spreadsheets saved as CSV.',
+      'Backup → Import your own files. Put your chapters in a folder called “chapters” (one .md or .txt file each, numbered 01, 02…) and your characters, places, story board and timeline in spreadsheets saved as CSV.',
       'Click “How to lay out your files” there for a quick guide, or “Download a starter template” for a filled-in example to copy. The complete guide is IMPORTING.md in the AuthorDesk folder. You see a preview before anything is added.',
     ],
   },
   {
     title: 'Keeping your work safe',
     body: [
-      'Your books live in this app on this computer. Make a backup now and then: Backup & Sync → Save backup. Keep a copy somewhere else (USB stick or a cloud folder).',
+      'Your books live in this app on this computer. Make a backup now and then: Backup → Save backup. Keep a copy somewhere else (USB stick or a cloud folder).',
       'Deleted chapters go to Trash at the bottom of the chapter list and can be restored. Every scene also keeps earlier versions under History.',
     ],
   },

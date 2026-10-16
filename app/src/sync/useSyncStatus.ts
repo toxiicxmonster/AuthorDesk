@@ -16,12 +16,12 @@ export function useSyncStatus(projectId: string | null): SyncStatus {
       ...base,
       state: 'local',
       label: 'Local only',
-      detail: 'Saved on this device only. Cross-device sync needs the AuthorDesk sync server (see Backup & Sync).',
+      detail: 'Saved on this device only. Cross-device sync needs the AuthorDesk sync server (see Backup).',
     };
   }
-  if (s.server === 'signed-out') return { ...base, state: 'local', label: 'Not signed in', detail: 'Sign in under Backup & Sync to sync between devices.' };
+  if (s.server === 'signed-out') return { ...base, state: 'local', label: 'Not signed in', detail: 'Sign in under Backup to sync between devices.' };
   if (!online) return { ...base, state: 'offline', label: 'Offline', detail: `Changes are saved here and will sync when you reconnect (${pending} waiting).` };
-  if (conflicts) return { ...base, state: 'conflict', label: `${conflicts} conflict${conflicts === 1 ? '' : 's'}`, detail: 'Both versions were kept. Resolve them under Backup & Sync.' };
+  if (conflicts) return { ...base, state: 'conflict', label: `${conflicts} conflict${conflicts === 1 ? '' : 's'}`, detail: 'Both versions were kept. Resolve them under Backup.' };
   if (s.error) return { ...base, state: 'error', label: 'Sync error', detail: s.error };
   if (s.running) return { ...base, state: 'syncing', label: 'Syncing…', detail: 'Syncing with the server' };
   if (pending) return { ...base, state: 'syncing', label: `${pending} to sync`, detail: 'Local changes are waiting to upload.' };

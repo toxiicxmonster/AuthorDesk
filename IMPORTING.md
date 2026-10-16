@@ -2,7 +2,7 @@
 
 This guide explains exactly how to lay out your files so AuthorDesk can bring in your **chapters, characters, locations, other world notes, story board, timeline, plot threads and research notes** in one go.
 
-- In the app: **Backup & Sync → Import your own files → Choose a folder…** (or *Choose a .zip or files…*).
+- In the app: **Backup → Import your own files → Choose a folder…** (or *Choose a .zip or files…*).
 - On a brand-new install: choose **Bring in my existing book** on the welcome screen.
 - You always see a preview first. Nothing you already have is changed or deleted. Chapters are added after your existing ones. (A brand-new book's empty "Chapter 1" is moved to Trash so your chapters come first.)
 
@@ -286,7 +286,7 @@ Fresnel lenses focused a small flame into a beam visible for miles.
 
 Nothing is sent anywhere: the import runs entirely on your computer.
 
-**Moving a whole project between AuthorDesk installs?** Don't use this. Use **Backup & Sync → Save backup** and **Restore a backup**; that keeps everything, including history and links.
+**Moving a whole project between AuthorDesk installs?** Don't use this. Use **Backup → Save backup** and **Restore a backup**; that keeps everything, including history and links.
 
 ## Troubleshooting
 

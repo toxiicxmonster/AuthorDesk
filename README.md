@@ -6,10 +6,10 @@
 
 ![The AuthorDesk editor: a tense slip underlined, with the AI Editor's fix in the popover and side panel](docs/screenshots/editor.jpg)
 
-- **Your writing stays on your computer.** No account, no cloud, no subscription, no analytics. Nothing leaves your device unless you set up sync or Google Drive yourself.
+- **Your writing stays on your computer.** No account, no cloud, no subscription, no analytics. Your writing never leaves your computer unless you turn on sync, Google Drive or the online grammar check yourself.
 - **A grammar checker and AI editor that run offline.** LanguageTool and an open-source AI model (llama.cpp) run on your own computer: no limits, no monthly fee, and your manuscript never trains anyone's model.
-- **Built for fiction.** It knows your characters' names, catches echo words and continuity slips, reviews pacing chapter by chapter, and keeps the details of every book in a series straight.
-- **You own your data.** Automatic backups are ordinary zip files with plain JSON inside; export to Word, Markdown, text, EPUB, PDF and CSV at any time.
+- **Built for fiction.** It knows your characters' names, catches tense slips, echo words and continuity slips, reviews pacing chapter by chapter, and keeps the details of every book in a series straight.
+- **You own your data.** Automatic backups are ordinary zip files with plain JSON inside; export to Word, Markdown, text, JSON, EPUB, PDF and CSV at any time.
 
 ## Why AuthorDesk?
 
@@ -57,6 +57,7 @@ All taken with the sample book that comes with the app.
 - [Project status](#project-status)
 - [Known limitations](#known-limitations)
 - [Documentation](#documentation)
+- [License](#license)
 
 ---
 
@@ -125,6 +126,8 @@ A full walk-through is in the [**user guide**](docs/user-guide.md).
 | Ctrl+Alt+F | Focus mode (Esc exits) |
 | Ctrl+\\ | Show or hide the chapter list |
 | F1 or ? | Help |
+| Ctrl+= / Ctrl+- / Ctrl+0 | Zoom in / out / reset |
+| F11 | Full screen |
 
 ---
 
@@ -185,17 +188,17 @@ The desktop app (`desktop/`) is an [Electron](https://www.electronjs.org/) shell
 
 Your books are stored in the app's own database (IndexedDB), in the AuthorDesk data folder: `%LOCALAPPDATA%\AuthorDesk\App` on Windows, `~/.local/share/AuthorDesk/App` on Linux. **File → Open data folder** opens it.
 
-- **Automatic backups** go to `Documents/AuthorDesk Backups` (or a folder you choose in **Backup & Sync**), one folder per book, outside the app's storage.
-- **Back up regularly:** go to **Backup & Sync → Save backup** for a complete `.authorproj` archive, and keep copies off this computer (a USB drive or a cloud folder). AuthorDesk reminds you when a backup is overdue.
-- **To restore:** go to **Backup & Sync → Import**, choose the archive, review the preview, then choose **Restore**, **Merge** or **Import as a copy**.
+- **Automatic backups** go to `Documents/AuthorDesk Backups` (or a folder you choose under **Backup → Automatic backups**), one folder per book, outside the app's storage.
+- **Back up regularly:** go to **Backup → Save backup** for a complete `.authorproj` archive, and keep copies off this computer (a USB drive or a cloud folder). AuthorDesk reminds you when a backup is overdue.
+- **To restore:** go to **Backup → Restore an AuthorDesk backup** (or **Restore a backup** on the welcome screen), choose the archive, review the preview, then choose **Restore**, **Merge** or **Import as a copy**.
 - Archives are zip files with plain JSON inside (`data/*.json`), so your work is never locked in.
-- Every scene keeps revision snapshots automatically; see the **History** tab in the writing view.
+- Every scene keeps revision snapshots automatically; see the **Versions** tab in the side panel of the writing view.
 
 ---
 
 ## Bringing in an existing book
 
-Go to **Backup & Sync → Import your own files**, or choose **Bring in my existing book** on the welcome screen.
+Go to **Backup → Import**, or choose **Bring in my existing book** on the welcome screen.
 
 ```
 My Book/
@@ -219,13 +222,13 @@ Word `.docx` files can't be imported directly. Save chapters from Word as `.txt`
 
 ## Publishing on Amazon KDP
 
-Go to **Backup & Sync → Publish on Amazon KDP…**, or press Ctrl+K and type *Publish*.
+Go to **Backup → Publish on Amazon KDP…**, or press Ctrl+K and type *Publish*.
 
 | Format | Use it for |
 | --- | --- |
 | **Kindle eBook (EPUB)** | Recommended for Kindle. EPUB 3 with navigation, landmarks, NCX and an optional cover. |
 | **Kindle eBook (Word)** | A `.docx` with Heading 1 chapters, as KDP expects. |
-| **Paperback / hardcover** | A print-ready interior `.docx` at your chosen KDP trim size. |
+| **Paperback / hardcover** | A print-ready interior at your chosen KDP trim size: a **PDF typeset by AuthorDesk** (recommended; two bundled book fonts) or a `.docx` to adjust in Word. |
 
 The print interior gets:
 - mirrored margins sized to KDP's gutter rules for your page count
@@ -234,9 +237,9 @@ The print interior gets:
 - title, copyright, dedication, epigraph, acknowledgements, about-the-author and "also by" pages
 - curly quotes and em dashes (applied to the exported copy only)
 
-The **table of contents** is optional. In eBooks its entries link to each chapter. In print it is either a chapter list or one with dot leaders and page numbers. Page numbers are filled in by Microsoft Word, so open the file in Word, click **Yes** to update fields, and save before uploading.
+The **table of contents** is optional. In eBooks its entries link to each chapter. In print it is either a chapter list or one with dot leaders and page numbers. The typeset PDF has real page numbers already; in the Word file they're filled in by Microsoft Word, so open it in Word, click **Yes** to update fields, and save before uploading.
 
-The pre-publish checklist warns about missing author details, empty chapters, leftover "TK"/"TODO" notes, and books outside KDP's 24–828 print-page limits. Book details (author, ISBN, imprint, dedication…) are saved with the book.
+The pre-publish checklist warns about missing author details, empty chapters, leftover "TK"/"TODO" notes, and books outside KDP's 24–828 print-page limits. Book details (author, ISBN, imprint…) are saved with the book; dedication, epigraph, acknowledgements, About the Author and "Also by" pages come from **Book pages** on Home.
 
 Upload the file as the **manuscript** on KDP's Content page. Check print interiors in KDP's **Print Previewer** (same trim size, *No bleed*) and eBooks in **Kindle Previewer**. Covers are uploaded separately.
 
@@ -270,7 +273,7 @@ Release builds **don't include a Google client ID**, so the Drive buttons say Dr
 
 AuthorDesk asks only for the `drive.file` permission, so it can see only the files it creates. The access token is kept in memory and never stored.
 
-Until you've set that up, you can **Save backup** straight into a Google Drive for Desktop folder.
+Until you've set that up, point **Automatic backups** at a Google Drive for Desktop folder, or **Save backup** straight into one.
 
 ---
 
@@ -320,7 +323,8 @@ app/                React + TypeScript + Vite PWA
 server/             self-hostable sync server (Node, no dependencies, SQLite)
 desktop/            desktop app (Electron): window, local server, add-on installers, backups, updater
 scripts/            make-icons.ps1
-docs/               user guide, architecture, ADRs, setup guides, import template
+docs/               user guide, architecture, ADRs, setup guides, import template, screenshots
+.github/workflows/  Linux build and checks
 PROJECT.md          product specification
 IMPLEMENTATION_PLAN.md  phase-by-phase status
 IMPORTING.md        exact import layout
@@ -332,7 +336,7 @@ IMPORTING.md        exact import layout
 
 ## Privacy and security
 
-- **No analytics, tracking or third-party services.** Proofreading runs entirely on your device.
+- **No analytics or tracking.** Proofreading runs entirely on your device. The only connections AuthorDesk makes on its own are a check for new versions on GitHub and, when you install add-ons, their downloads (from GitHub, Hugging Face, languagetool.org and Eclipse Adoptium), each checked against a published checksum or exact size.
 - **No manuscript text is ever sent anywhere** unless you turn on sync, Drive or the online grammar check. Sync and Drive go only to your own server or your own Drive. The online check sends only the paragraphs of the scene you're editing, and only after you agree to an explanation of exactly what is sent (Settings → Proofreading).
 - **AuthorDesk never silently changes your prose.** Every proofreading change is your click, and it can be undone.
 - **No secrets** in the app bundle or this repository. `.env`, `sync-server.txt`, databases and backups are git-ignored.
@@ -353,7 +357,8 @@ IMPORTING.md        exact import layout
 | --- | --- |
 | Writing, navigation, references, planning, proofreading, search, archives, import, themes | ✅ Done and tested |
 | AI Editor, grammar engine, review and edit passes, series, maps, automatic backups | ✅ Done, tested, and checked in the running app |
-| Amazon KDP export | 🟡 Done and tested; needs a real KDP upload and an EPUBCheck run |
+| Desktop app | ✅ Windows: built and checked on a real PC (books moved over from 0.8, add-ons, editor). Linux: AppImage and `.deb` built, started and checked automatically on Ubuntu 24.04, with the add-on installers; not yet tried by hand on a Linux desktop |
+| Amazon KDP export | 🟡 Done and tested; files checked (PDF pages rendered, EPUB structure, Word layout); needs a real KDP upload and an EPUBCheck run |
 | Sync | 🟡 Done and tested with simulated devices and a local phone test; needs an HTTPS deployment and a real phone install |
 | Google Drive | 🟡 Built; needs a real account round-trip test |
 | Formal screen-reader audit, Android PWA install test, deployed-server security review | ⬜ Not yet done |
@@ -385,3 +390,9 @@ Details: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | [docs/adr/](docs/adr/) | Architecture decision records |
 | [PROJECT.md](PROJECT.md) | Product specification |
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Phase-by-phase status |
+
+---
+
+## License
+
+AuthorDesk is free software under the [GNU General Public License v3](LICENSE). You may use, study, share and change it; if you distribute a changed version, it must stay under the same license with its source available.

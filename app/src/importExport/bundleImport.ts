@@ -808,7 +808,7 @@ export async function starterTemplateZip(): Promise<Uint8Array> {
     files[`AuthorDesk import template/${rel}`] = strToU8(text);
   }
   files['AuthorDesk import template/README.txt'] = strToU8(
-    'Replace the example content with your own, keep the file and folder names, then choose\nBackup & Sync > Import your own files > Choose a folder (or the zipped folder).\nFull instructions: IMPORTING.md in the AuthorDesk folder, or Help inside the app.\nDelete any file you do not need; every file is optional.\n',
+    'Replace the example content with your own, keep the file and folder names, then choose\nBackup > Import your own files > Choose a folder (or the zipped folder).\nFull instructions: IMPORTING.md in the AuthorDesk folder, or Help inside the app.\nDelete any file you do not need; every file is optional.\n',
   );
   return zipSync(files);
 }

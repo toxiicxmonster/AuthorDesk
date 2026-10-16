@@ -25,7 +25,7 @@ Click **◐** in the top bar to switch between Paper, Sepia, Pastel Blue, Sage, 
 - Toolbar: bold, italic, underline, heading, block quote, scene break (⁂), undo/redo, link to reference (🔗), find (🔍), snapshot (📸), focus mode (◎).
 - Chapter ⋯ menu: rename, move, add scene, insert chapter after, pin, put in a part, Move to Trash (restore it from 🗑 Trash at the bottom of the list). Double-click a chapter to rename it. Drag chapters or scenes to reorder; drop a scene on another chapter to move it.
 - **Scene notes** tab (right panel): chapter/scene titles, summaries, status, POV, location, time marker, plot threads, notes, split at cursor, merge with next, create a board card.
-- **History tab:** snapshots of the scene; preview, copy or restore (your current text is snapshotted first).
+- **Versions tab:** snapshots of the scene; preview, copy or restore (your current text is snapshotted first).
 - **Pacing strip:** the thin strip to the right of the page draws the scene's rhythm, one tick per sentence from top to bottom, wider for longer sentences. Dialogue ticks are in the accent colour and narration in grey, long sentences (30+ words) are orange, and an orange edge marks paragraphs of 150+ words. The outlined band is the part on screen; click anywhere on the strip to jump there. Hover it for a summary. Turn it off in Settings → Writing page; it hides in Focus mode.
 
 ## References
@@ -104,7 +104,7 @@ A birth date or story time given only as a year allows a year either way. *This 
 
 ## Publishing on Amazon KDP
 
-Backup & Sync → **Publish on Amazon KDP…** (or Ctrl+K → *Publish*).
+**Backup** → **Publish on Amazon KDP…** (or Ctrl+K → *Publish*).
 
 1. Choose **Kindle eBook** (EPUB, recommended), **Kindle eBook (Word)**, or **Paperback / hardcover** (pick the trim size you'll select on KDP, a font and text size).
 2. Choose how chapter headings look and which extra pages to include (title, copyright, **table of contents**). The book-page menus (Dedication, About the Author, and Epigraph, Acknowledgements and Also by once you've written one) pick the pages you wrote on Home (automatically, a different one, or none). eBook contents link to each chapter (Kindle's own Go To menu is always included). For print you can list chapters only, or add page numbers — those are filled in by Microsoft Word, so open the file in Word, choose **Yes** when it asks to update fields, and save before uploading. Curly quotes and em dashes are applied to the exported copy only — your manuscript isn't changed.
@@ -117,11 +117,11 @@ If you change the book later, export again and re-upload; KDP replaces the old f
 
 ## Bringing in an existing book
 
-Backup & Sync → **Import your own files** (or *Bring in my existing book* on the welcome screen). Chapters go in a `chapters/` folder as `.md` or `.txt` files; characters, places, the story board, timeline and plot threads go in CSV spreadsheets. Every detail is in [IMPORTING.md](../IMPORTING.md).
+Backup → **Import your own files** (or *Bring in my existing book* on the welcome screen). Chapters go in a `chapters/` folder as `.md` or `.txt` files; characters, places, the story board, timeline and plot threads go in CSV spreadsheets. Every detail is in [IMPORTING.md](../IMPORTING.md).
 
 ## Backups
 
-Backup & Sync → **Save backup** regularly and keep copies elsewhere (USB drive, cloud folder). To restore: **Import** → choose the file → review → Restore, Merge, or Import as a copy. Exports to Word, text, Markdown, JSON and CSV are there too.
+**Backup** → **Save backup** regularly and keep copies elsewhere (USB drive, cloud folder). To restore: **Restore an AuthorDesk backup** → choose the file → review → Restore, Merge, or Import as a copy. Exports to Word, text, Markdown, JSON and CSV are there too.
 
 ## Keyboard shortcuts
 

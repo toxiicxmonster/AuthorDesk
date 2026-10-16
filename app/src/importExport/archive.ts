@@ -87,7 +87,7 @@ export async function buildArchive(projectId: string, opts: { includeSnapshots?:
   };
   files['manifest.json'] = strToU8(JSON.stringify(manifest, null, 2));
   files['README.txt'] = strToU8(
-    `AuthorDesk project archive for "${project.name}".\nExported ${manifest.exportedAt}.\n\nRestore it in AuthorDesk via Backup & Sync → Import.\nThe data/ folder holds plain JSON so your work is never locked in.\n`,
+    `AuthorDesk project archive for "${project.name}".\nExported ${manifest.exportedAt}.\n\nRestore it in AuthorDesk via Backup → Import.\nThe data/ folder holds plain JSON so your work is never locked in.\n`,
   );
   return { bytes: zipSync(files, { level: 6 }), manifest };
 }

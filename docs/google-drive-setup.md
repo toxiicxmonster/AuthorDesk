@@ -27,7 +27,7 @@ New client IDs can take a few minutes (occasionally longer) to start working; an
 
 ## Using it
 
-Backup & Sync → **Connect Google Drive** opens Google’s own sign-in window (AuthorDesk never sees your password). Because the app is in *Testing*, Google shows **“Google hasn’t verified this app”** — that is expected for your own client; choose **Continue**. Then:
+Backup → **Connect Google Drive** opens Google’s own sign-in window (AuthorDesk never sees your password). Because the app is in *Testing*, Google shows **“Google hasn’t verified this app”** — that is expected for your own client; choose **Continue**. Then:
 
 - **Back up to Drive now** uploads a new, timestamped `.authorproj` file to the “AuthorDesk Backups” folder. Existing backups are never overwritten.
 - The list shows backups in that folder; **Restore…** downloads one and shows the normal import preview before anything changes.

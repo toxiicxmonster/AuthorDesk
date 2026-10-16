@@ -60,7 +60,7 @@ const VIEWS: [View, string, string][] = [
   ['threads', '🧵', 'Plot Threads'],
   ['notes', '🗒', 'Notes & Research'],
   ['search', '🔍', 'Search all text'],
-  ['data', '⇅', 'Backup & Sync'],
+  ['data', '⇅', 'Backup, export & sync'],
   ['settings', '⚙', 'Settings'],
 ];
 

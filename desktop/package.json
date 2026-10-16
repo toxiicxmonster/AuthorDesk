@@ -7,7 +7,7 @@
     "name": "Bailey McCreary",
     "email": "toxiicxmonster@users.noreply.github.com"
   },
-  "license": "UNLICENSED",
+  "license": "GPL-3.0",
   "private": true,
   "main": "src/main.cjs",
   "scripts": {
@@ -41,6 +41,10 @@
       {
         "from": "../app/dist",
         "to": "dist"
+      },
+      {
+        "from": "../LICENSE",
+        "to": "LICENSE.txt"
       }
     ],
     "asar": true,
