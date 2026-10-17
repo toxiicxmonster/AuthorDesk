@@ -124,7 +124,8 @@ function createWindow(moved) {
     autoHideMenuBar: true,
     show: !SMOKE_TEST,
     icon: path.join(__dirname, 'icon.png'),
-    webPreferences: { contextIsolation: true, sandbox: true, spellcheck: false },
+    // The self-test's window is hidden; without throttling it keeps painting, so its screenshot shows the page as it is.
+    webPreferences: { contextIsolation: true, sandbox: true, spellcheck: false, backgroundThrottling: !SMOKE_TEST },
   });
 
   // Links to the web open in the normal browser; Google sign-in (for Google Drive backups) stays in a small window.
