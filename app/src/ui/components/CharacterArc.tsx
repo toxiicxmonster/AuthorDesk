@@ -53,9 +53,9 @@ export function CharacterArc({ r, all }: { r: ReferenceEntry; all: ReferenceEntr
                 <button
                   key={chapters[i].key}
                   role="listitem"
-                  className={`arc-cell${n ? ' on' : ''}`}
+                  className={`arc-cell${n ? ' on' : chapterWritten(chapters[i]) ? '' : ' unwritten'}`}
                   style={n ? { opacity: 0.35 + (0.65 * n) / most } : undefined}
-                  title={`${chapters[i].title}: ${n ? `${p.mentions} mention${p.mentions === 1 ? '' : 's'}${p.lines ? `, ${p.lines} line${p.lines === 1 ? '' : 's'} of dialogue` : ''}` : 'not here'}`}
+                  title={`${chapters[i].title}: ${n ? `${p.mentions} mention${p.mentions === 1 ? '' : 's'}${p.lines ? `, ${p.lines} line${p.lines === 1 ? '' : 's'} of dialogue` : ''}` : chapterWritten(chapters[i]) ? 'not here' : 'not written yet'}`}
                   disabled={!p.sceneId}
                   onClick={() => p.sceneId && navigate(r.projectId, 'write', p.sceneId, { find: r.name.split(/\s+/)[0] })}
                 />

@@ -3473,7 +3473,7 @@ code.path {
   flex: 0 0 14px;
   height: 22px;
   padding: 0;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--muted) 60%, transparent);
   border-radius: 3px;
   background: transparent;
 }
@@ -3481,6 +3481,9 @@ code.path {
   background: var(--accent);
   border-color: var(--accent);
   cursor: pointer;
+}
+.arc-cell.unwritten {
+  border-style: dashed;
 }
 
 /* AI summaries in the Scene notes tab. */
