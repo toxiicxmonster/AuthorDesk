@@ -363,8 +363,30 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
               <span className="muted small">You also upload the cover separately on KDP.</span>
             </div>
           )}
+        </section>
 
-          <h3>2. How it looks</h3>
+        <section>
+          <h3>2. Book details</h3>
+          <div className="two-col">
+            <CommitInput label="Title" value={book.title} onCommit={(v) => v.trim() && void renameBook(book.id, v.trim())} />
+            <CommitInput label="Subtitle (optional)" value={book.subtitle} onCommit={(v) => void updateRecord('books', book.id, { subtitle: v })} />
+            <CommitInput label="Author name (as on the cover)" value={info.author} onCommit={(v) => saveInfo({ author: v.trim() })} />
+            <CommitInput label="Copyright year" value={info.copyrightYear} onCommit={(v) => saveInfo({ copyrightYear: v.trim() })} />
+            <CommitInput label="Publisher / imprint (optional)" value={info.publisher} onCommit={(v) => saveInfo({ publisher: v.trim() })} />
+            <CommitInput label={choices.format === 'print' ? 'ISBN (optional — KDP can give you a free one)' : 'ISBN (optional — not needed for Kindle)'} value={info.isbn} onCommit={(v) => saveInfo({ isbn: v.trim() })} />
+            <label className="field">
+              <span>Language</span>
+              <select value={info.language} onChange={(e) => saveInfo({ language: e.target.value })}>
+                {LANGS.map(([c, n]) => (
+                  <option key={c} value={c}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <h3>3. How it looks</h3>
           <label className="field">
             <span>Chapter headings</span>
             <select value={choices.options.headingStyle} onChange={(e) => setOpt({ headingStyle: e.target.value as HeadingStyle })}>
@@ -397,28 +419,6 @@ export function KdpExportDialog({ projectId, bookId, onClose }: { projectId: str
             </label>
           </div>
           <ExtraPagesPicker projectId={projectId} bookId={bookId} value={pageChoice} onChange={setPageChoice} />
-        </section>
-
-        <section>
-          <h3>3. Book details</h3>
-          <div className="two-col">
-            <CommitInput label="Title" value={book.title} onCommit={(v) => v.trim() && void renameBook(book.id, v.trim())} />
-            <CommitInput label="Subtitle (optional)" value={book.subtitle} onCommit={(v) => void updateRecord('books', book.id, { subtitle: v })} />
-            <CommitInput label="Author name (as on the cover)" value={info.author} onCommit={(v) => saveInfo({ author: v.trim() })} />
-            <CommitInput label="Copyright year" value={info.copyrightYear} onCommit={(v) => saveInfo({ copyrightYear: v.trim() })} />
-            <CommitInput label="Publisher / imprint (optional)" value={info.publisher} onCommit={(v) => saveInfo({ publisher: v.trim() })} />
-            <CommitInput label={choices.format === 'print' ? 'ISBN (optional — KDP can give you a free one)' : 'ISBN (optional — not needed for Kindle)'} value={info.isbn} onCommit={(v) => saveInfo({ isbn: v.trim() })} />
-            <label className="field">
-              <span>Language</span>
-              <select value={info.language} onChange={(e) => saveInfo({ language: e.target.value })}>
-                {LANGS.map(([c, n]) => (
-                  <option key={c} value={c}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
         </section>
       </div>
 
