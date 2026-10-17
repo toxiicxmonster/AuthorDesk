@@ -25,13 +25,14 @@ export function ThreadsPage({ projectId, selectedId }: { projectId: string; sele
     const cards = (await db.boardCards.where('bookId').equals(book.id).toArray()).filter((c) => !c.archivedAt);
     return { chapters, scenes, cards };
   }, [book?.id]);
+  // Chapters with story text; the ones still to be written are dimmed and don't count toward a quiet stretch.
+  const written = useMemo(
+    () => new Set((data?.chapters ?? []).flatMap((c, i) => (data!.scenes.some((sc) => sc.chapterId === c.id && !sc.archivedAt && proseParagraphs(sc.plainText).length > 0) ? [i] : []))),
+    [data],
+  );
   const appearances = useMemo(
-    () => {
-      if (!data) return [];
-      const written = new Set(data.chapters.flatMap((c, i) => (data.scenes.some((sc) => sc.chapterId === c.id && !sc.archivedAt && proseParagraphs(sc.plainText).length > 0) ? [i] : [])));
-      return threadAppearances(threads, data.chapters, data.scenes, data.cards, settings.staleThreadChapters, written);
-    },
-    [threads, data, settings.staleThreadChapters],
+    () => (data ? threadAppearances(threads, data.chapters, data.scenes, data.cards, settings.staleThreadChapters, written) : []),
+    [threads, data, settings.staleThreadChapters, written],
   );
   const selected = threadsAll.find((t) => t.id === selectedId) ?? null;
 
@@ -86,7 +87,7 @@ export function ThreadsPage({ projectId, selectedId }: { projectId: string; sele
                 <tr>
                   <th scope="col">Thread</th>
                   {data.chapters.map((c, i) => (
-                    <th key={c.id} scope="col" title={c.title}>
+                    <th key={c.id} scope="col" title={written.has(i) ? c.title : `${c.title} (not written yet)`} className={written.has(i) ? '' : 'unwritten'}>
                       <a href={`#/p/${projectId}/write/${data.scenes.filter((s) => s.chapterId === c.id && !s.archivedAt).sort((a, b) => a.order - b.order)[0]?.id ?? ''}`}>{i + 1}</a>
                     </th>
                   ))}
@@ -107,7 +108,7 @@ export function ThreadsPage({ projectId, selectedId }: { projectId: string; sele
                         )}
                       </th>
                       {data.chapters.map((c, i) => (
-                        <td key={c.id} className={a?.chapters.includes(i) ? 'hit' : ''} aria-label={a?.chapters.includes(i) ? `Appears in ${c.title}` : undefined}>
+                        <td key={c.id} className={a?.chapters.includes(i) ? 'hit' : written.has(i) ? '' : 'unwritten'} aria-label={a?.chapters.includes(i) ? `Appears in ${c.title}` : undefined}>
                           {a?.chapters.includes(i) ? '●' : ''}
                         </td>
                       ))}

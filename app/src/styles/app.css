@@ -3990,3 +3990,10 @@ h3.small-heading {
 .nowrap {
   white-space: nowrap;
 }
+/* Plot threads grid: chapters not written yet. */
+.thread-grid .unwritten {
+  background: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--muted) 18%, transparent) 4px 5px);
+}
+.thread-grid th.unwritten a {
+  color: var(--text-2);
+}
