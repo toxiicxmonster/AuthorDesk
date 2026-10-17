@@ -131,8 +131,11 @@ function LayoutHelp({ onClose }: { onClose: () => void }) {
         </li>
       </ul>
       <p className="small">
-        The full guide with every column name is in <code>IMPORTING.md</code> in the AuthorDesk folder. The starter template contains a filled-in example of
-        each file.
+        The{' '}
+        <a href="https://github.com/toxiicxmonster/AuthorDesk/blob/main/IMPORTING.md" target="_blank" rel="noreferrer">
+          full importing guide
+        </a>{' '}
+        lists every column name. The starter template contains a filled-in example of each file.
       </p>
     </Modal>
   );
