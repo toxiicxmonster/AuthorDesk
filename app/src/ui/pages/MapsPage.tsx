@@ -245,7 +245,7 @@ function FamilyTreeView({ projectId, refs }: { projectId: string; refs: Referenc
         From the family words in each character’s relationships. Solid: parent and child · double: married · dotted: siblings · dashed: grandparents, aunts, uncles and cousins.
       </p>
       <div className="table-scroll">
-        <svg className="family-tree" viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label="Family tree">
+        <svg className="family-tree" viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="group" aria-label="Family tree">
           {tree.edges.map((e) => {
             const a = at.get(e.from)!;
             const b = at.get(e.to)!;

@@ -1018,6 +1018,7 @@ details.banner {
   font-size: 0.8rem;
   min-height: 28px;
 }
+/* Labels use the underline colours blended toward the text colour: small text needs more contrast than a line. */
 .sev {
   font-size: 0.72rem;
   font-weight: 600;
@@ -1025,25 +1026,25 @@ details.banner {
   letter-spacing: 0.04em;
 }
 .sev-error {
-  color: var(--err-line);
+  color: color-mix(in srgb, var(--err-line) 65%, var(--text));
 }
 .sev-warning {
   color: var(--warn);
 }
 .sev-style {
-  color: var(--style-line);
+  color: color-mix(in srgb, var(--style-line) 65%, var(--text));
 }
 .sev-note {
-  color: var(--note-line);
+  color: color-mix(in srgb, var(--note-line) 65%, var(--text));
 }
 .sev-echo {
-  color: var(--echo-line);
+  color: color-mix(in srgb, var(--echo-line) 65%, var(--text));
 }
 .sev-hard {
-  color: var(--hard-line);
+  color: color-mix(in srgb, var(--hard-line) 65%, var(--text));
 }
 .sev-conflict {
-  color: var(--conflict-line);
+  color: color-mix(in srgb, var(--conflict-line) 65%, var(--text));
 }
 .workspace.focus .center {
   background: var(--page);
