@@ -139,7 +139,7 @@ export function themeTokens(c: ThemeColors): Record<string, string> {
     '--on-accent': onColor(c.accent),
     '--focus': dark ? '#7fb0ea' : '#2f6db5',
     '--danger': dark ? '#e4836f' : '#a33b2b',
-    '--warn': dark ? '#e0b04c' : '#8a6100',
+    '--warn': dark ? '#e0b04c' : '#7a5600',
     '--ok': dark ? '#7cc48a' : '#2f6b3a',
     '--err-line': dark ? '#e4836f' : '#c0392b',
     '--warn-line': dark ? '#e0b04c' : '#c58b00',

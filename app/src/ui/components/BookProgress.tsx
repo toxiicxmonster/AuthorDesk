@@ -48,6 +48,9 @@ export function BookProgress({ projectId, book, tree, wordlog }: { projectId: st
   const streak = writingStreak(wordlog);
   const weeks = calendarWeeks(12);
   const most = Math.max(1, ...Object.values(wordlog));
+  const shownDays = weeks.flat().filter((k): k is string => !!k);
+  const daysWritten = shownDays.filter((k) => (wordlog[k] ?? 0) > 0).length;
+  const wordsInWeeks = shownDays.reduce((n, k) => n + Math.max(0, wordlog[k] ?? 0), 0);
   const size = PAGE_SIZES.find((s) => s.id === sizeId) ?? PAGE_SIZES.find((s) => s.id === DEFAULT_PAGE_SIZE)!;
 
   const chooseSize = (id: string) => {
@@ -171,16 +174,45 @@ export function BookProgress({ projectId, book, tree, wordlog }: { projectId: st
       <h3>
         Writing streak: {streak} day{streak === 1 ? '' : 's'}
       </h3>
-      <div className="streak-cal" role="img" aria-label={`Words written per day, last 12 weeks. Current streak ${streak} days.`}>
-        {weeks.map((w, i) => (
-          <div key={i} className="streak-week">
-            {w.map((k, j) => {
-              const n = k ? (wordlog[k] ?? 0) : 0;
-              return <span key={j} className={`streak-day${!k ? ' future' : n > 0 ? ' on' : ''}`} style={n > 0 ? { opacity: 0.3 + (0.7 * n) / most } : undefined} title={k ? `${k}: ${n.toLocaleString()} words` : undefined} />;
+      <div className="streak-wrap">
+        <div className="streak-days" aria-hidden>
+          {['Mon', '', 'Wed', '', 'Fri', '', ''].map((d, i) => (
+            <span key={i}>{d}</span>
+          ))}
+        </div>
+        <div>
+          <div className="streak-months" aria-hidden>
+            {weeks.map((w, i) => {
+              const month = (k: string | null | undefined) => (k ? fromKey(k).toLocaleDateString(undefined, { month: 'short' }) : '');
+              // A month's name over its first week; the first column only when it isn't a month's last few days.
+              const starts = i === 0 ? month(w[0]) === month(weeks[1]?.[0]) : month(w[0]) !== month(weeks[i - 1][0]);
+              return <span key={i}>{starts ? month(w[0]) : ''}</span>;
             })}
           </div>
-        ))}
+          <div className="streak-cal" role="img" aria-label={`Words written per day, last 12 weeks. Current streak ${streak} days.`}>
+            {weeks.map((w, i) => (
+              <div key={i} className="streak-week">
+                {w.map((k, j) => {
+                  const n = k ? (wordlog[k] ?? 0) : 0;
+                  const day = k ? fromKey(k).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+                  return <span key={j} className={`streak-day${!k ? ' future' : n > 0 ? ' on' : ''}`} style={n > 0 ? { opacity: 0.3 + (0.7 * n) / most } : undefined} title={k ? `${day}: ${n.toLocaleString()} words` : undefined} />;
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+      {daysWritten > 0 && (
+        <p className="small muted">
+          Wrote on {daysWritten} day{daysWritten === 1 ? '' : 's'} in the last 12 weeks · {wordsInWeeks.toLocaleString()} words
+        </p>
+      )}
     </section>
   );
+}
+
+/** A "2026-10-15" day key as a local date. */
+function fromKey(k: string): Date {
+  const [y, m, d] = k.split('-').map(Number);
+  return new Date(y, m - 1, d);
 }

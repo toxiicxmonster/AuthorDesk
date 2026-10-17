@@ -12,7 +12,7 @@
   --on-accent: #ffffff;
   --focus: #2f6db5;
   --danger: #a33b2b;
-  --warn: #8a6100;
+  --warn: #7a5600;
   --ok: #2f6b3a;
   --err-line: #c0392b;
   --warn-line: #c58b00;
@@ -3544,11 +3544,39 @@ code.path {
   width: 6.5em;
   padding: 0.15rem 0.35rem;
 }
+.streak-wrap {
+  display: flex;
+  gap: 6px;
+  margin: 0.4rem 0;
+  overflow-x: auto;
+}
+.streak-days {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: calc(0.7rem + 3px);
+}
+.streak-days span,
+.streak-months span {
+  font-size: 0.65rem;
+  line-height: 12px;
+  height: 12px;
+  color: var(--text-2);
+}
+.streak-months {
+  display: flex;
+  gap: 3px;
+  height: 0.7rem;
+  margin-bottom: 3px;
+}
+.streak-months span {
+  width: 12px;
+  white-space: nowrap;
+  overflow: visible;
+}
 .streak-cal {
   display: flex;
   gap: 3px;
-  margin: 0.4rem 0;
-  overflow-x: auto;
 }
 .streak-week {
   display: flex;

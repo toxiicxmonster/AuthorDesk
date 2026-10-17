@@ -53,18 +53,21 @@ export function ThreadsPage({ projectId, selectedId }: { projectId: string; sele
         <button className="primary" onClick={add}>
           + Plot thread
         </button>
-        <label className="field inline small">
-          <span>Flag after</span>
-          <input
-            type="number"
-            min={1}
-            max={50}
-            value={settings.staleThreadChapters}
-            onChange={(e) => void updateSettings({ staleThreadChapters: Math.max(1, parseInt(e.target.value, 10) || 5) })}
-            style={{ width: '4em' }}
-          />
-          <span>quiet chapters</span>
-        </label>
+        {threads.length > 0 && <span className="grow" />}
+        {threads.length > 0 && (
+          <label className="field inline small" title="A thread that hasn't appeared for this many chapters is marked as gone quiet.">
+            <span>Warn when a thread is missing for</span>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={settings.staleThreadChapters}
+              onChange={(e) => void updateSettings({ staleThreadChapters: Math.max(1, parseInt(e.target.value, 10) || 5) })}
+              style={{ width: '4em' }}
+            />
+            <span>chapters</span>
+          </label>
+        )}
       </div>
       {threads.length === 0 ? (
         <EmptyState title="No plot threads yet">

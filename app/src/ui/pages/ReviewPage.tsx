@@ -465,22 +465,24 @@ function FindingList({ title, hint, items, go }: { title: string; hint: string; 
       <h2>
         {title} <span className="muted small">({items.length})</span>
       </h2>
-      <p className="muted small">{hint}</p>
       {items.length ? (
-        <ul className="sugg-list">
-          {items.map((f, i) => (
-            <li key={i} className="sugg">
-              <button className="sugg-main" onClick={() => go(f)}>
-                <span className="muted small">
-                  {f.chapterTitle} · {f.detail}
-                </span>
-                <span className="block small">{f.snippet}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p className="muted small">{hint}</p>
+          <ul className="sugg-list">
+            {items.map((f, i) => (
+              <li key={i} className="sugg">
+                <button className="sugg-main" onClick={() => go(f)}>
+                  <span className="block small">{f.snippet}</span>
+                  <span className="muted small">
+                    {f.chapterTitle} · {f.detail}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : (
-        <p className="small">None found.</p>
+        <p className="small muted">None found.</p>
       )}
     </section>
   );
