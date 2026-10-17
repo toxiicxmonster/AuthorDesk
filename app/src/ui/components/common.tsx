@@ -205,14 +205,28 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
   );
 }
 
+/** The start of a text for a list preview: cut at a word, with "…" when there's more. */
+export function excerpt(text: string, max: number): string {
+  const t = text.replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max + 1).replace(/\s+\S*$/, '');
+  return `${(cut || t.slice(0, max)).replace(/[\s,;:.\-–—]+$/, '')}…`;
+}
+
 export function relativeTime(iso: string | null | undefined): string {
   if (!iso) return 'never';
   const d = Date.now() - Date.parse(iso);
   if (d < 60_000) return 'just now';
   if (d < 3_600_000) return `${Math.round(d / 60_000)} min ago`;
   if (d < 86_400_000) return `${Math.round(d / 3_600_000)} h ago`;
-  return new Date(iso).toLocaleDateString();
+  const then = new Date(iso);
+  const days = Math.round((startOfDay(new Date()) - startOfDay(then)) / 86_400_000);
+  if (days <= 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(then.getFullYear() !== new Date().getFullYear() && { year: 'numeric' }) });
 }
+
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
 /** Text that turns into an input when clicked (or on F2). Enter/blur saves, Esc cancels. */
 export function InlineEdit({

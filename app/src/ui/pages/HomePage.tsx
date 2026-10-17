@@ -245,7 +245,7 @@ function Dashboard({ projectId }: { projectId: string }) {
       )}
       <div className="cards">
         <section className="card">
-          <h2>{book?.title}</h2>
+          <h2>{books.length > 1 ? book?.title : 'Manuscript'}</h2>
           <div className="big-num">{tree.wordCount.toLocaleString()}</div>
           <div className="muted">words in {tree.chapters.length} chapters</div>
           <div className="status-row">
@@ -310,9 +310,10 @@ function Dashboard({ projectId }: { projectId: string }) {
             {recentScenes.map((s) => (
               <li key={s!.id}>
                 <a href={href(projectId, 'write', s!.id)}>
-                  {tree.chapters.find((c) => c.id === s!.chapterId)?.title} › {s!.title}
+                  {tree.chapters.find((c) => c.id === s!.chapterId)?.title}
+                  {tree.sceneOrder.filter((x) => x.chapterId === s!.chapterId).length > 1 && ` › ${s!.title}`}
                 </a>
-                <span className="muted small"> {relativeTime(s!.updatedAt)}</span>
+                <span className="muted small" title={new Date(s!.updatedAt).toLocaleString()}> {relativeTime(s!.updatedAt)}</span>
               </li>
             ))}
             {!recentScenes.length && <li className="muted">Nothing yet.</li>}

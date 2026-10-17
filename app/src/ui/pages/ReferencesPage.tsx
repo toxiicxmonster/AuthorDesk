@@ -7,7 +7,7 @@ import { REFERENCE_TEMPLATES, REFERENCE_TYPE_HINTS, REFERENCE_TYPE_ICONS, REFERE
 import { createReference, likelyDuplicates, matchesReference } from '../../domain/references';
 import { archiveRecord, deleteRecord, unarchiveRecord, updateRecord } from '../../storage/repo';
 import { referenceBacklinks, unlinkReferenceEverywhere, type Backlink } from '../../storage/backlinks';
-import { CommitInput, EmptyState, Modal, TagInput } from '../components/common';
+import { CommitInput, EmptyState, Modal, TagInput, excerpt } from '../components/common';
 import { ReferencePicker } from '../components/ReferencePicker';
 import { Icon } from '../components/Icon';
 import { confirmDialog, promptDialog, setUi, toast } from '../store';
@@ -78,7 +78,7 @@ export function ReferencesPage({ projectId, selectedId, newType }: { projectId: 
                 <span className="grow">
                   {r.favorite && '★ '}
                   {r.name}
-                  <span className="muted small block">{r.summary ? r.summary.slice(0, 70) : REFERENCE_TYPE_LABELS[r.type]}</span>
+                  <span className="muted small block">{r.summary ? excerpt(r.summary, 70) : REFERENCE_TYPE_LABELS[r.type]}</span>
                 </span>
               </a>
             </li>

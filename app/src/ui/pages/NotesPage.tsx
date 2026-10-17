@@ -3,7 +3,7 @@ import { useProjectTable, useReferences } from '../data';
 import { navigate } from '../router';
 import { archiveRecord, createRecord, unarchiveRecord, updateRecord } from '../../storage/repo';
 import type { Note } from '../../domain/schema';
-import { CommitInput, EmptyState, TagInput } from '../components/common';
+import { CommitInput, EmptyState, TagInput, excerpt } from '../components/common';
 import { ReferencePicker } from '../components/ReferencePicker';
 import { toast } from '../store';
 import { REFERENCE_TYPE_ICONS } from '../../domain/referenceTemplates';
@@ -12,7 +12,10 @@ export function NotesPage({ projectId, selectedId }: { projectId: string; select
   const notes = useProjectTable('notes', projectId);
   const [q, setQ] = useState('');
   const [tag, setTag] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
+  const [trashView, setShowArchived] = useState(false);
+  const trashed = notes.filter((n) => n.archivedAt).length;
+  // Back to the notes once the trash is emptied or restored, since its tab goes away.
+  const showArchived = trashView && trashed > 0;
   const tags = useMemo(() => [...new Set(notes.flatMap((n) => n.tags))].sort(), [notes]);
   const list = notes
     .filter((n) => (showArchived ? !!n.archivedAt : !n.archivedAt))
@@ -25,29 +28,39 @@ export function NotesPage({ projectId, selectedId }: { projectId: string; select
     <div className={`split-page${selected ? ' has-detail' : ''}`}>
       <aside className="list-pane" aria-label="Notes">
         <div className="list-tools">
+          <button
+            className="primary big-add"
+            onClick={async () => {
+              const n = await createRecord('notes', projectId, { title: 'Untitled note', body: '', url: '', tags: [], referenceIds: [] });
+              setShowArchived(false);
+              navigate(projectId, 'notes', n.id);
+            }}
+          >
+            + New note
+          </button>
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search notes…" aria-label="Search notes" />
-          <div className="row gap wrap">
-            {tags.length > 0 && (
-              <select value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Tag">
-                <option value="">Any tag</option>
-                {tags.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            )}
-            <label className="check">
-              <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Trash
-            </label>
-            <button
-              className="primary"
-              onClick={async () => {
-                const n = await createRecord('notes', projectId, { title: 'Untitled note', body: '', url: '', tags: [], referenceIds: [] });
-                navigate(projectId, 'notes', n.id);
-              }}
-            >
-              + Note
-            </button>
-          </div>
+          {(trashed > 0 || tags.length > 0) && (
+            <div className="row gap wrap">
+              {trashed > 0 && (
+                <div className="chip-row" role="tablist" aria-label="Show">
+                  <button role="tab" aria-selected={!showArchived} className={`chip-btn${showArchived ? '' : ' on'}`} onClick={() => setShowArchived(false)}>
+                    Notes ({notes.length - trashed})
+                  </button>
+                  <button role="tab" aria-selected={showArchived} className={`chip-btn${showArchived ? ' on' : ''}`} onClick={() => setShowArchived(true)}>
+                    Trash ({trashed})
+                  </button>
+                </div>
+              )}
+              {tags.length > 0 && (
+                <select value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Tag">
+                  <option value="">Any tag</option>
+                  {tags.map((t) => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
         </div>
         <ul className="item-list">
           {list.map((n) => (
@@ -55,12 +68,12 @@ export function NotesPage({ projectId, selectedId }: { projectId: string; select
               <a href={`#/p/${projectId}/notes/${n.id}`} className={n.id === selectedId ? 'on' : ''}>
                 <span className="grow">
                   {n.title}
-                  <span className="muted small block">{n.body.slice(0, 80)}</span>
+                  <span className="muted small block">{excerpt(n.body, 80)}</span>
                 </span>
               </a>
             </li>
           ))}
-          {!list.length && <li className="muted pad">No notes.</li>}
+          {!list.length && <li className="muted pad">{showArchived ? 'Trash is empty.' : q || tag ? 'No notes match.' : 'No notes yet.'}</li>}
         </ul>
       </aside>
       <section className="detail-pane">

@@ -7,7 +7,7 @@ import { db } from '../../storage/db';
 import type { PlotThread } from '../../domain/schema';
 import { threadAppearances } from '../../domain/continuity';
 import { useSettings, updateSettings } from '../../storage/settings';
-import { CommitInput, EmptyState } from '../components/common';
+import { CommitInput, EmptyState, excerpt } from '../components/common';
 import { promptDialog, toast } from '../store';
 
 export function ThreadsPage({ projectId, selectedId }: { projectId: string; selectedId: string | null }) {
@@ -160,7 +160,7 @@ function ThreadEditor({ t, data }: { t: PlotThread; data: { chapters: { id: stri
             <a href={`#/p/${t.projectId}/write/${s.id}`}>
               {data?.chapters.find((c) => c.id === s.chapterId)?.title} › {s.title}
             </a>
-            {s.summary && <span className="muted small"> — {s.summary.slice(0, 120)}</span>}
+            {s.summary && <span className="muted small"> — {excerpt(s.summary, 120)}</span>}
           </li>
         ))}
         {!scenes.length && <li className="muted">No scenes tagged yet.</li>}

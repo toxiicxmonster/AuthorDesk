@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Chapter, ReferenceEntry, Scene } from '../../domain/schema';
 import { REFERENCE_TYPES, type ReferenceType } from '../../domain/schema';
@@ -9,7 +9,7 @@ import { navigate } from '../router';
 import { confirmDialog, promptDialog, reportError, setUi, toast, useUi } from '../store';
 import { db } from '../../storage/db';
 import { cardFromScene, mergeScenes, restoreSnapshot, splitScene, updateRecord } from '../../storage/repo';
-import { CommitInput, StatusSelect, relativeTime, Modal } from './common';
+import { CommitInput, StatusSelect, Modal } from './common';
 import { useEditorCtx, flushAllEdits } from '../../editor/EditorContext';
 import { applyPlaced, getSuggestions, type PlacedSuggestion } from '../../editor/proofreadExtension';
 import { TextSelection } from '@tiptap/pm/state';
@@ -356,7 +356,9 @@ function ProofPanel({ projectId }: { projectId: string }) {
   return (
     <div className="proof-panel">
       <div className="row gap">
-        <button onClick={rerunProofread}>Re-check</button>
+        <button className="nowrap" onClick={rerunProofread}>
+          Re-check
+        </button>
         <span className="muted small" aria-live="polite">{proofStatus}</span>
       </div>
       <p className="muted small">
@@ -454,6 +456,15 @@ function ProofPanel({ projectId }: { projectId: string }) {
   );
 }
 
+/** "Today", "Yesterday" or the date, for grouping versions by day. */
+function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 86_400_000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', ...(d.getFullYear() !== new Date().getFullYear() && { year: 'numeric' }) });
+}
+
 function HistoryPanel({ scene }: { scene: Scene }) {
   const snaps = useLiveQuery(
     async () => (await db.snapshots.where('sceneId').equals(scene.id).toArray()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
@@ -466,17 +477,27 @@ function HistoryPanel({ scene }: { scene: Scene }) {
     <div>
       <p className="muted small">Earlier versions of this scene. One is saved automatically every 10 minutes while you write (and before big changes), or press 📸 Snapshot any time. Click one to read it or bring it back.</p>
       <ul className="snap-list">
-        {snaps?.map((s) => (
-          <li key={s.id}>
-            <button className="link" onClick={() => setPreview(s.id)}>
-              {new Date(s.createdAt).toLocaleString()}
-            </button>
-            <span className="muted small">
-              {' '}
-              · {s.wordCount.toLocaleString()} words · {s.reason} · {relativeTime(s.createdAt)}
-            </span>
-          </li>
-        ))}
+        {snaps?.map((s, i) => {
+          const day = dayLabel(s.createdAt);
+          const older = snaps[i + 1];
+          const delta = older ? s.wordCount - older.wordCount : 0;
+          return (
+            <Fragment key={s.id}>
+              {(i === 0 || dayLabel(snaps[i - 1].createdAt) !== day) && <li className="snap-day">{day}</li>}
+              <li>
+                <button className="link" onClick={() => setPreview(s.id)} title={new Date(s.createdAt).toLocaleString()}>
+                  {new Date(s.createdAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                </button>
+                <span className="muted small">
+                  {' '}
+                  · {s.wordCount.toLocaleString()} words
+                  {delta !== 0 && <span className={delta > 0 ? 'snap-up' : 'snap-down'}> ({delta > 0 ? '+' : '−'}{Math.abs(delta).toLocaleString()})</span>}
+                  {s.reason !== 'auto' && ` · ${s.reason === 'manual' ? 'your snapshot' : s.reason}`}
+                </span>
+              </li>
+            </Fragment>
+          );
+        })}
         {snaps?.length === 0 && <li className="muted">No snapshots yet.</li>}
       </ul>
       {shown && (

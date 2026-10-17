@@ -48,10 +48,6 @@
     --err-line: #e4836f;
     --warn-line: #e0b04c;
     --style-line: #7fb0ea;
-  --note-line: #6fcf8f;
-  --echo-line: #4fd1d1;
-  --hard-line: #f0a060;
-  --conflict-line: #c39bd3;
     --note-line: #6fcf8f;
     --echo-line: #4fd1d1;
     --hard-line: #f0a060;
@@ -78,6 +74,10 @@
   --err-line: #e4836f;
   --warn-line: #e0b04c;
   --style-line: #7fb0ea;
+  --note-line: #6fcf8f;
+  --echo-line: #4fd1d1;
+  --hard-line: #f0a060;
+  --conflict-line: #c39bd3;
   --page: #22211f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.3);
   color-scheme: dark;
@@ -245,6 +245,13 @@ textarea {
 }
 .wrap {
   flex-wrap: wrap;
+}
+/* A page title with controls beside it: line them up on the title's middle, not its top. */
+.page > .row:first-child:has(> h1) {
+  margin-bottom: 0.8rem;
+}
+.page > .row:first-child > h1 {
+  margin: 0;
 }
 .stack {
   display: flex;
@@ -642,6 +649,13 @@ details.banner {
 .chapter-row.current,
 .scene-row.current {
   background: var(--accent-soft);
+}
+/* With a mouse, a row's ⋯ menu shows on hover, keyboard focus or the open chapter, leaving room for the title. */
+@media (hover: hover) {
+  :is(.chapter-row, .scene-row):not(:hover, :focus-within, .current, :has(.menu)) > .menu-wrap {
+    width: 0;
+    overflow: hidden;
+  }
 }
 .chapter-row.drop,
 .scene-row.drop {
@@ -1186,6 +1200,23 @@ details.banner {
   padding: 0.3rem 0;
   border-bottom: 1px solid var(--line);
 }
+.snap-list li.snap-day {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+  padding: 0.8rem 0 0.2rem;
+}
+.snap-list li.snap-day:first-child {
+  padding-top: 0.2rem;
+}
+.snap-up {
+  color: var(--ok);
+}
+.snap-down {
+  color: var(--danger);
+}
 .snap-preview {
   white-space: pre-wrap;
   font-family: var(--serif);
@@ -1580,6 +1611,11 @@ details.banner {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
   color: var(--text-2);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
 }
 .card-top {
   display: flex;
@@ -1729,6 +1765,24 @@ details.banner {
 }
 .chip-check {
   font-size: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem 0.2rem 0.45rem;
+  background: var(--surface);
+}
+.chip-check input {
+  margin: 0;
+}
+.chip-check:hover {
+  border-color: var(--muted);
+}
+.chip-check:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.chip-check:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
 }
 .filters {
   margin: 0.5rem 0;
@@ -3860,9 +3914,17 @@ h3.small-heading {
   text-decoration: line-through;
 }
 .editor-footer .plan-next {
+  display: inline-flex;
   max-width: min(42ch, 45%);
+  min-width: 0;
+  font-size: inherit;
+}
+/* The ellipsis goes on the text, not the button: Chromium doesn't clip a button's own text with one. */
+.editor-footer .plan-next > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: inherit;
+}
+.nowrap {
+  white-space: nowrap;
 }

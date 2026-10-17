@@ -83,7 +83,7 @@ export function NextPlanPoint({ scene }: { scene: Scene }) {
       title={next ? `Next in your plan: ${next.text}. Click to open the checklist.` : 'Every point of the plan is ticked off. Click to open the checklist.'}
       onClick={() => setUi({ rightOpen: true, rightTab: 'scene' })}
     >
-      {next ? `Next: ${next.text}` : 'Plan done ✓'}
+      <span>{next ? `Next: ${next.text}` : 'Plan done ✓'}</span>
     </button>
   );
 }

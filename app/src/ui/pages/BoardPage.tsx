@@ -293,7 +293,7 @@ export function BoardPage({ projectId, focusId }: { projectId: string; focusId: 
                           {c.sceneId && <span className="linked-mark" title="This card is linked to a scene in your manuscript">✎ in book</span>}
                         </div>
                         <strong>{c.title}</strong>
-                        {c.summary && <p>{c.summary.slice(0, 160)}</p>}
+                        {c.summary && <p>{c.summary.slice(0, 600)}</p>}
                         <div className="chips">
                           {c.povCharacterId && <span className="chip">👤 {refs.find((r) => r.id === c.povCharacterId)?.name}</span>}
                           {c.plotThreadIds.map((t) => (

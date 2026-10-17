@@ -81,10 +81,12 @@ export function SearchPage({ projectId, initialQuery }: { projectId: string; ini
           if (e.key === 'Enter' && results?.[0]) open(results[0]);
         }}
       />
-      <div className="row gap wrap filters">
+      <div className="row gap wrap filters" role="group" aria-label="Search only in (none ticked searches everything)">
+        <span className="muted small">{kinds.length ? 'Only in:' : 'Searching everything. Narrow to:'}</span>
         {KINDS.map(([k, label]) => (
           <label key={k} className="check chip-check">
-            <input type="checkbox" checked={kinds.includes(k)} onChange={(e) => setKinds(e.target.checked ? [...kinds, k] : kinds.filter((x) => x !== k))} /> {label}
+            <input type="checkbox" checked={kinds.includes(k)} onChange={(e) => setKinds(e.target.checked ? [...kinds, k] : kinds.filter((x) => x !== k))} />
+            {label}
           </label>
         ))}
         {books.length > 1 && (

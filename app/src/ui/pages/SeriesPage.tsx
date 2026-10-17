@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { REFERENCE_TYPES, type ReferenceType } from '../../domain/schema';
+import { countWords } from '../../domain/text';
 import { REFERENCE_TYPE_LABELS } from '../../domain/referenceTemplates';
 import { combineIntoSeries, loadSeriesBooks, seriesAppearances, type SeriesBook } from '../../storage/series';
 import { flushAllEdits } from '../../editor/EditorContext';
@@ -40,6 +41,8 @@ export function SeriesPage({ projectId }: { projectId: string }) {
       .filter((a) => !onlyGaps || (a.perBook.some((n) => n > 0) && a.perBook.some((n) => n === 0)))
       .sort((a, b) => (a.first?.book ?? 99) - (b.first?.book ?? 99) || b.perBook.reduce((x, y) => x + y, 0) - a.perBook.reduce((x, y) => x + y, 0));
   }, [data, live, type, onlyGaps]);
+  // Bars compare entries with each other (the busiest is full width), so even one book shows who matters most.
+  const most = Math.max(1, ...rows.flatMap((r) => r.perBook));
 
   const others = (projects ?? []).filter((p) => p.id !== projectId);
   const [bringIn, setBringIn] = useState('');
@@ -82,7 +85,7 @@ export function SeriesPage({ projectId }: { projectId: string }) {
               <button className="link-btn" onClick={() => b.scenes[0] && navigate(projectId, 'write', b.scenes[0].sceneId)}>
                 {b.title || 'Untitled'}
               </button>{' '}
-              <span className="muted small">{b.scenes.reduce((n, s) => n + (s.text.match(/\S+/g)?.length ?? 0), 0).toLocaleString()} words</span>
+              <span className="muted small">{b.scenes.reduce((n, s) => n + countWords(s.text), 0).toLocaleString()} words</span>
             </li>
           ))}
         </ol>
@@ -139,7 +142,6 @@ export function SeriesPage({ projectId }: { projectId: string }) {
               </thead>
               <tbody>
                 {rows.map((a) => {
-                  const most = Math.max(1, ...a.perBook);
                   return (
                     <tr key={a.referenceId}>
                       <td>
