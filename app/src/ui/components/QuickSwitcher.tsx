@@ -55,7 +55,7 @@ const VIEWS: [View, string, string][] = [
   ['home', '⌂', 'Home'],
   ['write', '✎', 'Write'],
   ['board', '▦', 'Story Board'],
-  ['refs', '👤', 'Characters & World'],
+  ['refs', '👤︎', 'Characters & World'],
   ['timeline', '⏱', 'Timeline'],
   ['threads', '🧵', 'Plot Threads'],
   ['notes', '🗒', 'Notes & Research'],
@@ -222,7 +222,7 @@ export function QuickSwitcher({ projectId }: { projectId: string | null }) {
               </li>
             );
           })}
-          {!results.length && <li className="muted pad">Nothing matches. Try fewer letters.</li>}
+          {!results.length && <li className="muted pad">{projectId && !data ? 'Loading…' : 'Nothing matches. Try fewer letters.'}</li>}
         </ul>
         <div className="palette-foot muted small">↑↓ to move · Enter to open · Esc to close</div>
       </div>

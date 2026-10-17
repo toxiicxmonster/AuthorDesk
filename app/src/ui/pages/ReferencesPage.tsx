@@ -78,7 +78,7 @@ export function ReferencesPage({ projectId, selectedId, newType }: { projectId: 
                 <span className="grow">
                   {r.favorite && '★ '}
                   {r.name}
-                  <span className="muted small block">{r.summary ? excerpt(r.summary, 70) : REFERENCE_TYPE_LABELS[r.type]}</span>
+                  <span className="muted small block">{r.summary ? excerpt(r.summary, 70) : r.aliases.length ? `Also ${r.aliases.join(', ')}` : REFERENCE_TYPE_LABELS[r.type]}</span>
                 </span>
               </a>
             </li>

@@ -295,7 +295,7 @@ export function BoardPage({ projectId, focusId }: { projectId: string; focusId: 
                         <strong>{c.title}</strong>
                         {c.summary && <p>{c.summary.slice(0, 600)}</p>}
                         <div className="chips">
-                          {c.povCharacterId && <span className="chip">👤 {refs.find((r) => r.id === c.povCharacterId)?.name}</span>}
+                          {c.povCharacterId && <span className="chip">👤︎ {refs.find((r) => r.id === c.povCharacterId)?.name}</span>}
                           {c.plotThreadIds.map((t) => (
                             <span key={t} className="chip">🧵 {threads.find((x) => x.id === t)?.name}</span>
                           ))}
@@ -578,7 +578,7 @@ function Outline({ projectId, bookId }: { projectId: string; bookId: string }) {
                     <div className="row gap wrap">
                       <StatusDot status={s.status} />
                       <a href={`#/p/${projectId}/write/${s.id}`}>{s.title}</a>
-                      {s.povCharacterId && <span className="chip">👤 {name(s.povCharacterId)}</span>}
+                      {s.povCharacterId && <span className="chip">👤︎ {name(s.povCharacterId)}</span>}
                       {s.locationId && <span className="chip">📍 {name(s.locationId)}</span>}
                       {s.timeMarker && <span className="chip">⏱ {s.timeMarker}</span>}
                       <PlanChip notes={s.notes} />

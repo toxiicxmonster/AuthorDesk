@@ -1656,6 +1656,13 @@ details.banner {
   padding: 0;
   max-width: 900px;
 }
+/* Summaries and notes grow with what's written instead of scrolling inside a two-line box. */
+.right-panel textarea,
+.outline textarea {
+  field-sizing: content;
+  min-height: 3.2em;
+  max-height: 24em;
+}
 .outline-ch {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -3354,6 +3361,8 @@ code.path {
   pointer-events: none;
 }
 .family-tree {
+  display: block;
+  margin-inline: auto;
   background: var(--page);
   border: 1px solid var(--line);
   border-radius: 8px;

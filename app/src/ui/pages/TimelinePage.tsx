@@ -119,7 +119,7 @@ export function TimelinePage({ projectId, selectedId }: { projectId: string; sel
                 {e.description && <p>{e.description.slice(0, 200)}</p>}
                 <div className="chips">
                   {e.characterIds.map((c) => (
-                    <span key={c} className="chip">👤 {refName(c)}</span>
+                    <span key={c} className="chip">👤︎ {refName(c)}</span>
                   ))}
                   {e.locationId && <span className="chip">📍 {refName(e.locationId)}</span>}
                   {e.chapterId && <span className="chip">📖 {data?.chapters.find((c) => c.id === e.chapterId)?.title}</span>}

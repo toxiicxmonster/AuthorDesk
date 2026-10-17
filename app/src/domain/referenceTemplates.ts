@@ -17,8 +17,9 @@ export const REFERENCE_TYPE_LABELS: Record<ReferenceType, string> = {
   research: 'Research',
 };
 
+// The person sign is asked for in its plain-text form (U+FE0E), so it takes the text colour and shows on dark themes too.
 export const REFERENCE_TYPE_ICONS: Record<ReferenceType, string> = {
-  character: '👤',
+  character: '👤︎',
   location: '📍',
   faction: '⚑',
   species: '🧬',
