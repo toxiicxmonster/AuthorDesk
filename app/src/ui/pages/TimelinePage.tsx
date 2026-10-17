@@ -183,7 +183,7 @@ function EventEditor({ e, onClose }: { e: TimelineEvent; onClose: () => void }) 
               {c.name}
             </label>
           ))}
-          {!characters.length && <span className="muted small">Add characters in References.</span>}
+          {!characters.length && <span className="muted small">Add characters on the World page.</span>}
         </div>
       </fieldset>
       <div className="row gap wrap">

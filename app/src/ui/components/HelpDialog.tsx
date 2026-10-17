@@ -30,7 +30,7 @@ const TOPICS: { title: string; body: string[] }[] = [
   {
     title: 'Characters, places and world notes',
     body: [
-      'Open Characters & World to add people, places, factions, objects and lore. Only fill in what helps — every field is optional.',
+      'Open World to add people, places, factions, objects and lore. Only fill in what helps — every field is optional.',
       'While writing, select a name and choose “Link” to connect it to its entry. Click linked words later to see the entry without leaving your page.',
     ],
   },
