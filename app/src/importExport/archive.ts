@@ -182,7 +182,7 @@ export async function parseArchive(bytes: Uint8Array): Promise<ParsedArchive> {
   for (const name of TABLE_NAMES) {
     const foreign = (data[name] as { projectId: string }[]).filter((r) => r.projectId !== pid).length;
     if (foreign) {
-      warnings.push(`${foreign} ${name} record(s) belonged to another project and were skipped.`);
+      warnings.push(`${foreign} ${name} record${foreign === 1 ? '' : 's'} belonged to another project and ${foreign === 1 ? 'was' : 'were'} skipped.`);
       (data as Record<string, unknown[]>)[name] = (data[name] as { projectId: string }[]).filter((r) => r.projectId === pid);
     }
   }
@@ -287,7 +287,7 @@ export async function applyImport(parsed: ParsedArchive, mode: ImportMode, polic
       const rows = data[name] as (TableTypes[TableName] & { id: string; projectId: string })[];
       if (mode !== 'merge') {
         const collisions = (await table(name).bulkGet(rows.map((r) => r.id))).filter(Boolean).length;
-        if (collisions) throw new ArchiveError(`${collisions} ${name} id(s) already exist on this device. Use “Import as a copy” instead.`);
+        if (collisions) throw new ArchiveError(`${collisions} ${name} id${collisions === 1 ? '' : 's'} already exist${collisions === 1 ? 's' : ''} on this device. Use “Import as a copy” instead.`);
         await table(name).bulkAdd(rows as never[]);
         report.added += rows.length;
         continue;
