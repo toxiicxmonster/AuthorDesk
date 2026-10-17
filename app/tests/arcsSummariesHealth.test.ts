@@ -26,9 +26,22 @@ describe('character arcs', () => {
   });
 
   it('finds stretches of 5+ chapters without someone, and words them for the review', () => {
-    expect(tArc.gaps).toEqual([{ from: 2, to: 8, toEnd: true }]);
+    expect(tArc.gaps).toEqual([{ from: 2, to: 8, toEnd: true, missed: 7, after: 1 }]);
     expect(wArc.gaps).toEqual([]);
     expect(arcWarnings([tArc, wArc], chapters)).toEqual([{ referenceId: 't', sceneId: 's1', message: 'Tom Reyes hasn’t appeared since Chapter 2 (7 chapters).' }]);
+  });
+
+  it('doesn’t count chapters with no story text yet (only plan bullets, or nothing)', () => {
+    const planned = scenes.map((sc, i) => (i >= 3 ? { ...sc, paragraphs: i % 2 ? [] : ['- Winnie finds the key', '- Tom comes back'] } : sc));
+    const ch = arcChapters(planned);
+    const [t] = characterArcs(ch, [tom, winnie], ['Tom Reyes', 'Winnie Hartley']);
+    expect(t.gaps).toEqual([]); // only Chapter 3 is written after Tom's last chapter
+    expect(arcWarnings([t], ch)).toEqual([]);
+    // A written chapter between two plan-only ones still counts, and the gap is measured in written chapters.
+    const more = arcChapters(scenes.map((sc, i) => (i === 4 ? { ...sc, paragraphs: [] } : sc)));
+    const [t2] = characterArcs(more, [tom], ['Tom Reyes']);
+    expect(t2.gaps).toEqual([{ from: 2, to: 8, toEnd: true, missed: 6, after: 1 }]);
+    expect(arcWarnings([t2], more)[0].message).toBe('Tom Reyes hasn’t appeared since Chapter 2 (6 chapters).');
   });
 
   it('groups a series’ scenes into chapters per book', () => {

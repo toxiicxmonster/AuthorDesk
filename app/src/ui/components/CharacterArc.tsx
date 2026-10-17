@@ -4,7 +4,7 @@ import type { ReferenceEntry } from '../../domain/schema';
 import { db } from '../../storage/db';
 import { updateRecord } from '../../storage/repo';
 import { bookScenes, seriesScenes } from '../../proofreading/continuityData';
-import { arcChapters, characterArcs } from '../../review/arcs';
+import { arcChapters, chapterWritten, characterArcs } from '../../review/arcs';
 import { navigate } from '../router';
 import { reportError, toast } from '../store';
 
@@ -30,6 +30,7 @@ export function CharacterArc({ r, all }: { r: ReferenceEntry; all: ReferenceEntr
   const firstTitle = arc.first >= 0 ? chapters[arc.first].title : null;
   const lastGap = arc.gaps.find((g) => g.toEnd);
   const lineCount = arc.perChapter.reduce((n, p) => n + p.lines, 0);
+  const writtenCount = chapters.filter(chapterWritten).length;
   const fillFirst = async () => {
     try {
       await updateRecord('references', r.id, { fields: { ...r.fields, firstAppearance: firstTitle! } });
@@ -63,15 +64,15 @@ export function CharacterArc({ r, all }: { r: ReferenceEntry; all: ReferenceEntr
           </div>
           <p className="small">
             First seen in {firstTitle}
-            {arc.last !== arc.first ? `, last in ${chapters[arc.last].title}` : ''}. In {arc.perChapter.filter((p) => p.mentions + p.lines > 0).length} of {chapters.length} chapters,{' '}
+            {arc.last !== arc.first ? `, last in ${chapters[arc.last].title}` : ''}. In {arc.perChapter.filter((p) => p.mentions + p.lines > 0).length} of {writtenCount < chapters.length ? `${writtenCount} written` : chapters.length} chapters,{' '}
             {lineCount} line{lineCount === 1 ? '' : 's'} of dialogue.
           </p>
-          {lastGap && <p className="small warn-text">Not seen for the last {lastGap.to - lastGap.from + 1} chapters.</p>}
+          {lastGap && <p className="small warn-text">Not seen in the last {lastGap.missed} written chapters.</p>}
           {arc.gaps
             .filter((g) => !g.toEnd)
             .map((g) => (
               <p key={g.from} className="small muted">
-                Missing for {g.to - g.from + 1} chapters ({chapters[g.from].title} to {chapters[g.to].title}).
+                Missing for {g.missed} chapters ({chapters[g.from].title} to {chapters[g.to].title}).
               </p>
             ))}
           {!r.fields.firstAppearance?.trim() && firstTitle && (
