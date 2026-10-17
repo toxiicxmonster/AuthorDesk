@@ -187,7 +187,11 @@ function DriveSection({ projectId, name, onRestore }: { projectId: string; name:
         <>
           <p>
             <strong>Not set up yet.</strong> Drive backup needs a free Google Cloud OAuth client ID (a one-time setup; no password is ever entered into
-            AuthorDesk). Steps are in <code>docs/google-drive-setup.md</code>.
+            AuthorDesk).{' '}
+            <a href="https://github.com/toxiicxmonster/AuthorDesk/blob/main/docs/google-drive-setup.md" target="_blank" rel="noreferrer">
+              How to set it up
+            </a>
+            .
           </p>
           <p className="muted small">Meanwhile, “Save backup” above can write directly into a Google Drive for Desktop folder.</p>
         </>

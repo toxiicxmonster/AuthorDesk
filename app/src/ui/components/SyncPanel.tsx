@@ -9,6 +9,8 @@ import { SCHEMA_VERSION, TABLE_NAMES, type TableName } from '../../domain/schema
 import { Modal, relativeTime } from './common';
 import { confirmDialog, reportError, toast } from '../store';
 
+const DOCS = 'https://github.com/toxiicxmonster/AuthorDesk/blob/main/docs';
+
 export function SyncPanel({ projectId }: { projectId: string | null }) {
   const sync = useSyncStatus(projectId);
   const ui = useSyncUi();
@@ -19,7 +21,7 @@ export function SyncPanel({ projectId }: { projectId: string | null }) {
     <section className="card">
       <h2>Sync between devices</h2>
       <p>
-        <strong>Status: {sync.label}.</strong> {sync.detail}
+        <strong>Status: {sync.label}.</strong> {sync.detail.replace(' (see Backup)', '')}
       </p>
       {ui.server === 'unavailable' || ui.server === 'unknown' ? (
         <div className="small">
@@ -28,7 +30,11 @@ export function SyncPanel({ projectId }: { projectId: string | null }) {
             from one. To sync your PC and phone:
           </p>
           <ol>
-            <li>Run the sync server somewhere both devices can reach over HTTPS (see <code>docs/sync-server.md</code>).</li>
+            <li>Run the sync server somewhere both devices can reach over HTTPS (see the{' '}
+              <a href={`${DOCS}/sync-server.md`} target="_blank" rel="noreferrer">
+                sync server guide
+              </a>
+              ).</li>
             <li>Open the app from that address on your phone and install it; on the computer, point AuthorDesk at it (one line in <code>sync-server.txt</code>).</li>
             <li>Sign in on both. Existing work here can be moved with a backup or will upload on first sync.</li>
           </ol>

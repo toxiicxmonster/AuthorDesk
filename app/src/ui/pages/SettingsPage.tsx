@@ -14,10 +14,8 @@ import { AiEditorSettings } from '../components/AiEditorSettings';
 import { AddonSettings } from '../components/AddonSettings';
 import { ruleLabel } from '../../proofreading/rules';
 import { isPublicEndpoint } from '../../proofreading/languageTool';
+import { isDesktopApp, storagePlace } from '../platform';
 import { useSyncUi } from '../../sync/controller';
-
-/** The desktop app has its own engine with the browser's spell check switched off (it would download dictionaries). */
-const isDesktopApp = /\bElectron\//.test(navigator.userAgent);
 
 const SHORTCUTS: [string, string][] = [
   ['Ctrl+K or Ctrl+Shift+F', 'Search everything'],
@@ -140,6 +138,7 @@ export function SettingsPage({ projectId }: { projectId: string | null }) {
             )}
           </div>
         )}
+        {/* The desktop app has its own engine with the browser's spell check switched off (it would download dictionaries). */}
         {!isDesktopApp && (
           <label className="check">
             <input type="checkbox" checked={s.browserSpellcheck} onChange={(e) => void updateSettings({ browserSpellcheck: e.target.checked })} /> Also use the
@@ -185,8 +184,8 @@ export function SettingsPage({ projectId }: { projectId: string | null }) {
         <h2>Privacy</h2>
         <ul className="small">
           <li>
-            <strong>Stored on this device:</strong> all projects, manuscript text, references, planning data, history snapshots and settings, in this browser’s private
-            storage (IndexedDB). Nothing is uploaded automatically.
+            <strong>Stored on this device:</strong> all projects, manuscript text, references, planning data, history snapshots and settings, in{' '}
+            {isDesktopApp ? 'AuthorDesk’s own storage on this computer' : 'this browser’s private storage (IndexedDB)'}. Nothing is uploaded automatically.
           </li>
           <li>
             <strong>Sent to sync storage:</strong>{' '}
@@ -268,11 +267,11 @@ function DangerZone() {
   return (
     <div className="danger-zone">
       <h3>Clear all local data</h3>
-      <p className="small">Removes every project from this browser. Make sure you have backups first.</p>
+      <p className="small">Removes every project from {storagePlace}. Make sure you have backups first.</p>
       <button
         className="danger"
         onClick={async () => {
-          const ok = await confirmDialog('Erase everything on this device?', 'All projects, history and settings in this browser will be permanently deleted. Exported backups are not affected.', {
+          const ok = await confirmDialog('Erase everything on this device?', `All projects, history and settings in ${storagePlace} will be permanently deleted. Exported backups are not affected.`, {
             confirmLabel: 'Continue',
             danger: true,
           });

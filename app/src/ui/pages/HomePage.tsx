@@ -18,6 +18,7 @@ import { BookPagesCard } from '../components/BookPages';
 import { BookProgress } from '../components/BookProgress';
 import { BackupRecovery } from '../components/BackupRecovery';
 import { PitchCard } from '../components/PitchCard';
+import { storagePlace } from '../platform';
 import type { SprintRecord } from '../sprint';
 
 export function HomePage({ projectId }: { projectId: string | null }) {
@@ -239,8 +240,7 @@ function Dashboard({ projectId }: { projectId: string }) {
       </div>
       {backupAge > settings.backupReminderDays && (
         <div className="banner info">
-          {settings.lastBackupAt ? `Your last backup was ${relativeTime(settings.lastBackupAt)}.` : 'You haven’t made a backup yet.'} Your work lives only in this
-          browser until you back it up. <a href={href(projectId, 'data')}>Back up now</a>
+          {settings.lastBackupAt ? `Your last backup was ${relativeTime(settings.lastBackupAt)}.` : 'You haven’t made a backup yet.'} Your work lives only in {storagePlace} until you back it up. <a href={href(projectId, 'data')}>Back up now</a>
         </div>
       )}
       <div className="cards">
@@ -354,7 +354,7 @@ function Dashboard({ projectId }: { projectId: string }) {
           onClick={async () => {
             const ok = await confirmDialog(
               'Delete this project from this device?',
-              `This permanently removes “${project.name}”, including all chapters, references and history, from this browser. Export a backup first if you might want it back.`,
+              `This permanently removes “${project.name}”, including all chapters, references and history, from ${storagePlace}. Export a backup first if you might want it back.`,
               { confirmLabel: 'Delete permanently', danger: true, choices: [{ label: 'Export backup first', value: 'backup' }] },
             );
             if (ok === 'backup') navigate(projectId, 'data');
