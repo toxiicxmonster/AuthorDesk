@@ -6,6 +6,7 @@ import { archiveRecord, createRecord, unarchiveRecord, updateRecord } from '../.
 import { db } from '../../storage/db';
 import type { PlotThread } from '../../domain/schema';
 import { threadAppearances } from '../../domain/continuity';
+import { proseParagraphs } from '../../review/metrics';
 import { useSettings, updateSettings } from '../../storage/settings';
 import { CommitInput, EmptyState, excerpt } from '../components/common';
 import { promptDialog, toast } from '../store';
@@ -25,7 +26,11 @@ export function ThreadsPage({ projectId, selectedId }: { projectId: string; sele
     return { chapters, scenes, cards };
   }, [book?.id]);
   const appearances = useMemo(
-    () => (data ? threadAppearances(threads, data.chapters, data.scenes, data.cards, settings.staleThreadChapters) : []),
+    () => {
+      if (!data) return [];
+      const written = new Set(data.chapters.flatMap((c, i) => (data.scenes.some((sc) => sc.chapterId === c.id && !sc.archivedAt && proseParagraphs(sc.plainText).length > 0) ? [i] : [])));
+      return threadAppearances(threads, data.chapters, data.scenes, data.cards, settings.staleThreadChapters, written);
+    },
     [threads, data, settings.staleThreadChapters],
   );
   const selected = threadsAll.find((t) => t.id === selectedId) ?? null;

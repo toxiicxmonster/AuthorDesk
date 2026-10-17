@@ -61,6 +61,13 @@ describe('continuity', () => {
     expect(r[0]).toMatchObject({ chapters: [1], gap: 6, stale: true });
     expect(r[1].stale).toBe(false); // never appeared: not "abandoned", just unplaced
   });
+  it('doesn’t count chapters that aren’t written yet toward a quiet stretch', () => {
+    const chapters = Array.from({ length: 8 }, (_, i) => ({ ...base, id: `ch${i}`, order: i }) as unknown as Chapter);
+    const scenes = [{ ...base, id: 's', chapterId: 'ch1', plotThreadIds: ['t1'] } as unknown as Scene];
+    const threads = [{ ...base, id: 't1', status: 'open' } as PlotThread];
+    expect(threadAppearances(threads, chapters, scenes, [], 5, new Set([0, 1, 2, 3]))[0]).toMatchObject({ gap: 2, stale: false });
+    expect(threadAppearances(threads, chapters, scenes, [], 5, new Set([0, 1, 2, 3, 4, 5, 6, 7]))[0]).toMatchObject({ gap: 6, stale: true });
+  });
 });
 
 const ref = (name: string, aliases: string[] = []): ReferenceEntry =>

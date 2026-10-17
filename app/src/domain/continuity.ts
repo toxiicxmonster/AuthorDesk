@@ -81,6 +81,8 @@ export function threadAppearances(
   scenes: Scene[],
   cardChapterLinks: { chapterId: string | null; plotThreadIds: string[] }[],
   threshold: number,
+  /** Chapter indexes with story text; when given, chapters not written yet don't count toward a quiet stretch. */
+  written?: ReadonlySet<number>,
 ): ThreadAppearance[] {
   const index = new Map(chapters.map((c, i) => [c.id, i]));
   const hits = new Map<string, Set<number>>();
@@ -97,7 +99,8 @@ export function threadAppearances(
   return threads.map((t) => {
     const list = [...(hits.get(t.id) ?? [])].sort((a, b) => a - b);
     const lastIndex = list.length ? list[list.length - 1] : null;
-    const gap = lastIndex === null ? total : total - 1 - lastIndex;
+    const after = Array.from({ length: total }, (_, i) => i).filter((i) => i > (lastIndex ?? -1) && (!written || written.has(i)));
+    const gap = after.length;
     return {
       threadId: t.id,
       chapters: list,
