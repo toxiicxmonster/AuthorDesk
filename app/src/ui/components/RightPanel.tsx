@@ -55,7 +55,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
         {tab === 'reference' && <QuickReference scene={scene} />}
         {tab === 'scene' && <SceneInspector scene={scene} chapter={chapter} nextScene={nextScene} />}
         {tab === 'proof' && <ProofPanel projectId={scene.projectId} />}
-        {tab === 'dialogue' && <DialoguePanel projectId={scene.projectId} />}
+        {tab === 'dialogue' && <DialoguePanel projectId={scene.projectId} povId={scene.povCharacterId} />}
         {tab === 'ai' && <AiEditorPanel projectId={scene.projectId} />}
         {tab === 'pass' && <EditPassPanel projectId={scene.projectId} sceneId={scene.id} />}
         {tab === 'history' && <HistoryPanel scene={scene} />}

@@ -7,7 +7,7 @@ import { useReferences } from '../data';
 import { DialogueVoice } from './DialogueVoice';
 
 /** Side panel → Dialogue: who speaks, how it's tagged, and what might lose the reader, for the open scene. */
-export function DialoguePanel({ projectId }: { projectId: string }) {
+export function DialoguePanel({ projectId, povId = null }: { projectId: string; povId?: string | null }) {
   const { editor } = useEditorCtx();
   const refs = useReferences(projectId);
   const [doc, setDoc] = useState(() => editor?.state.doc ?? null);
@@ -47,6 +47,9 @@ export function DialoguePanel({ projectId }: { projectId: string }) {
     [report, blocks, cursor],
   );
 
+  // In a first-person scene, "I" is the point-of-view character.
+  const narrator = refs.find((r) => r.id === povId)?.name ?? null;
+  const unnamed = report.lines.filter((l) => !l.speaker).length;
   if (!editor) return <p className="muted">Open a scene to see its dialogue.</p>;
   if (!report.lines.length) return <p className="muted">No dialogue in this scene yet. Quoted speech will show up here as you write it.</p>;
 
@@ -102,13 +105,15 @@ export function DialoguePanel({ projectId }: { projectId: string }) {
         <ul className="dialogue-bars">
           {report.speakers.map(([who, n]) => (
             <li key={who}>
-              <span className="who">{who}</span>
+              <span className="who">{who === 'I' && narrator ? `${narrator} (I)` : who}</span>
               <span className="bar" style={{ width: `${Math.max(6, (n / most) * 100)}%` }} />
               <span className="muted small">{n}</span>
             </li>
           ))}
-          {report.lines.some((l) => !l.speaker) && (
-            <li className="muted small">{report.lines.filter((l) => !l.speaker).length} line(s) with no speaker named</li>
+          {unnamed > 0 && (
+            <li className="muted small">
+              {unnamed} line{unnamed === 1 ? '' : 's'} with no speaker named
+            </li>
           )}
         </ul>
       </section>
