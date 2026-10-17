@@ -4,8 +4,8 @@ import { TextSelection } from '@tiptap/pm/state';
 import type { Revision, RevisionStatus } from '../../domain/schema';
 import { db } from '../../storage/db';
 import { updateRecord } from '../../storage/repo';
-import { deleteEditPass } from '../../storage/revisions';
-import { useEditorCtx } from '../../editor/EditorContext';
+import { deleteEditPass, startEditPass } from '../../storage/revisions';
+import { flushAllEdits, useEditorCtx } from '../../editor/EditorContext';
 import { collectTextBlocks } from '../../editor/blocks';
 import { applyPlaced, type PlacedSuggestion } from '../../editor/proofreadExtension';
 import { PASS_KIND_LABELS, locateItem, passProgress, passReport } from '../../review/editPass';
@@ -51,13 +51,37 @@ export function EditPassPanel({ projectId, sceneId }: { projectId: string; scene
   }, [items, texts]);
   const chapterTitles = useLiveQuery(async () => new Map((await db.chapters.where('projectId').equals(projectId).toArray()).map((c) => [c.id, c.title])), [projectId]);
 
+  const [starting, setStarting] = useState(false);
+  const startHere = async () => {
+    setStarting(true);
+    try {
+      await flushAllEdits();
+      const scene = await db.scenes.get(sceneId);
+      const chapter = scene && (await db.chapters.get(scene.chapterId));
+      if (!chapter) return;
+      const name = `Edit pass: ${chapter.title || 'this chapter'}, ${new Date().toLocaleDateString([], { day: 'numeric', month: 'short' })}`;
+      const { count } = await startEditPass(projectId, chapter.bookId, chapter.id, name);
+      toast(count ? `Edit pass ready: ${count} item${count === 1 ? '' : 's'}.` : 'Nothing to work through in this chapter. Clean copy!');
+    } catch (e) {
+      reportError(e, 'Could not start the edit pass');
+    } finally {
+      setStarting(false);
+    }
+  };
+
   if (!all) return <p className="muted">Loading…</p>;
   if (!pass) {
     return (
       <div className="edit-pass">
         <p className="muted">No edit pass yet.</p>
         <p className="small muted">
-          An edit pass collects every suggestion and review finding for a chapter or the whole book into one checklist, like an editor’s notes. Start one from the{' '}
+          An edit pass collects every suggestion and review finding for a chapter or the whole book into one checklist, like an editor’s notes.
+        </p>
+        <button disabled={starting} onClick={() => void startHere()}>
+          {starting ? 'Collecting…' : 'Start one for this chapter'}
+        </button>
+        <p className="small muted">
+          For the whole book, start it from the{' '}
           <button className="link-btn" onClick={() => navigate(projectId, 'review')}>
             Review
           </button>{' '}
@@ -68,6 +92,8 @@ export function EditPassPanel({ projectId, sceneId }: { projectId: string; scene
   }
 
   const progress = passProgress(items, gone, items.map((i) => i.id));
+  // Each item names its chapter only when the pass covers more than one.
+  const manyChapters = new Set(items.map((i) => i.chapterId)).size > 1;
   const statusOf = (it: Revision): RevisionStatus | 'changed' => (it.status === 'open' && gone.has(it.id) ? 'changed' : it.status);
   const kinds = [...new Set(items.map((i) => i.kind))];
   const visible = items.filter((it) => {
@@ -185,7 +211,7 @@ export function EditPassPanel({ projectId, sceneId }: { projectId: string; scene
             <li key={it.id} className={`pass-item st-${st}`}>
               <div className="pass-item-head small">
                 <span className="chip">{PASS_KIND_LABELS[it.kind] ?? it.kind}</span>
-                <span className="muted">{(it.chapterId && chapterTitles?.get(it.chapterId)) || ''}</span>
+                {manyChapters && <span className="muted">{(it.chapterId && chapterTitles?.get(it.chapterId)) || ''}</span>}
                 {st !== 'open' && <span className="muted">· {st === 'changed' ? 'rewritten ✓' : st === 'later' ? 'later' : st}</span>}
               </div>
               <button className="link-btn pass-quote" onClick={() => goTo(it)} title={here ? 'Show it in the scene' : 'Go to this scene'}>

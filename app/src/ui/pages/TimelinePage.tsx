@@ -235,6 +235,7 @@ function EventEditor({ e, onClose }: { e: TimelineEvent; onClose: () => void }) 
             {t.name}
           </label>
         ))}
+        {!threads.length && <span className="muted small">No plot threads yet.</span>}
       </fieldset>
       <div className="dialog-actions">
         {e.sceneId && <a className="button" href={`#/p/${e.projectId}/write/${e.sceneId}`}>Open scene</a>}
