@@ -107,7 +107,7 @@ function ProjectList() {
           </button>
           <label className="card welcome-option">
             <span className="type-icon" aria-hidden>
-              ⇪
+              💾
             </span>
             <strong>Restore a backup</strong>
             <span className="muted small">Open an .authorproj file you saved before.</span>

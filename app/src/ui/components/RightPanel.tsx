@@ -43,6 +43,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
           {tabs.map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setUi({ rightTab: k })}>
               {label}
+              {k === 'proof' && <ProofCount />}
             </button>
           ))}
         </div>
@@ -322,6 +323,22 @@ function SceneInspector({ scene, chapter, nextScene }: { scene: Scene; chapter: 
       </div>
     </div>
   );
+}
+
+/** How many suggestions the open scene has, beside the Suggestions tab, so they're in sight from any tab. */
+function ProofCount() {
+  const { editor, proofVersion } = useEditorCtx();
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!editor) return;
+    const f = () => setN(getSuggestions(editor.state).length);
+    f();
+    editor.on('transaction', f);
+    return () => {
+      editor.off('transaction', f);
+    };
+  }, [editor, proofVersion]);
+  return n > 0 ? <span className="tab-count">{n > 99 ? '99+' : n}</span> : null;
 }
 
 function ProofPanel({ projectId }: { projectId: string }) {

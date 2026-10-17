@@ -3902,6 +3902,16 @@ code.path {
 .tablist-inner {
   display: contents;
 }
+.tab-count {
+  margin-left: 0.3em;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  background: var(--accent-soft);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
 /* Empty states keep their old look with a proper heading level. */
 .empty .empty-title {
   font-size: 1rem;
