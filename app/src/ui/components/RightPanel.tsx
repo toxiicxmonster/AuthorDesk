@@ -9,7 +9,7 @@ import { navigate } from '../router';
 import { confirmDialog, promptDialog, reportError, setUi, toast, useUi } from '../store';
 import { db } from '../../storage/db';
 import { cardFromScene, mergeScenes, restoreSnapshot, splitScene, updateRecord } from '../../storage/repo';
-import { CommitInput, StatusSelect, Modal } from './common';
+import { CommitInput, StatusSelect, Modal, excerpt } from './common';
 import { useEditorCtx, flushAllEdits } from '../../editor/EditorContext';
 import { applyPlaced, getSuggestions, type PlacedSuggestion } from '../../editor/proofreadExtension';
 import { TextSelection } from '@tiptap/pm/state';
@@ -79,6 +79,9 @@ function QuickReference({ scene }: { scene: Scene }) {
   );
   const linked = refs.filter((r) => scene.referenceIds.includes(r.id) || r.id === scene.povCharacterId || r.id === scene.locationId);
   const mentioned = useMemo(() => detectMentions(scene.plainText, refs, linked.map((r) => r.id)), [scene.plainText, refs, linked]);
+  // Entries already listed under "In this scene" aren't repeated below it.
+  const inScene = new Set(q ? [] : [...linked.map((r) => r.id), ...mentioned.slice(0, 12).map((m) => m.ref.id)]);
+  const rest = list.filter((r) => !inScene.has(r.id));
 
   if (selected) {
     return (
@@ -104,7 +107,7 @@ function QuickReference({ scene }: { scene: Scene }) {
           ))}
         </select>
       </div>
-      {!q && linked.length + mentioned.length > 0 && (
+      {!q && inScene.size > 0 && (
         <section>
           <h3 className="small-heading">In this scene</h3>
           <ul className="ref-mini">
@@ -117,15 +120,17 @@ function QuickReference({ scene }: { scene: Scene }) {
           </ul>
         </section>
       )}
-      <section>
-        <h3 className="small-heading">{q || type ? 'Results' : 'All references'}</h3>
-        <ul className="ref-mini">
-          {list.slice(0, 100).map((r) => (
-            <RefMini key={r.id} r={r} />
-          ))}
-          {!list.length && <li className="muted">Nothing here yet. Add characters and places from the References view.</li>}
-        </ul>
-      </section>
+      {(rest.length > 0 || !list.length) && (
+        <section>
+          <h3 className="small-heading">{q || type ? 'Results' : inScene.size ? 'Everything else' : 'All references'}</h3>
+          <ul className="ref-mini">
+            {rest.slice(0, 100).map((r) => (
+              <RefMini key={r.id} r={r} />
+            ))}
+            {!list.length && <li className="muted">{q || type ? 'Nothing matches.' : 'Nothing here yet. Add characters and places on the World page.'}</li>}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
@@ -137,7 +142,7 @@ function RefMini({ r, note }: { r: ReferenceEntry; note?: string }) {
         <span aria-hidden>{REFERENCE_TYPE_ICONS[r.type]}</span> {r.favorite ? '★ ' : ''}
         {r.name}
         {note && <span className="muted small"> · {note}</span>}
-        {r.summary && <span className="muted small block">{r.summary.slice(0, 90)}</span>}
+        {r.summary && <span className="muted small block">{excerpt(r.summary, 90)}</span>}
       </button>
     </li>
   );
