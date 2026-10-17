@@ -110,7 +110,9 @@ async function start() {
 }
 
 function createWindow(moved) {
-  const state = SMOKE_TEST ? { width: 1400, height: 900, maximized: false } : windowState.loadState(screen.getAllDisplays());
+  // Self-test only: AUTHORDESK_SMOKE_SIZE=900x700 checks the layout in a smaller window.
+  const [smokeW, smokeH] = (process.env.AUTHORDESK_SMOKE_SIZE ?? '1400x900').split('x').map(Number);
+  const state = SMOKE_TEST ? { width: smokeW || 1400, height: smokeH || 900, maximized: false } : windowState.loadState(screen.getAllDisplays());
   win = new BrowserWindow({
     width: state.width,
     height: state.height,
