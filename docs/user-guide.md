@@ -38,7 +38,7 @@ Click **◐** in the top bar to switch between Paper, Sepia, Pastel Blue, Sage, 
 
 Create characters, places and more in **References**. While writing, select a name and press 🔗 to link it; click linked text to see the entry in the side panel. The panel also lists entries mentioned in the scene. Each entry shows where it is linked or mentioned. Archive entries to hide them without breaking links.
 
-**In the story.** A character's entry shows a strip with a cell per chapter, darker where they're more present (mentions and lines of dialogue). It says where they're first and last seen, and warns when they're missing for five or more chapters. Click a cell to jump to that chapter. *Set first appearance* fills in that field in one click. Review → *Characters who drop out* lists everyone who disappears for a long stretch.
+**In the story.** A character's entry shows a strip with a cell per chapter, darker where they're more present (mentions and lines of dialogue). It says where they're first and last seen, and warns when they're missing for five or more chapters (chapters you haven't written yet don't count). Click a cell to jump to that chapter. *Set first appearance* fills in that field in one click. Review → *Characters who drop out* lists everyone who disappears for a long stretch.
 
 **Maps.** The **Maps** tab draws your World entries:
 - **Relationships:** everyone with a connection, joined by lines labelled with the relationship ("sister", "rival"). Drag names to arrange them (it remembers); click one to open the entry; *Tidy up* lays it out again.
