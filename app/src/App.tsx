@@ -215,7 +215,7 @@ export function App() {
               <Icon name="menu" />
             </button>
           )}
-          <a className="brand" href={href(pid, 'home')} title="Home">
+          <a className="brand" href={href(pid, 'home')} title={project?.name ? `${project.name}: Home` : 'Home'}>
             <img src="./icon.svg" alt="" width={22} height={22} />
             <span className="brand-name">{project?.name ?? 'AuthorDesk'}</span>
           </a>
