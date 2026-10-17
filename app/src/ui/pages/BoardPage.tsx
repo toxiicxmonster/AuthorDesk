@@ -55,6 +55,10 @@ export function BoardPage({ projectId, focusId }: { projectId: string; focusId: 
   const [beatMapOpen, setBeatMapOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  // A card linked to a scene shows the scene's status, which moves on as you write (the card's own copy is from when they were linked).
+  const tree = useManuscript(book?.id ?? null);
+  const sceneStatus = new Map((tree?.sceneOrder ?? []).map((sc) => [sc.id, sc.status]));
+  const statusOf = (c: BoardCard) => (c.sceneId && sceneStatus.get(c.sceneId)) || c.status;
 
   // Open a card from a link (e.g. search result or backlink).
   useEffect(() => {
@@ -80,7 +84,7 @@ export function BoardPage({ projectId, focusId }: { projectId: string; focusId: 
     if (f.character && c.povCharacterId !== f.character && !c.referenceIds.includes(f.character)) return false;
     if (f.thread && !c.plotThreadIds.includes(f.thread)) return false;
     if (f.location && c.locationId !== f.location) return false;
-    if (f.status && c.status !== f.status) return false;
+    if (f.status && statusOf(c) !== f.status) return false;
     if (f.tag && !c.tags.includes(f.tag)) return false;
     return true;
   };
@@ -288,7 +292,7 @@ export function BoardPage({ projectId, focusId }: { projectId: string; focusId: 
                     >
                       <button className="card-body" onClick={() => setEditing(c.id)}>
                         <div className="card-top">
-                          <StatusDot status={c.status} />
+                          <StatusDot status={statusOf(c)} />
                           <span className="card-type">{c.type}</span>
                           {c.sceneId && <span className="linked-mark" title="This card is linked to a scene in your manuscript">✎ in book</span>}
                         </div>
@@ -410,7 +414,13 @@ function CardEditor({ card, onClose }: { card: BoardCard; onClose: () => void })
               ))}
             </select>
           </label>
-          <StatusSelect value={card.status} onChange={(v) => upd({ status: v })} />
+          <StatusSelect
+            value={linkedScene?.status ?? card.status}
+            onChange={(v) => {
+              upd({ status: v });
+              if (linkedScene) void updateRecord('scenes', linkedScene.id, { status: v });
+            }}
+          />
           <label className="field inline">
             <span>POV</span>
             <select value={card.povCharacterId ?? ''} onChange={(e) => upd({ povCharacterId: e.target.value || null })}>
