@@ -41,7 +41,7 @@ All taken with the sample book that comes with the app.
 | ![The Velvet Sheets theme: deep wine and rose over a faint lace pattern](docs/screenshots/theme-velvet.jpg) | ![The Cozy Cottage theme: cream cards on a cobblestone background](docs/screenshots/theme-cottage.jpg) |
 | **Velvet Sheets:** a theme for steamy romance | **Cozy Cottage:** cards on cobblestones; any theme can have a background picture |
 
-> **Version 0.15.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
+> **Version 0.15.1.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
 
 ---
 
