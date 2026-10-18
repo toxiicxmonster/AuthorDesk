@@ -331,7 +331,7 @@ app/                React + TypeScript + Vite PWA
   tests/              vitest suites
 server/             self-hostable sync server (Node, no dependencies, SQLite)
 desktop/            desktop app (Electron): window, local server, add-on installers, backups, updater
-scripts/            make-icons.ps1
+scripts/            make-icons.ps1, make-theme-tiles.py (theme background patterns)
 docs/               user guide, architecture, ADRs, setup guides, import template, screenshots
 .github/workflows/  Linux build and checks
 IMPLEMENTATION_PLAN.md  phase-by-phase status
