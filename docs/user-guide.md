@@ -16,7 +16,7 @@ Coming from an earlier version, which ran inside Edge or Chrome? Your books are 
 
 Click **◐** in the top bar to switch themes, or choose in Settings → Theme:
 
-- **Everyday:** Paper, Sepia, Night, Sage (sprigs of sage behind the panels), Cozy Cottage (cream cards on cobblestones), and **Writing Desk** (a classic: an old honey-oak desk, writing paper and an oxblood-leather accent).
+- **Everyday:** Paper, Sepia, Night, Sage (sprigs of sage behind the panels), Cozy Cottage (cream cards on cobblestones), **Writing Desk** (a classic: an old honey-oak desk, writing paper and an oxblood-leather accent) and **Christmas** (snowflakes, holly, candy canes, little trees and stars on snow, with a holly-red accent).
 - **Genre themes:** **Romance** (deep wine and rose over faint lace), **Fantasy** (an enchanted forest: gold sparkles, crescent moons and little runes on emerald), **Mystery** (noir charcoal with faint question marks, magnifying glasses and fingerprints), **Spooky** (horror, but cute: bats, moons and pumpkins on deep purple), **Storybook** (children's books: pastel stars, hearts and crayon squiggles), **Wild West** (cacti, lucky horseshoes and sheriff's stars on sand) and **Starship** (sci-fi: cyan over faint circuitry and stars).
 - *Match my device* uses Paper by day and Night when your device is dark.
 

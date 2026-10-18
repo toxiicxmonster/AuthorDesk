@@ -389,7 +389,48 @@ def wild_west():
     dots = ''.join(f'<circle cx="{rnd.uniform(0,W):.1f}" cy="{rnd.uniform(0,H):.1f}" r="{rnd.uniform(.6,1.2):.1f}" fill="#b89567" fill-opacity=".35"/>' for _ in range(26))
     tile('wild-west.svg', W, H, '#e6cfa6', dots + ''.join(parts))
 
+def christmas():
+    # Cozy Christmas on snow: snowflakes, holly, candy canes, little trees and stars in red, green and frost blue.
+    rnd = random.Random(25)
+    W = H = 220
+    red, green, frost, gold = '#c8303a', '#2f7a4a', '#8fb0c8', '#d9a83a'
+    def snowflake(op, r=8):
+        arms = ''.join(
+            f'<g transform="rotate({a})"><path d="M0 0 V{-r} M0 {-r*.55:.1f} L{-r*.25:.1f} {-r*.8:.1f} M0 {-r*.55:.1f} L{r*.25:.1f} {-r*.8:.1f}"/></g>'
+            for a in range(0, 360, 60)
+        )
+        return f'<g fill="none" stroke="{frost}" stroke-opacity="{op}" stroke-width="1.3" stroke-linecap="round">{arms}</g>'
+    def holly(op):
+        leaf = f'<path d="M0 0 C3 -2 4 -6 9 -7 C8 -4 10 -2 9 0 C10 2 8 4 9 7 C4 6 3 2 0 0 Z" fill="{green}" fill-opacity="{op}"/>'
+        return (f'<g transform="rotate(-20)">{leaf}</g><g transform="rotate(200)">{leaf}</g>'
+                f'<circle cx="-1" cy="2" r="2.4" fill="{red}" fill-opacity="{op+.1:.2f}"/><circle cx="2.5" cy="3" r="2.4" fill="{red}" fill-opacity="{op+.1:.2f}"/><circle cx="0.5" cy="-1" r="2.4" fill="{red}" fill-opacity="{op+.1:.2f}"/>')
+    def candy_cane(op):
+        d = 'M0 10 V-5 A4 4 0 0 1 8 -5'
+        return (f'<path d="{d}" fill="none" stroke="#ffffff" stroke-opacity="{min(1, op+.4):.2f}" stroke-width="3.6" stroke-linecap="round"/>'
+                f'<path d="{d}" fill="none" stroke="{red}" stroke-opacity="{op+.1:.2f}" stroke-width="3.6" stroke-linecap="butt" stroke-dasharray="2.5 2.5"/>')
+    def tree(op):
+        return (f'<path d="M0 -10 L6 -2 H3 L8 5 H-8 L-3 -2 H-6 Z" fill="{green}" fill-opacity="{op}"/>'
+                f'<rect x="-1.5" y="5" width="3" height="3" fill="#8a5a3a" fill-opacity="{op}"/>' + star5(gold, op + .15, 2.6).replace('<path', '<path transform="translate(0 -11)"', 1))
+    pts = scatter(rnd, W, H, 16, 42)
+    parts = []
+    for i, (x, y) in enumerate(pts):
+        k = i % 5
+        if k == 0:
+            body = rot(snowflake(.55, rnd.uniform(6, 8)), rnd.uniform(0, 30))
+        elif k == 1:
+            body = rot(holly(.45), rnd.uniform(-30, 30))
+        elif k == 2:
+            body = rot(candy_cane(.45), rnd.uniform(-25, 25))
+        elif k == 3:
+            body = tree(.4)
+        else:
+            body = rot(star5(gold, .4, rnd.uniform(5, 7)), rnd.uniform(-20, 20))
+        parts.append(wrapped(W, H, x, y, body))
+    dots = ''.join(f'<circle cx="{rnd.uniform(0,W):.1f}" cy="{rnd.uniform(0,H):.1f}" r="{rnd.uniform(.8,1.6):.1f}" fill="{frost}" fill-opacity=".35"/>' for _ in range(26))
+    tile('christmas.svg', W, H, '#f6f1e8', dots + ''.join(parts))
+
 os.makedirs(OUT, exist_ok=True)
+christmas()
 writing_desk()
 fantasy()
 mystery()

@@ -91,6 +91,14 @@ export const BUILTIN_THEMES: ThemeDef[] = [
     background: { image: './themes/wild-west.svg', mode: 'repeat', fade: 10 },
   },
   {
+    id: 'christmas',
+    name: 'Christmas',
+    builtIn: true,
+    // Cozy Christmas on snow: snowflakes, holly, candy canes, little trees and stars, with a holly-red accent.
+    colors: { background: '#f6f1e8', panel: '#fffaf2', page: '#fffdf8', text: '#2a2320', accent: '#b3242f' },
+    background: { image: './themes/christmas.svg', mode: 'repeat', fade: 10 },
+  },
+  {
     // The id stays 'velvet' (its first name) so anyone who chose it keeps it.
     id: 'velvet',
     name: 'Romance',
