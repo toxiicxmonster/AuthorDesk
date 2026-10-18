@@ -652,7 +652,7 @@ details.banner {
 }
 /* With a mouse, a row's ⋯ menu shows on hover, keyboard focus or the open chapter, leaving room for the title. */
 @media (hover: hover) {
-  :is(.chapter-row, .scene-row):not(:hover, :focus-within, .current, :has(.menu)) > .menu-wrap {
+  :is(.chapter-row, .scene-row):not(:hover, :focus-within, .current, :has([aria-expanded="true"])) > .menu-wrap {
     width: 0;
     overflow: hidden;
   }
@@ -723,7 +723,8 @@ details.banner {
   position: absolute;
   right: 0;
   top: 100%;
-  z-index: 30;
+  /* Drawn at the top level of the page (see Menu.tsx): above dialogs too, since a menu can open inside one. */
+  z-index: 70;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -2815,9 +2816,6 @@ input[type='checkbox'] {
   margin: 0.5rem 0;
 }
 @media (min-width: 900px) {
-  .book-pages {
-    grid-column: span 2;
-  }
   .book-pages .book-pages-groups {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -3609,8 +3607,14 @@ code.path {
 .streak-day.future {
   visibility: hidden;
 }
+/* Wide cards on Home: a whole row in narrower windows (their tables need the room), two columns from 900 px. */
+.book-progress,
+.book-pages {
+  grid-column: 1 / -1;
+}
 @media (min-width: 900px) {
-  .book-progress {
+  .book-progress,
+  .book-pages {
     grid-column: span 2;
   }
 }
@@ -4047,7 +4051,7 @@ mark.hl[class*='hl-'] {
   position: absolute;
   top: 100%;
   left: 0;
-  z-index: 30;
+  z-index: 70;
   display: grid;
   grid-template-columns: repeat(3, 28px);
   gap: 6px;
