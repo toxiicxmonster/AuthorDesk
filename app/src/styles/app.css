@@ -3997,3 +3997,95 @@ h3.small-heading {
 .thread-grid th.unwritten a {
   color: var(--text-2);
 }
+
+/* ---------- Highlights and comments (the author's own marks; never exported) ---------- */
+:root {
+  --hl-yellow: rgba(255, 214, 10, 0.45);
+  --hl-green: rgba(60, 190, 110, 0.35);
+  --hl-blue: rgba(70, 150, 255, 0.32);
+  --hl-pink: rgba(255, 90, 160, 0.3);
+  --hl-purple: rgba(160, 110, 255, 0.32);
+  --hl-orange: rgba(255, 140, 40, 0.38);
+}
+mark.hl {
+  color: inherit;
+  border-radius: 2px;
+  padding: 0.05em 0;
+  background: var(--hl-yellow);
+}
+.hl-yellow { --hl: var(--hl-yellow); }
+.hl-green { --hl: var(--hl-green); }
+.hl-blue { --hl: var(--hl-blue); }
+.hl-pink { --hl: var(--hl-pink); }
+.hl-purple { --hl: var(--hl-purple); }
+.hl-orange { --hl: var(--hl-orange); }
+mark.hl[class*='hl-'] {
+  background: var(--hl);
+}
+.cmt {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  cursor: pointer;
+}
+.hl-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.hl-picker .hl-more {
+  padding-inline: 0.15em;
+  min-width: 0;
+  font-size: 0.7rem;
+}
+.hl-pen {
+  display: inline-flex;
+  border-radius: 4px;
+  padding: 1px;
+  background: var(--hl);
+}
+.hl-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(3, 28px);
+  gap: 6px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.hl-swatch {
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: linear-gradient(var(--hl), var(--hl)), var(--page);
+}
+.hl-swatch:hover {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.hl-none {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  min-height: 0;
+  padding: 0.2rem 0.4rem;
+}
+.sev-comment {
+  color: var(--accent);
+}
+.comment-text {
+  white-space: pre-wrap;
+  margin: 0.2rem 0;
+}
+.comment-quote {
+  font-style: italic;
+}
+.comment-item .row {
+  margin: 0 0 0.4rem;
+}

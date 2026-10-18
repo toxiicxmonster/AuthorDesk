@@ -22,6 +22,7 @@ import { AiEditorPanel } from './AiEditorPanel';
 import { EditPassPanel } from './EditPassPanel';
 import { ChapterSummaryAssist, SceneSummaryAssist } from './SummaryAssist';
 import { VersionChanges } from './VersionChanges';
+import { CommentCount, CommentsPanel } from '../../editor/AnnotationUi';
 import { ChapterPlanChecklist, PlanChecklist } from './PlanChecklist';
 
 export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapter: Chapter; nextScene: Scene | null }) {
@@ -29,6 +30,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
   const tabs: [typeof tab, string][] = [
     ['reference', 'Look up'],
     ['scene', 'Scene notes'],
+    ['comments', 'Comments'],
     ['proof', 'Suggestions'],
     ['dialogue', 'Dialogue'],
     ['ai', 'AI Editor'],
@@ -44,6 +46,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setUi({ rightTab: k })}>
               {label}
               {k === 'proof' && <ProofCount />}
+              {k === 'comments' && <CommentCount />}
             </button>
           ))}
         </div>
@@ -54,6 +57,7 @@ export function RightPanel({ scene, chapter, nextScene }: { scene: Scene; chapte
       <div className="panel-body">
         {tab === 'reference' && <QuickReference scene={scene} />}
         {tab === 'scene' && <SceneInspector scene={scene} chapter={chapter} nextScene={nextScene} />}
+        {tab === 'comments' && <CommentsPanel />}
         {tab === 'proof' && <ProofPanel projectId={scene.projectId} />}
         {tab === 'dialogue' && <DialoguePanel projectId={scene.projectId} povId={scene.povCharacterId} />}
         {tab === 'ai' && <AiEditorPanel projectId={scene.projectId} />}

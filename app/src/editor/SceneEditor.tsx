@@ -32,6 +32,7 @@ import { SprintButton } from '../ui/components/SprintButton';
 import { useFitNav } from '../ui/useFitNav';
 import { useSprint } from '../ui/sprint';
 import { NextPlanPoint } from '../ui/components/PlanChecklist';
+import { CommentDialog, CommentPopover, HighlightPicker, applyHighlight, lastHighlight, newCommentTarget, type CommentTarget } from './AnnotationUi';
 
 const SAVE_DELAY = 700;
 /** Underlines refresh this soon after a pause in typing (on-device checks; unchanged paragraphs come from a cache). */
@@ -66,6 +67,8 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
   const [pickerOpen, setPickerOpen] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [popover, setPopover] = useState<({ items: PlacedSuggestion[] } & PopoverPlacement) | null>(null);
+  const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
+  const [commentPop, setCommentPop] = useState<({ ids: string[] } & PopoverPlacement) | null>(null);
   // Whether the AI Editor is installed: then clicking a mark it can help with opens it on that sentence.
   const aiInstalled = useRef(false);
   useEffect(() => {
@@ -227,13 +230,26 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
       } else if (mod && e.altKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         setUi((s) => ({ focusMode: !s.focusMode }));
-      } else if (e.key === 'Escape' && popover) {
+      } else if (mod && e.altKey && e.key.toLowerCase() === 'h' && editor) {
+        e.preventDefault();
+        applyHighlight(editor, lastHighlight());
+      } else if (e.key === 'Escape' && (popover || commentPop)) {
         setPopover(null);
+        setCommentPop(null);
       }
     };
+    const onComment = () => {
+      if (!editor) return;
+      const t = newCommentTarget(editor);
+      if (t) setCommentTarget(t);
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [save, popover]);
+    window.addEventListener('authordesk:add-comment', onComment);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('authordesk:add-comment', onComment);
+    };
+  }, [save, popover, commentPop, editor]);
 
   const onEditorClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -265,6 +281,19 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
       }
     }
     if (popover) setPopover(null);
+    // A comment: show it beside the words.
+    const cmt = target.closest('.cmt') as HTMLElement | null;
+    if (cmt && editor) {
+      const ids = new Set<string>();
+      let el: HTMLElement | null = target;
+      while (el && el !== e.currentTarget) {
+        if (el.dataset.commentId) ids.add(el.dataset.commentId);
+        el = el.parentElement;
+      }
+      setCommentPop({ ids: [...ids], ...popoverPlacement(e.currentTarget as HTMLElement, cmt.getBoundingClientRect()) });
+      return;
+    }
+    if (commentPop) setCommentPop(null);
   };
 
   const words_ = words;
@@ -279,6 +308,10 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
         projectId={scene.projectId}
         onFind={() => setFindOpen((v) => !v)}
         onLink={() => setPickerOpen(true)}
+        onComment={() => {
+          const t = newCommentTarget(editor);
+          if (t) setCommentTarget(t);
+        }}
         onSnapshot={async () => {
           await save();
           const s = await db.scenes.get(scene.id);
@@ -319,6 +352,26 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
           <button className={editor.isActive('italic') ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleItalic().run()} aria-label="Italic">
             <i>I</i>
           </button>
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => applyHighlight(editor, lastHighlight())}
+            aria-label="Highlight"
+            title="Highlight (Ctrl+Alt+H)"
+          >
+            <span className={`hl-pen hl-${lastHighlight()}`}>
+              <Icon name="highlight" size={15} />
+            </span>
+          </button>
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              const t = newCommentTarget(editor);
+              if (t) setCommentTarget(t);
+            }}
+            title="Comment on these words (Ctrl+Alt+M)"
+          >
+            <Icon name="comment" size={15} /> Comment
+          </button>
           <button onMouseDown={(e) => e.preventDefault()} onClick={() => setPickerOpen(true)}>
             <Icon name="link" size={15} /> Link to character / place…
           </button>
@@ -342,6 +395,20 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
             onRerun={() => void proofread()}
           />
         )}
+        {commentPop && (
+          <CommentPopover
+            editor={editor}
+            ids={commentPop.ids}
+            x={commentPop.x}
+            y={commentPop.y}
+            above={commentPop.above}
+            onEdit={(t) => {
+              setCommentPop(null);
+              setCommentTarget(t);
+            }}
+            onClose={() => setCommentPop(null)}
+          />
+        )}
       </div>
       {settings.pacingStrip && !focusMode && <PacingStrip editor={editor} pageRef={pageRef} />}
       </div>
@@ -354,6 +421,7 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
         <span className="muted">{statusLabel[0].toUpperCase() + statusLabel.slice(1)}</span>
         <NextPlanPoint scene={scene} />
       </footer>
+      {commentTarget && <CommentDialog editor={editor} target={commentTarget} onClose={() => setCommentTarget(null)} />}
       {pickerOpen && (
         <ReferencePicker
           projectId={scene.projectId}
@@ -374,7 +442,21 @@ export function SceneEditor({ scene, chapterOtherWords, bookOtherWords, onEditor
   );
 }
 
-function Toolbar({ editor, projectId, onFind, onLink, onSnapshot }: { editor: Editor; projectId: string; onFind: () => void; onLink: () => void; onSnapshot: () => void }) {
+function Toolbar({
+  editor,
+  projectId,
+  onFind,
+  onLink,
+  onComment,
+  onSnapshot,
+}: {
+  editor: Editor;
+  projectId: string;
+  onFind: () => void;
+  onLink: () => void;
+  onComment: () => void;
+  onSnapshot: () => void;
+}) {
   // Labels shrink, then go (icons only, names as tooltips) when the toolbar is narrow; re-measured when buttons come and go.
   const sprint = useSprint();
   const fit = useFitNav<HTMLDivElement>([!!sprint, !!sprint?.done, editor.isActive('refLink')]);
@@ -411,6 +493,8 @@ function Toolbar({ editor, projectId, onFind, onLink, onSnapshot }: { editor: Ed
       {btn('B', 'Bold', 'Bold (Ctrl+B)', editor.isActive('bold'), () => c().toggleBold().run(), { iconOnly: true, cls: 'b' })}
       {btn('I', 'Italic', 'Italic (Ctrl+I)', editor.isActive('italic'), () => c().toggleItalic().run(), { iconOnly: true, cls: 'i' })}
       {btn('U', 'Underline', 'Underline (Ctrl+U)', editor.isActive('underline'), () => c().toggleUnderline().run(), { iconOnly: true, cls: 'u' })}
+      <HighlightPicker editor={editor} showLabel={false} />
+      {btn(<Icon name="comment" size={16} />, 'Comment', 'Comment on the selected words (Ctrl+Alt+M). Only you see comments; they’re left out of exports.', false, onComment)}
       <span className="tb-sep" />
       {btn(<Icon name="heading" size={16} />, 'Heading', 'Make this line a heading', editor.isActive('heading', { level: 2 }), () => c().toggleHeading({ level: 2 }).run())}
       {btn(<Icon name="quote" size={16} />, 'Quote', 'Indent as a block quote (letters, poems, inscriptions)', editor.isActive('blockquote'), () => c().toggleBlockquote().run())}

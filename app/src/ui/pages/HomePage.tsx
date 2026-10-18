@@ -19,6 +19,7 @@ import { BookProgress } from '../components/BookProgress';
 import { BackupRecovery } from '../components/BackupRecovery';
 import { PitchCard } from '../components/PitchCard';
 import { storagePlace } from '../platform';
+import { useDocxImport } from '../components/DocxImport';
 import type { SprintRecord } from '../sprint';
 
 export function HomePage({ projectId }: { projectId: string | null }) {
@@ -32,6 +33,7 @@ function ProjectList() {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const importer = useArchiveImport();
+  const docx = useDocxImport(null);
   const counts = useLiveQuery(async () => {
     const m = new Map<string, number>();
     for (const s of await db.scenes.toArray()) if (!s.archivedAt) m.set(s.projectId, (m.get(s.projectId) ?? 0) + s.wordCount);
@@ -105,6 +107,13 @@ function ProjectList() {
             <strong>Bring in my existing book</strong>
             <span className="muted small">Import chapters, characters, places and plans from your own files.</span>
           </button>
+          <button className="card welcome-option" onClick={docx.pick}>
+            <span className="type-icon" aria-hidden>
+              📄
+            </span>
+            <strong>Start from a Word or Google Docs file</strong>
+            <span className="muted small">Your chapters from a .docx, with their headings, emphasis, comments and highlights.</span>
+          </button>
           <label className="card welcome-option">
             <span className="type-icon" aria-hidden>
               💾
@@ -117,6 +126,7 @@ function ProjectList() {
         <BackupRecovery />
         {(syncUi.server === 'signed-out' || syncUi.server === 'signed-in') && <SyncPanel projectId={null} />}
         {importer.modal}
+        {docx.modal}
       </div>
     );
   }
@@ -154,6 +164,9 @@ function ProjectList() {
           Restore a backup…
           {restoreInput}
         </label>
+        <button className="small" onClick={docx.pick} title="A Word document, or a Google Doc downloaded as Word (.docx)">
+          Start from a Word or Google Docs file…
+        </button>
         <button className="small" disabled={busy} onClick={() => void sample()}>
           Add the sample book
         </button>
@@ -163,6 +176,7 @@ function ProjectList() {
       </div>
       {(syncUi.server === 'signed-out' || syncUi.server === 'signed-in') && <SyncPanel projectId={null} />}
       {importer.modal}
+      {docx.modal}
     </div>
   );
 }

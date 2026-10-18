@@ -31,7 +31,7 @@ interface UiState {
   dialog: DialogRequest | null;
   leftOpen: boolean;
   rightOpen: boolean;
-  rightTab: 'reference' | 'scene' | 'proof' | 'dialogue' | 'ai' | 'pass' | 'history';
+  rightTab: 'reference' | 'scene' | 'proof' | 'dialogue' | 'ai' | 'pass' | 'history' | 'comments';
   quickRefId: string | null;
   /** Set when a flagged mark asks the AI Editor to work on its sentence; `id` changes for each request. */
   aiRequest: MarkRequest | null;

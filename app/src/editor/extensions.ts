@@ -3,6 +3,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { RefLink } from './refLink';
 import { Proofread } from './proofreadExtension';
 import { Find } from './findExtension';
+import { Comment, Highlight } from './annotations';
 
 export function editorExtensions(placeholder = 'Begin writing…') {
   return [
@@ -16,6 +17,8 @@ export function editorExtensions(placeholder = 'Begin writing…') {
     RefLink,
     Proofread,
     Find,
+    Highlight,
+    Comment,
   ];
 }
 

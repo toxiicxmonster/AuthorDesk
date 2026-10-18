@@ -15,6 +15,7 @@ import { reportError, toast, useUi } from '../store';
 import { relativeTime } from '../components/common';
 import { SyncPanel } from '../components/SyncPanel';
 import { AutoBackupCard } from '../components/AutoBackupCard';
+import { GOOGLE_HELP, useDocxImport } from '../components/DocxImport';
 
 export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }: { projectId: string; autoImportHelp?: boolean; autoKdp?: boolean }) {
   const project = useProject(projectId);
@@ -26,6 +27,7 @@ export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }:
   const importer = useArchiveImport();
   const [kdpOpen, setKdpOpen] = useState(autoKdp);
   const book = books.find((b) => b.id === bookId) ?? books[0];
+  const docx = useDocxImport(book ? { projectId, bookId: book.id } : null);
   const [pageChoice, setPageChoice] = useState<ExtraPagesChoice>({});
   const pageData = useExtraPagesData(projectId);
   /** Dedication / About the Author for a book: the chosen pages for the selected book, automatic for the others. */
@@ -143,6 +145,14 @@ export function DataPage({ projectId, autoImportHelp = false, autoKdp = false }:
 
       <section className="card" id="import">
         <h2>Import</h2>
+        <h3>A Word or Google Docs file</h3>
+        <p>
+          Add the chapters of a Word document to {books.length > 1 && book ? `“${book.title}”` : 'this book'}. You’ll see the chapters it found first. {GOOGLE_HELP}
+        </p>
+        <button onClick={docx.pick} disabled={!book}>
+          Choose a Word file (.docx)…
+        </button>
+        {docx.modal}
         <BundleImportCard projectId={projectId} autoOpenHelp={autoImportHelp} />
         <h3>Restore an AuthorDesk backup</h3>
         <p>Restore or merge a <code>{ARCHIVE_EXTENSION}</code> backup. You’ll see exactly what will change before anything is imported.</p>

@@ -32,6 +32,8 @@ const PATHS: Record<string, string> = {
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   series: 'M4 4h4v16H4zM10 4h4v16h-4zM16.5 4.5l3.9-1 3.6 15.5-3.9 1z',
   map: 'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14',
+  highlight: 'M8 15l-3 4h5l2-2M8 15l8-10 4 3-8 9zM8 15l4 2M3 21h18',
+  comment: 'M4 5h16v11H10l-5 4v-4H4zM8 9h8M8 12h5',
 };
 
 export type IconName = keyof typeof PATHS;
