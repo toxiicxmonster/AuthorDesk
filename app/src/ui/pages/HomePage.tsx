@@ -159,7 +159,7 @@ function ProjectList() {
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Title of a new book" aria-label="Title of a new book" />
         <button type="submit">+ Start a new book</button>
       </form>
-      <div className="row gap wrap">
+      <div className="row gap wrap books-more">
         <label className="button small">
           Restore a backup…
           {restoreInput}

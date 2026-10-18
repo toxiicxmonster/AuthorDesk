@@ -536,6 +536,10 @@ details.banner {
 .create-project input {
   flex: 1;
 }
+/* The same space below the new-book row as above it. */
+.books-more {
+  margin-top: 15px;
+}
 .empty {
   text-align: center;
   padding: 2.5rem 1rem;
