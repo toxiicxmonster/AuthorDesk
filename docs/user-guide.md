@@ -14,7 +14,7 @@ Coming from an earlier version, which ran inside Edge or Chrome? Your books are 
 
 ## Themes
 
-Click **◐** in the top bar to switch between Paper, Sepia, Velvet Sheets (deep wine and rose over faint lace, for romance), Sage, Cozy Cottage (cream cards on cobblestones), Night or *Match my device*. To make your own: Settings → Theme → *Create a theme*, pick five colours (background, panels, writing page, text, accent) and watch the whole app update as you go. AuthorDesk tells you if the text would be hard to read.
+Click **◐** in the top bar to switch between Paper, Sepia, Velvet Sheets (deep wine and rose over faint lace, for romance), Sage (sprigs of sage behind the panels), Cozy Cottage (cream cards on cobblestones), Night, Starship (sci-fi: a ship's console in deep space, cyan over faint circuitry and stars) or *Match my device*. To make your own: Settings → Theme → *Create a theme*, pick five colours (background, panels, writing page, text, accent) and watch the whole app update as you go. AuthorDesk tells you if the text would be hard to read.
 
 **Background picture:** in the same editor, *Choose a picture…* puts any photo or pattern behind everything (where the background colour shows; the writing page and panels stay plain). Choose **Fit to size** for one picture that fills the window, or **Repeat** to tile a pattern or texture. *Soften the picture* washes it with your background colour so the text on it stays readable. Large pictures are shrunk to a sensible size and kept with the theme. Use *Share* to save a theme (picture included) as a file and *Import a theme file* to add one.
 

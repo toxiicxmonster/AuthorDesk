@@ -60,7 +60,9 @@ export const BUILTIN_THEMES: ThemeDef[] = [
     id: 'sage',
     name: 'Sage',
     builtIn: true,
+    // A herb garden: sprigs of sage scattered behind the panels.
     colors: { background: '#cfdbc3', panel: '#e5ecdc', page: '#f4f6ed', text: '#26301f', accent: '#4f6e45' },
+    background: { image: './themes/sage-leaves.svg', mode: 'repeat', fade: 10 },
   },
   {
     id: 'cottage',
@@ -75,6 +77,14 @@ export const BUILTIN_THEMES: ThemeDef[] = [
     name: 'Night',
     builtIn: true,
     colors: { background: '#1b1c20', panel: '#24252b', page: '#202126', text: '#e6e3dc', accent: '#d9b26f' },
+  },
+  {
+    id: 'starship',
+    name: 'Starship',
+    builtIn: true,
+    // Sci-fi: a ship's console in deep space, cyan readouts over faint circuitry and stars.
+    colors: { background: '#0b1220', panel: '#121c30', page: '#0e1626', text: '#dde9f6', accent: '#4fd8e8' },
+    background: { image: './themes/starship.svg', mode: 'repeat', fade: 0 },
   },
 ];
 
