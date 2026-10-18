@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { updateSettings, useSettings } from '../../storage/settings';
-import { BUILTIN_THEMES, allThemes, applyTheme, contrast, isHex, parseThemeFile, resolveTheme, themeTokens, type ThemeBackground, type ThemeColors, type ThemeDef } from '../theme';
+import { BUILTIN_THEMES, allThemes, applyTheme, contrast, exportThemeFile, isHex, parseThemeFile, resolveTheme, themeTokens, type ThemeBackground, type ThemeColors, type ThemeDef } from '../theme';
 import { Modal } from './common';
-import { confirmDialog, toast } from '../store';
+import { confirmDialog, reportError, toast } from '../store';
 import { saveFile, fileSafe } from '../../importExport/download';
 import { newId } from '../../domain/ids';
 
@@ -51,9 +51,9 @@ export function ThemePicker() {
   const startNew = (from: ThemeDef) =>
     setEditing({ theme: { id: `custom-${newId()}`, name: `${from.name} (my version)`, colors: { ...from.colors }, background: from.background ?? null }, isNew: true });
 
-  const cards: { id: string; name: string; colors: ThemeColors; background?: ThemeBackground | null; custom?: ThemeDef }[] = [
+  const cards: { id: string; name: string; colors: ThemeColors; background?: ThemeBackground | null; custom?: ThemeDef; builtIn?: ThemeDef }[] = [
     { id: 'system', name: 'Match my device', colors: resolveTheme('system', custom, prefersDark).colors },
-    ...BUILTIN_THEMES.map((t) => ({ id: t.id, name: t.name, colors: t.colors, background: t.background })),
+    ...BUILTIN_THEMES.map((t) => ({ id: t.id, name: t.name, colors: t.colors, background: t.background, builtIn: t })),
     ...custom.map((t) => ({ id: t.id, name: t.name, colors: t.colors, background: t.background, custom: t })),
   ];
 
@@ -70,6 +70,13 @@ export function ThemePicker() {
               </span>
               {c.id === 'system' && <span className="muted small">Paper by day, Night when your device is dark</span>}
             </button>
+            {c.builtIn && (
+              <div className="theme-actions">
+                <button className="small" title="Make your own version of this theme to change. This one stays as it is." onClick={() => startNew(c.builtIn!)}>
+                  Customize
+                </button>
+              </div>
+            )}
             {c.custom && (
               <div className="theme-actions">
                 <button className="small" onClick={() => setEditing({ theme: c.custom!, isNew: false })}>
@@ -77,15 +84,16 @@ export function ThemePicker() {
                 </button>
                 <button
                   className="small"
-                  onClick={() =>
-                    void saveFile(
-                      JSON.stringify({ name: c.custom!.name, colors: c.custom!.colors, ...(c.custom!.background ? { background: c.custom!.background } : {}) }, null, 2),
-                      `${fileSafe(c.custom!.name)}.authortheme.json`,
-                      'application/json',
-                    )
-                  }
+                  title="Save this theme (colours and background picture) as a file to give to a friend"
+                  onClick={async () => {
+                    try {
+                      await saveFile(await exportThemeFile(c.custom!), `${fileSafe(c.custom!.name)}.authortheme.json`, 'application/json');
+                    } catch (e) {
+                      reportError(e, 'Could not export the theme');
+                    }
+                  }}
                 >
-                  Share
+                  Export
                 </button>
                 <button
                   className="small danger-text"
@@ -110,11 +118,11 @@ export function ThemePicker() {
           </button>
         </div>
       </div>
-      <label className="button small">
-        Import a theme file…
+      <label className="button small" title="Add a theme a friend exported from AuthorDesk (a .authortheme.json file)">
+        Import theme…
         <input
           type="file"
-          accept=".json,application/json"
+          accept=".authortheme.json,.json,application/json"
           hidden
           onChange={async (e) => {
             const f = e.target.files?.[0];
@@ -129,8 +137,13 @@ export function ThemePicker() {
               parsed = null;
             }
             if (!parsed) return toast('That file isn’t an AuthorDesk theme.', { kind: 'error' });
-            await updateSettings({ customThemes: [...custom, parsed], theme: parsed.id });
-            toast(`Added “${parsed.name}”`);
+            // Keep both when a theme by that name is already here.
+            const taken = new Set([...BUILTIN_THEMES, ...custom].map((t) => t.name.toLowerCase()));
+            let name = parsed.name;
+            for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${parsed.name} (${n})`;
+            const previous = s.theme;
+            await updateSettings({ customThemes: [...custom, { ...parsed, name }], theme: parsed.id });
+            toast(`Added and switched to “${name}”`, { action: { label: 'Switch back', run: () => void updateSettings({ theme: previous }) } });
           }}
         />
       </label>

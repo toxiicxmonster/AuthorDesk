@@ -36,6 +36,8 @@ export interface ThemeDef {
 }
 
 export const BUILTIN_THEMES: ThemeDef[] = [
+  // Light themes first, then dark; genre themes carry a background pattern (app/public/themes, made by
+  // scripts/make-theme-tiles.py).
   {
     id: 'paper',
     name: 'Paper',
@@ -43,18 +45,18 @@ export const BUILTIN_THEMES: ThemeDef[] = [
     colors: { background: '#f7f5f0', panel: '#ffffff', page: '#fffdf8', text: '#2b2a27', accent: '#7a5c2e' },
   },
   {
+    id: 'writing-desk',
+    name: 'Writing Desk',
+    builtIn: true,
+    // Classic: an old honey-oak desk, writing paper, cream stationery, ink and an oxblood leather blotter.
+    colors: { background: '#c49a68', panel: '#f4ecdb', page: '#fcf8ee', text: '#2e2218', accent: '#7b2d26' },
+    background: { image: './themes/writing-desk.svg', mode: 'repeat', fade: 10 },
+  },
+  {
     id: 'sepia',
     name: 'Sepia',
     builtIn: true,
     colors: { background: '#e9dfc9', panel: '#f4ecda', page: '#f7efdc', text: '#3b2f22', accent: '#8b3f22' },
-  },
-  {
-    id: 'velvet',
-    name: 'Velvet Sheets',
-    builtIn: true,
-    // For steamy romance: deep wine and candlelight, rose-gold accents, a whisper of lace behind it all.
-    colors: { background: '#2a0f17', panel: '#3a1621', page: '#2f121a', text: '#f7e4e7', accent: '#f08aa0' },
-    background: { image: './themes/lace.svg', mode: 'repeat', fade: 20 },
   },
   {
     id: 'sage',
@@ -73,10 +75,53 @@ export const BUILTIN_THEMES: ThemeDef[] = [
     background: { image: './themes/cobblestone.svg', mode: 'repeat', fade: 30 },
   },
   {
-    id: 'night',
-    name: 'Night',
+    id: 'storybook',
+    name: 'Storybook',
     builtIn: true,
-    colors: { background: '#1b1c20', panel: '#24252b', page: '#202126', text: '#e6e3dc', accent: '#d9b26f' },
+    // Children's books: pastel stars, hearts and crayon squiggles on cream, with a bright picture-book blue.
+    colors: { background: '#fdf4e3', panel: '#fffaf0', page: '#fffdf7', text: '#2f2a45', accent: '#3b6fc0' },
+    background: { image: './themes/storybook.svg', mode: 'repeat', fade: 10 },
+  },
+  {
+    id: 'wild-west',
+    name: 'Wild West',
+    builtIn: true,
+    // Westerns: cacti, horseshoes and sheriff's stars on sand, rust-red leather.
+    colors: { background: '#e6cfa6', panel: '#f7ecd6', page: '#fdf7ea', text: '#3a2717', accent: '#a3471f' },
+    background: { image: './themes/wild-west.svg', mode: 'repeat', fade: 10 },
+  },
+  {
+    // The id stays 'velvet' (its first name) so anyone who chose it keeps it.
+    id: 'velvet',
+    name: 'Romance',
+    builtIn: true,
+    // Steamy romance: deep wine and candlelight, rose-gold accents, a whisper of lace behind it all.
+    colors: { background: '#2a0f17', panel: '#3a1621', page: '#2f121a', text: '#f7e4e7', accent: '#f08aa0' },
+    background: { image: './themes/lace.svg', mode: 'repeat', fade: 20 },
+  },
+  {
+    id: 'fantasy',
+    name: 'Fantasy',
+    builtIn: true,
+    // An enchanted forest at night: deep emerald, gold sparkles, crescent moons and little runes.
+    colors: { background: '#13261f', panel: '#1b3329', page: '#172b22', text: '#f0e8d0', accent: '#e0bb62' },
+    background: { image: './themes/fantasy.svg', mode: 'repeat', fade: 0 },
+  },
+  {
+    id: 'mystery',
+    name: 'Mystery',
+    builtIn: true,
+    // Noir: charcoal and fog, a desk lamp's amber, faint question marks, magnifying glasses and fingerprints.
+    colors: { background: '#1c1e24', panel: '#25282f', page: '#202329', text: '#e4e5e8', accent: '#e0a945' },
+    background: { image: './themes/mystery.svg', mode: 'repeat', fade: 0 },
+  },
+  {
+    id: 'spooky',
+    name: 'Spooky',
+    builtIn: true,
+    // Horror, but cute: little bats, moons and pumpkins on deep purple, pumpkin-orange accents.
+    colors: { background: '#1f1430', panel: '#2a1c3d', page: '#251935', text: '#f1e9fb', accent: '#ff9a3c' },
+    background: { image: './themes/spooky.svg', mode: 'repeat', fade: 0 },
   },
   {
     id: 'starship',
@@ -85,6 +130,12 @@ export const BUILTIN_THEMES: ThemeDef[] = [
     // Sci-fi: a ship's console in deep space, cyan readouts over faint circuitry and stars.
     colors: { background: '#0b1220', panel: '#121c30', page: '#0e1626', text: '#dde9f6', accent: '#4fd8e8' },
     background: { image: './themes/starship.svg', mode: 'repeat', fade: 0 },
+  },
+  {
+    id: 'night',
+    name: 'Night',
+    builtIn: true,
+    colors: { background: '#1b1c20', panel: '#24252b', page: '#202126', text: '#e6e3dc', accent: '#d9b26f' },
   },
 ];
 
@@ -218,6 +269,23 @@ export function parseBackground(v: unknown): ThemeBackground | null {
   // Only pictures carried inside the theme (data: URLs) or the app's own files: never a link to another site.
   if (typeof o.image !== 'string' || !(/^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(o.image) || /^\.\/themes\/[\w-]+\.(svg|png|jpg|webp)$/.test(o.image))) return null;
   return { image: o.image, mode: o.mode === 'fit' ? 'fit' : 'repeat', fade: typeof o.fade === 'number' && o.fade >= 0 && o.fade <= 90 ? Math.round(o.fade) : 30 };
+}
+
+/**
+ * A theme as a file to share: its name, colours and background picture, with the picture carried inside the file (a
+ * built-in pattern is read from the app and embedded), so it looks the same in a friend's AuthorDesk.
+ */
+export async function exportThemeFile(t: ThemeDef, read: (url: string) => Promise<Blob> = (u) => fetch(new URL(u, document.baseURI)).then((r) => r.blob())): Promise<string> {
+  let background = t.background ?? null;
+  if (background?.image && !background.image.startsWith('data:')) {
+    const blob = await read(background.image);
+    const type = blob.type || (/\.svg$/i.test(background.image) ? 'image/svg+xml' : 'image/png');
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    background = { ...background, image: `data:${type};base64,${btoa(bin)}` };
+  }
+  return JSON.stringify({ format: 'authordesk-theme', version: 1, name: t.name, colors: t.colors, ...(background ? { background } : {}) }, null, 2);
 }
 
 /** Validate a theme loaded from a file. Returns null if it isn't a usable theme. */

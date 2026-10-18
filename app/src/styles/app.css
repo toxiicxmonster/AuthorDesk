@@ -3916,7 +3916,7 @@ code.path {
   font-size: 0.7rem;
   line-height: 1.5;
   background: var(--accent-soft);
-  color: var(--text-2);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 /* Empty states keep their old look with a proper heading level. */

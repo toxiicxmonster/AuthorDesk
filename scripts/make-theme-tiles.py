@@ -190,7 +190,212 @@ def starship():
 '''
     open(OUT + 'starship.svg', 'w', encoding='utf-8').write(svg)
 
+# ---------- Scattered-motif tiles (genre themes) ----------
+
+def scatter(rnd, W, H, n, gap, tries=3000):
+    """Up to n points spread over a W×H tile, at least `gap` apart even across the wrap-around edges."""
+    pts = []
+    for _ in range(tries):
+        if len(pts) >= n:
+            break
+        x, y = rnd.uniform(0, W), rnd.uniform(0, H)
+        ok = True
+        for (px, py) in pts:
+            dx = (x - px + W / 2) % W - W / 2
+            dy = (y - py + H / 2) % H - H / 2
+            if dx * dx + dy * dy < gap * gap:
+                ok = False
+                break
+        if ok:
+            pts.append((x, y))
+    return pts
+
+def wrapped(W, H, x, y, body, pad=40):
+    """A motif at (x, y), plus its copies across the edges it comes near, so the tile repeats seamlessly."""
+    out = []
+    for dx in (-W, 0, W):
+        for dy in (-H, 0, H):
+            X, Y = x + dx, y + dy
+            if -pad <= X <= W + pad and -pad <= Y <= H + pad:
+                out.append(f'<g transform="translate({X:.1f} {Y:.1f})">{body}</g>')
+    return ''.join(out)
+
+def tile(name, W, H, bg, motifs):
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">\n<rect width="{W}" height="{H}" fill="{bg}"/>\n{motifs}\n</svg>\n'
+    open(OUT + name, 'w', encoding='utf-8').write(svg)
+
+def rot(body, deg, s=1.0):
+    return f'<g transform="rotate({deg:.0f}) scale({s:.2f})">{body}</g>'
+
+def sparkle(c, op, r=6):
+    return f'<path d="M0 {-r} L{r*.22:.1f} {-r*.22:.1f} L{r} 0 L{r*.22:.1f} {r*.22:.1f} L0 {r} L{-r*.22:.1f} {r*.22:.1f} L{-r} 0 L{-r*.22:.1f} {-r*.22:.1f} Z" fill="{c}" fill-opacity="{op}"/>'
+
+def crescent(c, op, r=9):
+    return f'<path d="M0 {-r} A{r} {r} 0 1 0 0 {r} A{r*.75:.1f} {r*.85:.1f} 0 1 1 0 {-r} Z" fill="{c}" fill-opacity="{op}"/>'
+
+def star5(c, op, r=7):
+    pts = []
+    for k in range(10):
+        a = math.pi / 2 + k * math.pi / 5
+        rr = r if k % 2 == 0 else r * 0.45
+        pts.append(f'{math.cos(a)*rr:.1f} {-math.sin(a)*rr:.1f}')
+    return f'<path d="M{" L".join(pts)} Z" fill="{c}" fill-opacity="{op}"/>'
+
+def heart(c, op, s=1.0):
+    return f'<path transform="scale({s:.2f})" d="M0 4C-4-1-10 1-8 6L0 13 8 6C10 1 4-1 0 4Z" fill="{c}" fill-opacity="{op}"/>'
+
+def writing_desk():
+    # Honey-oak planks with flowing grain and the odd knot; seamless (grain periods divide the width).
+    rnd = random.Random(3)
+    W, H = 320, 240
+    rows = 4
+    rh = H / rows
+    tones = ['#c99f6c', '#c39563', '#cda574', '#bf9160']
+    parts = []
+    for r in range(rows):
+        y0 = r * rh
+        parts.append(f'<rect x="0" y="{y0:.1f}" width="{W}" height="{rh:.1f}" fill="{tones[r % len(tones)]}"/>')
+        for g in range(7):
+            yy = y0 + 5 + g * (rh - 10) / 6 + rnd.uniform(-2, 2)
+            k = rnd.choice([1, 2])
+            amp = rnd.uniform(1.5, 4)
+            ph = rnd.uniform(0, math.tau)
+            d = 'M' + ' L'.join(f'{x:.1f} {yy + amp*math.sin(math.tau*k*x/W + ph):.1f}' for x in range(0, W + 1, 8))
+            parts.append(f'<path d="{d}" fill="none" stroke="#8a5e34" stroke-opacity="{rnd.uniform(.12, .25):.2f}" stroke-width="{rnd.uniform(.6, 1.4):.1f}"/>')
+        # a knot now and then
+        if r % 2 == 0:
+            kx = rnd.uniform(20, W - 20)
+            ky = y0 + rh / 2 + rnd.uniform(-6, 6)
+            knot = ''.join(f'<ellipse cx="0" cy="0" rx="{4+i*3}" ry="{2+i*1.5:.1f}" fill="none" stroke="#7a4f2a" stroke-opacity="{.3-i*.06:.2f}" stroke-width=".8"/>' for i in range(4))
+            parts.append(wrapped(W, H, kx, ky, knot))
+        # plank seams: the long edge and an end joint
+        parts.append(f'<rect x="0" y="{y0:.1f}" width="{W}" height="1.2" fill="#6e4726" fill-opacity=".35"/>')
+        jx = rnd.uniform(30, W - 30)
+        parts.append(f'<rect x="{jx:.1f}" y="{y0:.1f}" width="1.2" height="{rh:.1f}" fill="#6e4726" fill-opacity=".3"/>')
+    tile('writing-desk.svg', W, H, '#c49a68', ''.join(parts))
+
+def fantasy():
+    # Enchanted forest at night: gold sparkles, crescent moons and little runes on deep emerald.
+    rnd = random.Random(21)
+    W = H = 220
+    gold = '#e3c26a'
+    runes = [
+        'M0 -8 L0 8 M0 -8 L5 -3 M0 -2 L5 3',          # ᚠ-like
+        'M-4 8 L-4 -8 L4 0 L-4 8',                     # ᚦ-like
+        'M0 -8 L0 8 M-5 -3 L5 3',                      # ᛁ with a slash
+        'M-5 -8 L0 0 L5 -8 M0 0 L0 8',                 # ᛉ-like
+        'M-4 -8 L4 8 M4 -8 L-4 8',                     # ᚷ
+    ]
+    pts = scatter(rnd, W, H, 22, 30)
+    parts = []
+    for i, (x, y) in enumerate(pts):
+        kind = i % 5
+        if kind in (0, 1, 2):
+            body = sparkle(gold, rnd.uniform(.25, .55), rnd.uniform(3, 7))
+        elif kind == 3:
+            body = rot(crescent(gold, .3, rnd.uniform(6, 9)), rnd.uniform(-40, 40))
+        else:
+            body = f'<path d="{rnd.choice(runes)}" fill="none" stroke="{gold}" stroke-opacity=".28" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>'
+        parts.append(wrapped(W, H, x, y, body))
+    dots = ''.join(f'<circle cx="{rnd.uniform(0,W):.1f}" cy="{rnd.uniform(0,H):.1f}" r="{rnd.uniform(.5,1.1):.1f}" fill="{gold}" fill-opacity="{rnd.uniform(.2,.5):.2f}"/>' for _ in range(30))
+    tile('fantasy.svg', W, H, '#13261f', dots + ''.join(parts))
+
+def mystery():
+    # Noir: question marks, magnifying glasses and fingerprints, faint on charcoal.
+    rnd = random.Random(5)
+    W = H = 220
+    c = '#c9ccd4'
+    def magnifier(op):
+        return f'<g fill="none" stroke="{c}" stroke-opacity="{op}" stroke-width="1.6" stroke-linecap="round"><circle cx="-2" cy="-2" r="7"/><path d="M3 3 L10 10"/></g>'
+    def fingerprint(op):
+        arcs = ''.join(f'<path d="M{-r} 2 A{r} {r*1.25:.1f} 0 0 1 {r} 2" />' for r in (2.5, 5, 7.5, 10))
+        return f'<g fill="none" stroke="{c}" stroke-opacity="{op}" stroke-width="1">{arcs}<path d="M-10 2 Q-10 9 -6 12 M10 2 Q10 8 7 11"/></g>'
+    def question(op):
+        return f'<text x="0" y="7" text-anchor="middle" font-family="Georgia, \'Times New Roman\', serif" font-size="20" font-style="italic" fill="{c}" fill-opacity="{op}">?</text>'
+    pts = scatter(rnd, W, H, 12, 48)
+    parts = []
+    for i, (x, y) in enumerate(pts):
+        k = i % 3
+        body = question(.16) if k == 0 else magnifier(.15) if k == 1 else fingerprint(.13)
+        parts.append(wrapped(W, H, x, y, rot(body, rnd.uniform(-25, 25), rnd.uniform(.85, 1.15))))
+    tile('mystery.svg', W, H, '#1c1e24', ''.join(parts))
+
+def spooky():
+    # Cute horror: little bats, moons and pumpkins on deep purple.
+    rnd = random.Random(13)
+    W = H = 220
+    def bat(op):
+        return f'<path d="M0 -2 C2 -6 6 -6 8 -3 C10 -6 14 -5 15 -1 C12 -1 10 1 9 3 C7 1 4 2 2 4 C1 2 -1 2 -2 4 C-4 2 -7 1 -9 3 C-10 1 -12 -1 -15 -1 C-14 -5 -10 -6 -8 -3 C-6 -6 -2 -6 0 -2 Z" fill="#cbb6ea" fill-opacity="{op}"/>'
+    def pumpkin(op):
+        return (f'<g fill="#ff9a3c" fill-opacity="{op}"><ellipse cx="-4" cy="2" rx="5" ry="6"/><ellipse cx="4" cy="2" rx="5" ry="6"/><ellipse cx="0" cy="2" rx="5" ry="6.5"/></g>'
+                f'<path d="M0 -4 Q1 -8 3 -9" stroke="#8fbf6a" stroke-opacity="{op+.1:.2f}" stroke-width="1.6" fill="none" stroke-linecap="round"/>')
+    pts = scatter(rnd, W, H, 16, 40)
+    parts = []
+    for i, (x, y) in enumerate(pts):
+        k = i % 4
+        if k in (0, 1):
+            body = rot(bat(.3), rnd.uniform(-20, 20), rnd.uniform(.8, 1.1))
+        elif k == 2:
+            body = pumpkin(.35)
+        else:
+            body = rot(crescent('#f3e3a1', .3, 7), rnd.uniform(-30, 30))
+        parts.append(wrapped(W, H, x, y, body))
+    dots = ''.join(f'<circle cx="{rnd.uniform(0,W):.1f}" cy="{rnd.uniform(0,H):.1f}" r="{rnd.uniform(.5,1):.1f}" fill="#e8dcff" fill-opacity="{rnd.uniform(.2,.45):.2f}"/>' for _ in range(24))
+    tile('spooky.svg', W, H, '#1f1430', dots + ''.join(parts))
+
+def storybook():
+    # Children's books: pastel stars, hearts, dots and crayon squiggles on cream.
+    rnd = random.Random(8)
+    W = H = 200
+    pastel = ['#f7a8b8', '#a8d8f0', '#b8e0a8', '#f8d78a', '#c9b3f0']
+    pts = scatter(rnd, W, H, 18, 36)
+    parts = []
+    for i, (x, y) in enumerate(pts):
+        c = pastel[i % len(pastel)]
+        k = i % 4
+        if k == 0:
+            body = rot(star5(c, .55, rnd.uniform(6, 8)), rnd.uniform(-20, 20))
+        elif k == 1:
+            body = rot(heart(c, .55, rnd.uniform(.7, .9)), rnd.uniform(-20, 20))
+        elif k == 2:
+            body = rot(f'<path d="M-10 0 Q-5 -6 0 0 T10 0" fill="none" stroke="{c}" stroke-opacity=".7" stroke-width="2.4" stroke-linecap="round"/>', rnd.uniform(-40, 40))
+        else:
+            body = f'<circle r="{rnd.uniform(3,4.5):.1f}" fill="{c}" fill-opacity=".55"/>'
+        parts.append(wrapped(W, H, x, y, body))
+    tile('storybook.svg', W, H, '#fdf4e3', ''.join(parts))
+
+def wild_west():
+    # Westerns: saguaro cacti, horseshoes and stars on sand.
+    rnd = random.Random(17)
+    W = H = 220
+    def cactus(op):
+        return (f'<g fill="#7f9a5a" fill-opacity="{op}"><rect x="-3" y="-12" width="6" height="22" rx="3"/>'
+                f'<path d="M-3 0 H-7 a2.5 2.5 0 0 1 -2.5 -2.5 V-8 a2.5 2.5 0 0 1 5 0 V-3 H-3 Z"/>'
+                f'<path d="M3 -3 H7 a2.5 2.5 0 0 0 2.5 -2.5 V-10 a2.5 2.5 0 0 0 -5 0 V-6 H3 Z"/></g>')
+    def horseshoe(op):
+        # Opening upward, the lucky way.
+        return f'<path d="M-6 -6 V1 A6 6 0 0 0 6 1 V-6" fill="none" stroke="#8a5a3a" stroke-opacity="{op}" stroke-width="2.6" stroke-linecap="round"/>'
+    pts = scatter(rnd, W, H, 15, 42)
+    parts = []
+    for i, (x, y) in enumerate(pts):
+        k = i % 3
+        if k == 0:
+            body = rot(cactus(.32), rnd.uniform(-8, 8), rnd.uniform(.85, 1.1))
+        elif k == 1:
+            body = rot(horseshoe(.28), rnd.uniform(-30, 30))
+        else:
+            body = rot(star5('#b5672f', .25, rnd.uniform(5, 7)), rnd.uniform(-20, 20))
+        parts.append(wrapped(W, H, x, y, body))
+    dots = ''.join(f'<circle cx="{rnd.uniform(0,W):.1f}" cy="{rnd.uniform(0,H):.1f}" r="{rnd.uniform(.6,1.2):.1f}" fill="#b89567" fill-opacity=".35"/>' for _ in range(26))
+    tile('wild-west.svg', W, H, '#e6cfa6', dots + ''.join(parts))
+
 os.makedirs(OUT, exist_ok=True)
+writing_desk()
+fantasy()
+mystery()
+spooky()
+storybook()
+wild_west()
 cobblestone()
 lace()
 sage_leaves()

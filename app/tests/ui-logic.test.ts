@@ -1,11 +1,11 @@
-import { BUILTIN_THEMES, contrast, themeTokens, parseThemeFile, resolveTheme, mix, onColor } from '../src/ui/theme';
+import { BUILTIN_THEMES, contrast, exportThemeFile, themeTokens, parseThemeFile, resolveTheme, mix, onColor } from '../src/ui/theme';
 import { matchScore } from '../src/ui/components/QuickSwitcher';
 import { resetDbForTests, db } from '../src/storage/db';
 import { createSampleProject } from '../src/storage/sample';
 
 describe('themes', () => {
   it('ships three readable built-in themes', () => {
-    expect(BUILTIN_THEMES.map((t) => t.name)).toEqual(['Paper', 'Sepia', 'Velvet Sheets', 'Sage', 'Cozy Cottage', 'Night', 'Starship']);
+    expect(BUILTIN_THEMES.map((t) => t.name)).toEqual(['Paper', 'Writing Desk', 'Sepia', 'Sage', 'Cozy Cottage', 'Storybook', 'Wild West', 'Romance', 'Fantasy', 'Mystery', 'Spooky', 'Starship', 'Night']);
     for (const t of BUILTIN_THEMES) {
       expect(contrast(t.colors.text, t.colors.page)).toBeGreaterThanOrEqual(7);
       expect(contrast(t.colors.text, t.colors.panel)).toBeGreaterThanOrEqual(4.5);
@@ -37,6 +37,23 @@ describe('themes', () => {
     });
     expect(parseThemeFile({ name: 'Web', colors, background: { image: 'https://example.com/a.png', mode: 'fit', fade: 40 } })?.background).toBeNull();
     expect(parseThemeFile({ name: 'Odd', colors, background: { image: './themes/lace.svg', mode: 'sideways', fade: 400 } })?.background).toEqual({ image: './themes/lace.svg', mode: 'repeat', fade: 30 });
+  });
+
+  it('exports a theme as one file with its picture inside, which imports back the same', async () => {
+    const mine = { ...BUILTIN_THEMES.find((t) => t.id === 'velvet')!, id: 'custom-1', name: 'Romance (my version)', builtIn: undefined };
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"/>';
+    const file = await exportThemeFile(mine, async (url) => {
+      expect(url).toBe('./themes/lace.svg');
+      return new Blob([svg], { type: 'image/svg+xml' });
+    });
+    const json = JSON.parse(file);
+    expect(json).toMatchObject({ format: 'authordesk-theme', version: 1, name: 'Romance (my version)', colors: mine.colors, background: { mode: 'repeat', fade: 20 } });
+    expect(json.background.image).toBe(`data:image/svg+xml;base64,${btoa(svg)}`);
+    const back = parseThemeFile(json)!;
+    expect(back.name).toBe('Romance (my version)');
+    expect(back.colors).toEqual(mine.colors);
+    expect(back.background).toEqual(json.background);
+    expect(back.id).not.toBe('custom-1'); // a new theme on the friend's computer
     expect(parseThemeFile('nope')).toBeNull();
   });
   it('mixes colours and picks readable text on accents', () => {

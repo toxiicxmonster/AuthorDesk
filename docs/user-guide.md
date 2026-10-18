@@ -14,9 +14,17 @@ Coming from an earlier version, which ran inside Edge or Chrome? Your books are 
 
 ## Themes
 
-Click **◐** in the top bar to switch between Paper, Sepia, Velvet Sheets (deep wine and rose over faint lace, for romance), Sage (sprigs of sage behind the panels), Cozy Cottage (cream cards on cobblestones), Night, Starship (sci-fi: a ship's console in deep space, cyan over faint circuitry and stars) or *Match my device*. To make your own: Settings → Theme → *Create a theme*, pick five colours (background, panels, writing page, text, accent) and watch the whole app update as you go. AuthorDesk tells you if the text would be hard to read.
+Click **◐** in the top bar to switch themes, or choose in Settings → Theme:
 
-**Background picture:** in the same editor, *Choose a picture…* puts any photo or pattern behind everything (where the background colour shows; the writing page and panels stay plain). Choose **Fit to size** for one picture that fills the window, or **Repeat** to tile a pattern or texture. *Soften the picture* washes it with your background colour so the text on it stays readable. Large pictures are shrunk to a sensible size and kept with the theme. Use *Share* to save a theme (picture included) as a file and *Import a theme file* to add one.
+- **Everyday:** Paper, Sepia, Night, Sage (sprigs of sage behind the panels), Cozy Cottage (cream cards on cobblestones), and **Writing Desk** (a classic: an old honey-oak desk, writing paper and an oxblood-leather accent).
+- **Genre themes:** **Romance** (deep wine and rose over faint lace), **Fantasy** (an enchanted forest: gold sparkles, crescent moons and little runes on emerald), **Mystery** (noir charcoal with faint question marks, magnifying glasses and fingerprints), **Spooky** (horror, but cute: bats, moons and pumpkins on deep purple), **Storybook** (children's books: pastel stars, hearts and crayon squiggles), **Wild West** (cacti, lucky horseshoes and sheriff's stars on sand) and **Starship** (sci-fi: cyan over faint circuitry and stars).
+- *Match my device* uses Paper by day and Night when your device is dark.
+
+**Customize** under any built-in theme opens it in the theme editor as your own version ("Romance (my version)"); the built-in one stays as it is. To start from scratch: Settings → Theme → *Create a theme*, pick five colours (background, panels, writing page, text, accent) and watch the whole app update as you go. AuthorDesk tells you if the text would be hard to read.
+
+**Background picture:** in the same editor, *Choose a picture…* puts any photo or pattern behind everything (where the background colour shows; the writing page and panels stay plain). Choose **Fit to size** for one picture that fills the window, or **Repeat** to tile a pattern or texture. *Soften the picture* washes it with your background colour so the text on it stays readable. Large pictures are shrunk to a sensible size and kept with the theme. 
+
+**Share a theme with a friend:** under one of your own themes, **Export** saves it as one `.authortheme.json` file with everything in it: the colours, the background picture (a built-in pattern too) and how it's fitted and softened. Your friend chooses **Import theme…** under the themes and picks the file; it's added as one of their themes and switched on (*Switch back* in the message undoes that). A theme with the same name as one they already have is added as "… (2)".
 
 ## Writing
 
