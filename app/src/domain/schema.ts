@@ -318,6 +318,8 @@ export interface CustomTheme {
   id: string;
   name: string;
   colors: { background: string; panel: string; page: string; text: string; accent: string };
+  /** An optional picture behind everything (see ThemeBackground). */
+  background?: { image: string; mode: 'fit' | 'repeat'; fade: number } | null;
 }
 
 /** Optional online grammar check (LanguageTool). Off until the author opts in. */

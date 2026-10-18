@@ -5,7 +5,7 @@ import { createSampleProject } from '../src/storage/sample';
 
 describe('themes', () => {
   it('ships three readable built-in themes', () => {
-    expect(BUILTIN_THEMES.map((t) => t.name)).toEqual(['Paper', 'Sepia', 'Pastel Blue', 'Sage', 'Cozy Cottage', 'Night']);
+    expect(BUILTIN_THEMES.map((t) => t.name)).toEqual(['Paper', 'Sepia', 'Velvet Sheets', 'Sage', 'Cozy Cottage', 'Night']);
     for (const t of BUILTIN_THEMES) {
       expect(contrast(t.colors.text, t.colors.page)).toBeGreaterThanOrEqual(7);
       expect(contrast(t.colors.text, t.colors.panel)).toBeGreaterThanOrEqual(4.5);
@@ -28,6 +28,15 @@ describe('themes', () => {
   it('validates imported theme files', () => {
     expect(parseThemeFile({ name: 'Ocean', colors: { background: '#001122', panel: '#112233', page: '#223344', text: '#EEEEEE', accent: '#33AAFF' } })?.colors.text).toBe('#eeeeee');
     expect(parseThemeFile({ name: 'Bad', colors: { background: 'red' } })).toBeNull();
+    // A background picture travels inside the theme file; a link to a website is not taken.
+    const colors = { background: '#001122', panel: '#112233', page: '#223344', text: '#eeeeee', accent: '#33aaff' };
+    expect(parseThemeFile({ name: 'Stone', colors, background: { image: 'data:image/png;base64,iVBORw0KGgo=', mode: 'fit', fade: 40 } })?.background).toEqual({
+      image: 'data:image/png;base64,iVBORw0KGgo=',
+      mode: 'fit',
+      fade: 40,
+    });
+    expect(parseThemeFile({ name: 'Web', colors, background: { image: 'https://example.com/a.png', mode: 'fit', fade: 40 } })?.background).toBeNull();
+    expect(parseThemeFile({ name: 'Odd', colors, background: { image: './themes/lace.svg', mode: 'sideways', fade: 400 } })?.background).toEqual({ image: './themes/lace.svg', mode: 'repeat', fade: 30 });
     expect(parseThemeFile('nope')).toBeNull();
   });
   it('mixes colours and picks readable text on accents', () => {

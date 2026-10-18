@@ -4089,3 +4089,29 @@ mark.hl[class*='hl-'] {
 .comment-item .row {
   margin: 0 0 0.4rem;
 }
+
+/* ---------- Theme background pictures ---------- */
+/* Washed with the background colour by --bg-fade so text that sits on it (page titles, hints) stays readable. */
+html[data-bg-mode] body {
+  background-color: var(--bg);
+  background-image: linear-gradient(color-mix(in srgb, var(--bg) var(--bg-fade, 30%), transparent), color-mix(in srgb, var(--bg) var(--bg-fade, 30%), transparent)), var(--bg-image);
+  background-attachment: fixed;
+}
+html[data-bg-mode='fit'] body {
+  background-size: 100% 100%, cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+html[data-bg-mode='repeat'] body {
+  background-size: 100% 100%, auto;
+  background-repeat: no-repeat, repeat;
+}
+/* Text that sits right on the picture (page titles, notes under them) gets a soft halo of the background colour. */
+html[data-bg-mode] .page > h1,
+html[data-bg-mode] .page > .row > h1,
+html[data-bg-mode] .dash-head h1,
+html[data-bg-mode] .board-head h1,
+html[data-bg-mode] .page > p,
+html[data-bg-mode] .dash-foot {
+  text-shadow: 0 0 3px var(--bg), 0 0 8px var(--bg), 0 0 14px var(--bg);
+}

@@ -16,10 +16,22 @@ export interface ThemeColors {
   accent: string;
 }
 
+/**
+ * A picture behind everything (where the background colour shows): fitted to the window, or repeated as a tile.
+ * `fade` (0–90) washes it with the background colour so text on it stays readable.
+ */
+export interface ThemeBackground {
+  /** An image URL: a built-in file ("./themes/…") or a picture the author chose (a data: URL). */
+  image: string;
+  mode: 'fit' | 'repeat';
+  fade: number;
+}
+
 export interface ThemeDef {
   id: string;
   name: string;
   colors: ThemeColors;
+  background?: ThemeBackground | null;
   builtIn?: boolean;
 }
 
@@ -37,10 +49,12 @@ export const BUILTIN_THEMES: ThemeDef[] = [
     colors: { background: '#e9dfc9', panel: '#f4ecda', page: '#f7efdc', text: '#3b2f22', accent: '#8b3f22' },
   },
   {
-    id: 'pastel-blue',
-    name: 'Pastel Blue',
+    id: 'velvet',
+    name: 'Velvet Sheets',
     builtIn: true,
-    colors: { background: '#dde9f5', panel: '#eef4fb', page: '#f7fafd', text: '#1e2b3a', accent: '#3f6f9f' },
+    // For steamy romance: deep wine and candlelight, rose-gold accents, a whisper of lace behind it all.
+    colors: { background: '#2a0f17', panel: '#3a1621', page: '#2f121a', text: '#f7e4e7', accent: '#f08aa0' },
+    background: { image: './themes/lace.svg', mode: 'repeat', fade: 20 },
   },
   {
     id: 'sage',
@@ -52,8 +66,9 @@ export const BUILTIN_THEMES: ThemeDef[] = [
     id: 'cottage',
     name: 'Cozy Cottage',
     builtIn: true,
-    // Warm wood surroundings, cream paper, chocolate ink and a terracotta accent.
-    colors: { background: '#d9c2a7', panel: '#f2e4d2', page: '#fdf8f0', text: '#3b2a20', accent: '#a04e3a' },
+    // A cobbled lane outside, cream paper, chocolate ink and a terracotta door.
+    colors: { background: '#b7a893', panel: '#f2e4d2', page: '#fdf8f0', text: '#3b2a20', accent: '#a04e3a' },
+    background: { image: './themes/cobblestone.svg', mode: 'repeat', fade: 30 },
   },
   {
     id: 'night',
@@ -170,19 +185,41 @@ export function applyTheme(theme: ThemeDef) {
     if (k === 'color-scheme') root.style.colorScheme = v;
     else root.style.setProperty(k, v);
   }
+  const bg = theme.background;
+  if (bg?.image) {
+    // A full address: a relative one in a custom property is read against the stylesheet's folder, not the app's.
+    const url = bg.image.startsWith('data:') ? bg.image : new URL(bg.image, document.baseURI).href;
+    root.style.setProperty('--bg-image', `url("${url.replace(/"/g, '%22')}")`);
+    root.style.setProperty('--bg-fade', `${Math.max(0, Math.min(90, bg.fade))}%`);
+    root.dataset.bgMode = bg.mode;
+  } else {
+    root.style.removeProperty('--bg-image');
+    root.style.removeProperty('--bg-fade');
+    delete root.dataset.bgMode;
+  }
   root.dataset.theme = isDark(theme.colors) ? 'dark' : 'light';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.colors.panel);
+}
+
+/** A theme's background picture from a file or settings, or null if it isn't a usable one. */
+export function parseBackground(v: unknown): ThemeBackground | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as { image?: unknown; mode?: unknown; fade?: unknown };
+  // Only pictures carried inside the theme (data: URLs) or the app's own files: never a link to another site.
+  if (typeof o.image !== 'string' || !(/^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(o.image) || /^\.\/themes\/[\w-]+\.(svg|png|jpg|webp)$/.test(o.image))) return null;
+  return { image: o.image, mode: o.mode === 'fit' ? 'fit' : 'repeat', fade: typeof o.fade === 'number' && o.fade >= 0 && o.fade <= 90 ? Math.round(o.fade) : 30 };
 }
 
 /** Validate a theme loaded from a file. Returns null if it isn't a usable theme. */
 export function parseThemeFile(json: unknown): ThemeDef | null {
   if (!json || typeof json !== 'object') return null;
-  const o = json as { name?: unknown; colors?: Record<string, unknown> };
+  const o = json as { name?: unknown; colors?: Record<string, unknown>; background?: unknown };
   const keys: (keyof ThemeColors)[] = ['background', 'panel', 'page', 'text', 'accent'];
   if (typeof o.name !== 'string' || !o.colors || !keys.every((k) => typeof o.colors![k] === 'string' && isHex(o.colors![k] as string))) return null;
   return {
     id: `custom-${crypto.getRandomValues(new Uint32Array(2)).join('')}`,
     name: o.name.slice(0, 40),
     colors: Object.fromEntries(keys.map((k) => [k, (o.colors![k] as string).toLowerCase()])) as unknown as ThemeColors,
+    background: parseBackground(o.background),
   };
 }
