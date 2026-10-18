@@ -85,7 +85,7 @@ Rules:
 
 **All chapters in one file?** Name it `manuscript.md` (or put any single `.md`/`.txt` at the top level). A new chapter starts at every `# Title` line, or at every line that begins with *Chapter*, *Prologue* or *Epilogue*.
 
-**From Word:** *File → Save As → Plain Text (.txt)* — one file per chapter, or the whole book as `manuscript.txt`. **From Google Docs:** *File → Download → Markdown (.md)*. **From Scrivener:** *File → Export → Files…* as plain text or Markdown into the `chapters/` folder.
+**A single Word document or Google Doc** doesn't need this layout: use *Start from a Word or Google Docs file* (welcome screen) or *Backup → Import → A Word or Google Docs file*, which reads the `.docx` directly and splits it into chapters at its headings. For a folder of chapters: **from Word**, *File → Save As → Plain Text (.txt)*, one file per chapter, or the whole book as `manuscript.txt`. **From Google Docs:** *File → Download → Markdown (.md)*. **From Scrivener:** *File → Export → Files…* as plain text or Markdown into the `chapters/` folder.
 
 ---
 

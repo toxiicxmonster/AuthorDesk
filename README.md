@@ -17,7 +17,8 @@ Novelists usually piece together a writing app (like Scrivener), a style checker
 
 | You want to… | AuthorDesk gives you |
 | --- | --- |
-| Draft and organise a novel | Chapters and scenes, a story board, timeline, plot threads, and a character and world bible |
+| Draft and organise a novel | Chapters and scenes, a story board, timeline, plot threads, and a character and world bible; start from your Word or Google Docs file |
+| Leave notes for yourself | Comments pinned to words, and highlights in six colours, kept out of every export |
 | Catch mistakes and weak prose | Live grammar, spelling and style underlines, tense slips, echo words, hard-to-read sentences, adverbs with stronger verbs |
 | Improve a passage | A private AI editor: rewrite, tighten, smooth, clearer, show-don't-tell, tone, and a character's voice, with one-click **Use** |
 | See the whole book | Readability, pacing, overused words, sticky sentences, continuity, characters who drop out, and edit passes |
@@ -33,10 +34,14 @@ All taken with the sample book that comes with the app.
 | **Targets & length:** progress, a finish-by date and printed page estimates | **Review:** the whole book at once, chapter by chapter |
 | ![Characters & world: a character entry with role, appearance, goals and where they appear](docs/screenshots/world.jpg) | ![Publish on Amazon KDP: paperback options, trim size, font and the pre-publish check](docs/screenshots/kdp.jpg) |
 | **Characters & world:** the series bible every check knows about | **Publish on Amazon KDP:** a typeset paperback PDF or EPUB, with a pre-publish check |
-| ![Story board: scene and idea cards in Act I, II and III columns](docs/screenshots/board.jpg) | |
-| **Story board:** plan with cards and story structures | |
+| ![Story board: scene and idea cards in Act I, II and III columns](docs/screenshots/board.jpg) | ![Outline: every chapter and scene with its summary, point of view, place, time and plot thread](docs/screenshots/outline.jpg) |
+| **Story board:** plan with cards and story structures | **Outline:** the whole plan on one page, summaries editable in place |
+| ![Comments and highlights: a green and a yellow highlight and a comment open beside the words, with the Comments tab](docs/screenshots/comments.jpg) | ![Starting a book from a Word file: the chapters found, with word counts, and the comment and highlight that come along](docs/screenshots/word-import.jpg) |
+| **Comments and highlights:** notes to yourself, never exported | **Start from Word or Google Docs:** chapters found from your headings |
+| ![The Velvet Sheets theme: deep wine and rose over a faint lace pattern](docs/screenshots/theme-velvet.jpg) | ![The Cozy Cottage theme: cream cards on a cobblestone background](docs/screenshots/theme-cottage.jpg) |
+| **Velvet Sheets:** a theme for steamy romance | **Cozy Cottage:** cards on cobblestones; any theme can have a background picture |
 
-> **Version 0.14.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
+> **Version 0.15.** Features are covered by automated tests and checked in the running app; see [Project status](#project-status).
 
 ---
 
@@ -91,9 +96,9 @@ AuthorDesk is a desktop app for **Windows and Linux**. It has its own built-in b
 
 | Area | What you get |
 | --- | --- |
-| **Getting started** | Welcome screen with a ready-made sample book, a **Ctrl+K** quick switcher to jump to any chapter, character, note or command, click-to-rename titles, a labelled toolbar, one-time tips, a Help panel (**F1**), and a Trash instead of permanent deletes. |
-| **Themes** | Paper, Sepia, Pastel Blue, Sage, Cozy Cottage and Night, plus *Match my device*. Make your own from five colours with a live preview and a readability check, and share themes as files. Quick theme menu (◐) in the top bar. |
-| **Manuscript editor** | Book → (Part) → Chapter → Scene. Bold, italic, underline, headings, block quotes and scene breaks. Autosave with a visible status, undo/redo, word counts (selection, scene, chapter, book), a **pacing strip** beside the page (sentence lengths, dialogue and narration, click to jump), focus mode, find & replace in a scene or **across the whole book** (rename a character everywhere, with a preview of every change and one-click undo), clean paste from Word and Google Docs, automatic and manual snapshots with **what changed since** and restore, split and merge scenes. |
+| **Getting started** | Welcome screen with a ready-made sample book or **start from a Word or Google Docs file**, a **Ctrl+K** quick switcher to jump to any chapter, character, note or command, click-to-rename titles, a labelled toolbar, one-time tips, a Help panel (**F1**), and a Trash instead of permanent deletes. |
+| **Themes** | Paper, Sepia, Velvet Sheets (deep wine and rose over lace), Sage, Cozy Cottage (on cobblestones) and Night, plus *Match my device*. Make your own from five colours with a live preview and a readability check, add a **background picture** (fitted to the window or repeated as a tile, softened so text stays readable), and share themes as files. Quick theme menu (◐) in the top bar. |
+| **Manuscript editor** | Book → (Part) → Chapter → Scene. Bold, italic, underline, headings, block quotes and scene breaks. Autosave with a visible status, undo/redo, word counts (selection, scene, chapter, book), a **pacing strip** beside the page (sentence lengths, dialogue and narration, click to jump), focus mode, find & replace in a scene or **across the whole book** (rename a character everywhere, with a preview of every change and one-click undo), clean paste from Word and Google Docs, **comments** pinned to words (read, edit or resolve them in place or in the Comments tab) and **highlights** in six colours, both for you only and left out of exports, automatic and manual snapshots grouped by day with **what changed since** and restore, split and merge scenes. |
 | **Targets and length** | **Writing sprints** (15, 25 or 45 minutes, with the words you wrote and your rate), a book word target with a finish-by date at your recent pace, chapter targets with progress bars, a writing-streak calendar, and **estimated printed pages** for the book and every chapter (only the pages you've actually written) at mass-market, KDP paperback and hardcover sizes or as a standard manuscript. |
 | **Navigation** | Chapter list with a filter (titles and text), pinned and recent chapters, drag-and-drop or menu-based reordering, moving scenes between chapters, tidying chapter titles (removing typed-in numbers), keyboard shortcuts for next and previous scene or chapter, and a collapsible drawer on phones. |
 | **Characters and world (series bible)** | Characters, locations, factions, species, items, lore, glossary and research entries with templated and custom fields, aliases, tags, favourites, images and relationships. Duplicate warnings, "Mentioned in" backlinks, a quick-reference side panel while you write, and each character's **arc** across the book (where they appear, and when they drop out). |
@@ -105,7 +110,7 @@ AuthorDesk is a desktop app for **Windows and Linux**. It has its own built-in b
 | **AI Editor (private)** | Runs an open-source model on your computer with llama.cpp. Rewrite, smoother, tighter, without the adverb, without the echo, clearer, fix grammar, show don't tell, change tone, what's the tone, character voice, and ask. Clicking a flagged word shows its best fix right there. It can also tell you whether a changed detail looks like a continuity mistake or a deliberate change, and explain a chapter's main patterns like an editor's note. Every version has **Use** (one undoable step); nothing is written into your book otherwise. |
 | **Review the whole book** | Reading ease, sentence variety, dialogue share, pacing per chapter, overused words and phrases, crutch words, sticky sentences, slow stretches, continuity, and **character voices** (who talks, how much, their usual speech tags and the words that set each voice apart). **Edit passes** turn every suggestion into a checklist to work through, and export as a report for a human editor. |
 | **Search** | Search everything (Ctrl+K): manuscript, references, board, timeline, threads and notes, with filters and snippets. Opening a result highlights the matches. |
-| **Import your existing book** | A folder or zip of chapter files (`.md` or `.txt`) plus spreadsheets for characters, locations, world entries, story board, timeline and plot threads. You see a preview before anything is imported, and entries are linked by name. Exact layout: [**IMPORTING.md**](IMPORTING.md). |
+| **Import your existing book** | A **Word document or Google Doc** (.docx): chapters from its headings or "Chapter" lines, with bold, italic, scene breaks, and Word's comments and highlights carried over, as a new book or added to one. Or a folder or zip of chapter files (`.md` or `.txt`) plus spreadsheets for characters, locations, world entries, story board, timeline and plot threads. You see a preview before anything is imported, and entries are linked by name. Exact layout: [**IMPORTING.md**](IMPORTING.md). |
 | **Book pages** | Dedication, epigraph, acknowledgements, About the Author and "Also by", written once on the **Home** page. Each one can apply to all your books, every book in the project, or specific books, and you choose which to include in every export (Word, text, Markdown, KDP). |
 | **Pitch** | The book's **logline, back-cover blurb and synopsis** on Home, with an optional first draft from the AI Editor built from your chapter summaries and outline notes (it points out any name it made up). The blurb can become the eBook's description. |
 | **Publish on Amazon KDP** | Kindle eBook as **EPUB 3** (Amazon's recommended format, in a Classic, Modern or Minimal style) or **Word**, and a **paperback/hardcover interior**: a print-ready **PDF typeset by AuthorDesk** (two bundled book fonts, running heads, real page numbers in the contents, no stranded lines) or `.docx`, at KDP trim sizes. Mirrored margins meet KDP's gutter rules, chapters start on right-hand pages, front and back matter are added, and an optional **table of contents** is included. A pre-publish checklist catches common problems. |
@@ -123,6 +128,8 @@ A full walk-through is in the [**user guide**](docs/user-guide.md).
 | Ctrl+F | Find & replace in the scene |
 | Ctrl+Shift+H | Find & replace in the whole book |
 | Ctrl+S | Save now |
+| Ctrl+Alt+M | Comment on the selected words |
+| Ctrl+Alt+H | Highlight the selection (last colour used) |
 | Alt+PageDown / PageUp | Next / previous chapter |
 | Alt+Shift+PageDown / PageUp | Next / previous scene |
 | Ctrl+Alt+F | Focus mode (Esc exits) |
@@ -200,7 +207,9 @@ Your books are stored in the app's own database (IndexedDB), in the AuthorDesk d
 
 ## Bringing in an existing book
 
-Go to **Backup → Import**, or choose **Bring in my existing book** on the welcome screen.
+**From Word or Google Docs:** choose **Start from a Word or Google Docs file** on the welcome screen (or on *Your books*), or **Backup → Import → A Word or Google Docs file** to add chapters to the book you're in. For a Google Doc, first use *File → Download → Microsoft Word (.docx)*. AuthorDesk shows the chapters it found (from the document's headings, or lines like "Chapter 3") before anything is added; a title page before the first chapter is left unticked. Bold, italic, underline, scene breaks (`* * *`), and Word's comments and highlights come across; fonts and spacing don't, since your export settings decide the book's look.
+
+**A whole project (chapters, characters, places, plans):** go to **Backup → Import**, or choose **Bring in my existing book** on the welcome screen.
 
 ```
 My Book/
@@ -217,8 +226,6 @@ My Book/
 ```
 
 Every column, accepted file type and naming rule is documented in [**IMPORTING.md**](IMPORTING.md). A filled-in example is in [`docs/import-template/`](docs/import-template/), and you can download it from inside the app.
-
-Word `.docx` files can't be imported directly. Save chapters from Word as `.txt`, or download Google Docs as Markdown.
 
 ---
 
@@ -327,7 +334,6 @@ desktop/            desktop app (Electron): window, local server, add-on install
 scripts/            make-icons.ps1
 docs/               user guide, architecture, ADRs, setup guides, import template, screenshots
 .github/workflows/  Linux build and checks
-PROJECT.md          product specification
 IMPLEMENTATION_PLAN.md  phase-by-phase status
 IMPORTING.md        exact import layout
 ```
@@ -375,7 +381,7 @@ Details: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 - Spell check covers US and UK English. The on-device grammar checks are rule-based hints, not a full parser; turn on the optional LanguageTool check for deeper grammar. The free LanguageTool service allows about 20 checks a minute, so after a large paste the rest of the scene is checked a little later.
 - Google Drive is untested with a real account. There's no folder picker: backups go to an "AuthorDesk Backups" folder that AuthorDesk creates.
 - Sync: deleting a project on one device doesn't delete it on others; use *Delete cloud copy*. Revision snapshots stay on each device.
-- Word `.docx` files can't be imported directly (see [IMPORTING.md](IMPORTING.md)).
+- Importing a Word file takes the text and its emphasis, comments and highlights, not footnotes, images or tables' layout. Old-style `.doc` files need saving as `.docx` first.
 - Windows and 64-bit Linux only for now (no macOS build).
 - The Windows app isn't code-signed, so Windows SmartScreen warns on first launch.
 
@@ -391,7 +397,6 @@ Details: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | [docs/google-drive-setup.md](docs/google-drive-setup.md) | Setting up Google Drive backups |
 | [docs/architecture.md](docs/architecture.md) | How the app is put together |
 | [docs/adr/](docs/adr/) | Architecture decision records |
-| [PROJECT.md](PROJECT.md) | Product specification |
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Phase-by-phase status |
 
 ---

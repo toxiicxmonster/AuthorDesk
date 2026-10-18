@@ -25,6 +25,8 @@ const SHORTCUTS: [string, string][] = [
   ['Alt+PageDown / Alt+PageUp', 'Next / previous chapter'],
   ['Alt+Shift+PageDown / PageUp', 'Next / previous scene'],
   ['Ctrl+Alt+F', 'Focus mode (Esc to exit)'],
+  ['Ctrl+Alt+M', 'Comment on the selected words'],
+  ['Ctrl+Alt+H', 'Highlight the selection'],
   ['Ctrl+\\', 'Show / hide the chapter list'],
   ['Ctrl+B / Ctrl+I / Ctrl+U', 'Bold / italic / underline'],
   ['Ctrl+Z / Ctrl+Y', 'Undo / redo'],

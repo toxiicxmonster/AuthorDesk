@@ -14,7 +14,9 @@ Coming from an earlier version, which ran inside Edge or Chrome? Your books are 
 
 ## Themes
 
-Click **◐** in the top bar to switch between Paper, Sepia, Pastel Blue, Sage, Cozy Cottage, Night or *Match my device*. To make your own: Settings → Theme → *Create a theme*, pick five colours (background, panels, writing page, text, accent) and watch the whole app update as you go. AuthorDesk tells you if the text would be hard to read. Use *Share* to save a theme as a file and *Import a theme file* to add one.
+Click **◐** in the top bar to switch between Paper, Sepia, Velvet Sheets (deep wine and rose over faint lace, for romance), Sage, Cozy Cottage (cream cards on cobblestones), Night or *Match my device*. To make your own: Settings → Theme → *Create a theme*, pick five colours (background, panels, writing page, text, accent) and watch the whole app update as you go. AuthorDesk tells you if the text would be hard to read.
+
+**Background picture:** in the same editor, *Choose a picture…* puts any photo or pattern behind everything (where the background colour shows; the writing page and panels stay plain). Choose **Fit to size** for one picture that fills the window, or **Repeat** to tile a pattern or texture. *Soften the picture* washes it with your background colour so the text on it stays readable. Large pictures are shrunk to a sensible size and kept with the theme. Use *Share* to save a theme (picture included) as a file and *Import a theme file* to add one.
 
 ## Writing
 
@@ -31,6 +33,8 @@ Click **◐** in the top bar to switch between Paper, Sepia, Pastel Blue, Sage, 
 - **Plan checklist:** lines in a scene's notes or a chapter's summary that start with a dash or bullet (“- Finn helps her clean up”) appear under them as a checklist to tick off while you draft. Points your text already seems to cover say *looks written* (the point-of-view character's name isn't needed, since a first-person scene doesn't use it), but only you tick them. Several points typed on one line (“- Winnie wears his number - Finn sees her - He's surprised”) can be split into a line each with *Split into 3 points*. The Board's Outline shows each chapter's and scene's progress (☑ Plan 2/5). While you write, the bar under the page shows the next point not ticked off yet (*Next: …*); click it to open the checklist.
 - **Writing sprints:** *Sprint* on the writing toolbar starts a 15, 25 or 45-minute sprint. A small clock shows the time left and the words written so far (across every scene, and in Focus mode too); at the end you see the total, the words a minute, and how it compares with your best. *Stop* ends it early.
 - **Find & replace in the whole book** (Ctrl+Shift+H, *Whole book…* in the find bar, Ctrl+K → *Find & replace in the book*, or **Rename everywhere…** on a character's entry): every match is listed with its sentence and what it will become; untick any you want to keep. With *Match case* off, capitals follow each match ("Jace" at the start of a sentence becomes "Finn" even if you type "finn"). If the word is a character's or place's name (or part of it, like "Jace" in "Jace Kensington"), it offers to rename the entry too. Every changed scene keeps a *before replace* version, and **Undo** in the message afterwards puts it all back.
+- **Comments:** select some words and press **Ctrl+Alt+M** (or the speech-bubble button in the toolbar, or *Comment* in the menu that appears over a selection) to pin a note to them, like a comment in Word or Google Docs. Commented words are tinted and underlined; click them to read the comment, *Edit* it or *Resolve* it (remove it). The **Comments** tab in the side panel lists every comment in the scene; click one to jump to its words. Comments are only for you: they're saved with the scene but never appear in any export.
+- **Highlights:** select words and click the highlighter (or press **Ctrl+Alt+H**) to mark them in the last colour you used; the ▾ beside it offers yellow, green, blue, pink, purple and orange, and *No highlight*. Clicking a highlighted selection again in the same colour takes it off. Like comments, highlights are left out of exports.
 - **Versions tab:** snapshots of the scene, grouped by day, each with its time and how many words it gained or lost since the one before. Open one to see **what changed since** (removed words struck through, added words highlighted, unchanged paragraphs folded away, and how many words came and went) or the version as it was; copy it or restore it (your current text is snapshotted first).
 - **Pacing strip:** the thin strip to the right of the page draws the scene's rhythm, one tick per sentence from top to bottom, wider for longer sentences. Dialogue ticks are in the accent colour and narration in grey, long sentences (30+ words) are orange, and an orange edge marks paragraphs of 150+ words. The outlined band is the part on screen; click anywhere on the strip to jump there. Hover it for a summary. Turn it off in Settings → Writing page; it hides in Focus mode.
 
@@ -128,7 +132,9 @@ If you change the book later, export again and re-upload; KDP replaces the old f
 
 ## Bringing in an existing book
 
-Backup → **Import your own files** (or *Bring in my existing book* on the welcome screen). Chapters go in a `chapters/` folder as `.md` or `.txt` files; characters, places, the story board, timeline and plot threads go in CSV spreadsheets. Every detail is in [IMPORTING.md](../IMPORTING.md).
+**From Word or Google Docs:** choose *Start from a Word or Google Docs file* on the welcome screen or on *Your books*, or Backup → Import → *Choose a Word file (.docx)…* to add chapters to the book you're in. For a Google Doc, download it first with *File → Download → Microsoft Word (.docx)*. You'll see the chapters AuthorDesk found (from the document's headings, or lines like "Chapter 3", or page breaks) with their word counts, and can untick any; text before the first chapter (a title page) starts unticked. Bold, italic, underline, strikethrough, scene breaks, Word's comments and Word's highlights come across. Fonts, sizes and spacing don't: your export settings decide how the book looks.
+
+**A whole project:** Backup → **Import your own files** (or *Bring in my existing book* on the welcome screen). Chapters go in a `chapters/` folder as `.md` or `.txt` files; characters, places, the story board, timeline and plot threads go in CSV spreadsheets. Every detail is in [IMPORTING.md](../IMPORTING.md).
 
 ## Backups
 
@@ -145,4 +151,6 @@ Backup → **Import your own files** (or *Bring in my existing book* on the welc
 | Alt+PageDown / PageUp | Next / previous chapter |
 | Alt+Shift+PageDown / PageUp | Next / previous scene |
 | Ctrl+Alt+F | Focus mode (Esc exits) |
+| Ctrl+Alt+M | Comment on the selected words |
+| Ctrl+Alt+H | Highlight the selection |
 | Ctrl+\\ | Toggle chapter list |

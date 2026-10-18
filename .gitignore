@@ -37,3 +37,6 @@ releases/
 # Local planning notes (not shipped)
 docs/ai-editor-plan.md
 docs/roadmap-plan.md
+
+# Internal planning notes, kept on this computer only
+PROJECT.md

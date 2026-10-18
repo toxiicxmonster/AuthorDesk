@@ -84,7 +84,7 @@ Last updated: 2026-10-11. Legend: ✅ done & tested · 🟡 done, needs real-wor
 - Launcher data tied to origin/profile → fixed port, documented; backups.
 - Rule-based grammar has false positives → style rules off by default, per-rule disable, ignore list.
 
-## Acceptance checklist (PROJECT.md §20)
+## Acceptance checklist (from the original specification)
 - [x] App runs locally with documented commands.
 - [ ] PWA installed on a phone (needs HTTPS host).
 - [x] Create and reopen a project without data loss.

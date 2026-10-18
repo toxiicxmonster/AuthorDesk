@@ -4,7 +4,7 @@
 
 ## Context
 
-Work must move between PC and phone without exposing manuscripts publicly, without long-lived tokens in browser storage, without “last write wins”, and without locking the author into one vendor. PROJECT.md lists a GitHub-repo-as-storage option but requires server-side OAuth for it.
+Work must move between PC and phone without exposing manuscripts publicly, without long-lived tokens in browser storage, without “last write wins”, and without locking the author into one vendor. The original specification listed a GitHub-repo-as-storage option but requires server-side OAuth for it.
 
 ## Decision
 
