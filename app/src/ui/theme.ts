@@ -67,12 +67,13 @@ export const BUILTIN_THEMES: ThemeDef[] = [
     background: { image: './themes/sage-leaves.svg', mode: 'repeat', fade: 10 },
   },
   {
+    // The id stays 'cottage' (its first name, Cozy Cottage) so anyone who chose it keeps it.
     id: 'cottage',
-    name: 'Cozy Cottage',
+    name: 'Medieval',
     builtIn: true,
-    // A cobbled lane outside, cream paper, chocolate ink and a terracotta door.
-    colors: { background: '#b7a893', panel: '#f2e4d2', page: '#fdf8f0', text: '#3b2a20', accent: '#a04e3a' },
-    background: { image: './themes/cobblestone.svg', mode: 'repeat', fade: 30 },
+    // A castle: cobbled courtyard stone, parchment, iron-gall ink and a heraldic crimson.
+    colors: { background: '#9f998e', panel: '#efe3c8', page: '#f8f0dc', text: '#2a2119', accent: '#8a1e22' },
+    background: { image: './themes/cobblestone.svg', mode: 'repeat', fade: 25 },
   },
   {
     id: 'storybook',

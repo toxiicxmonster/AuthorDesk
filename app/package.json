@@ -1,6 +1,6 @@
 {
   "name": "authordesk",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "license": "GPL-3.0",
   "description": "AuthorDesk - local-first writing studio for novelists",
   "scripts": {

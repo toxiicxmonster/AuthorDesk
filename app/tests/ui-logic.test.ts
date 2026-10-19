@@ -5,7 +5,7 @@ import { createSampleProject } from '../src/storage/sample';
 
 describe('themes', () => {
   it('ships three readable built-in themes', () => {
-    expect(BUILTIN_THEMES.map((t) => t.name)).toEqual(['Paper', 'Writing Desk', 'Sepia', 'Sage', 'Cozy Cottage', 'Storybook', 'Wild West', 'Christmas', 'Romance', 'Fantasy', 'Mystery', 'Spooky', 'Starship', 'Night']);
+    expect(BUILTIN_THEMES.map((t) => t.name)).toEqual(['Paper', 'Writing Desk', 'Sepia', 'Sage', 'Medieval', 'Storybook', 'Wild West', 'Christmas', 'Romance', 'Fantasy', 'Mystery', 'Spooky', 'Starship', 'Night']);
     for (const t of BUILTIN_THEMES) {
       expect(contrast(t.colors.text, t.colors.page)).toBeGreaterThanOrEqual(7);
       expect(contrast(t.colors.text, t.colors.panel)).toBeGreaterThanOrEqual(4.5);

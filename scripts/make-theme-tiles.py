@@ -33,14 +33,15 @@ def cobblestone():
             x += w
     defs = []
     shapes = []
-    palette = ['#a79a89', '#b3a693', '#9d907f', '#ad9f8b', '#988b7b', '#b8ab98', '#a39583']
+    # Castle stone: cool greys with a hint of moss-brown.
+    palette = ['#a19d94', '#ada89e', '#96928a', '#a8a397', '#8f8b83', '#b3aea3', '#9b968c']
     for i, (x, y, w, h) in enumerate(out):
         g = 3.2  # mortar gap
         rx = rnd.uniform(9, 15)
         jx, jy = rnd.uniform(-1.5, 1.5), rnd.uniform(-1.5, 1.5)
         fill = rnd.choice(palette)
         gid = f'g{i}'
-        defs.append(f'<radialGradient id="{gid}" cx="{rnd.uniform(.35,.5):.2f}" cy="{rnd.uniform(.3,.42):.2f}" r=".8"><stop offset="0" stop-color="{fill}"/><stop offset=".75" stop-color="{fill}" stop-opacity=".92"/><stop offset="1" stop-color="#6f6356"/></radialGradient>')
+        defs.append(f'<radialGradient id="{gid}" cx="{rnd.uniform(.35,.5):.2f}" cy="{rnd.uniform(.3,.42):.2f}" r=".8"><stop offset="0" stop-color="{fill}"/><stop offset=".75" stop-color="{fill}" stop-opacity=".92"/><stop offset="1" stop-color="#615d55"/></radialGradient>')
         for dx in (-W, 0, W):
             shapes.append(
                 f'<rect x="{x+dx+g/2+jx:.1f}" y="{y+g/2+jy:.1f}" width="{w-g:.1f}" height="{h-g:.1f}" rx="{rx:.1f}" fill="url(#{gid})"/>'
@@ -49,7 +50,7 @@ def cobblestone():
 <defs>{''.join(defs)}
 <filter id="n" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .25  0 0 0 0 .2  0 0 0 0 .15  0 0 0 .22 0"/></filter>
 </defs>
-<rect width="{W}" height="{H}" fill="#62574b"/>
+<rect width="{W}" height="{H}" fill="#4f4b45"/>
 {''.join(shapes)}
 <rect width="{W}" height="{H}" filter="url(#n)"/>
 </svg>
